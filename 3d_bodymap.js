@@ -86,7 +86,9 @@ loader.load(
 // Raycaster for selecting faces
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let selectedFace = null; // Track the currently selected face
+let selectedFaces = new Set(); // Track the currently selected face
+
+raycaster.params.Points.threshold = 0.1;
 
 // Event listener for mouse clicks
 window.addEventListener('click', (event) => {
@@ -105,15 +107,14 @@ window.addEventListener('click', (event) => {
 
     if (intersects.length > 0) {
         const intersect = intersects[0];
+        const faceIndex = intersect.faceIndex;
 
         // If the face is already selected, deselect it
-        if (selectedFace === intersect.faceIndex) {
+        if (selectedFaces.has(faceIndex)) {
             deselectFace(intersect);
-            selectedFace = null;
         } else {
             // Highlight the selected face
             selectFace(intersect);
-            selectedFace = intersect.faceIndex;
         }
     } else {
         console.log("No intersection detected");
@@ -126,6 +127,8 @@ function selectFace(intersect) {
 
     if (geometry && geometry.index && geometry.attributes.color) {
         const faceIndex = intersect.faceIndex;
+        selectedFaces.add(faceIndex);
+
         const colors = geometry.attributes.color.array;
         const vertexIndices = [
             geometry.index.array[faceIndex * 3],
@@ -152,6 +155,8 @@ function deselectFace(intersect) {
 
     if (geometry && geometry.index && geometry.attributes.color) {
         const faceIndex = intersect.faceIndex;
+        selectedFaces.delete(faceIndex);
+
         const colors = geometry.attributes.color.array;
         const vertexIndices = [
             geometry.index.array[faceIndex * 3],
