@@ -51,29 +51,27 @@ loader.load(
         // Traverse the model and inspect materials
         model.traverse((child) => {
             if (child.isMesh) {
-                if (child.geometry && child.geometry.attributes && child.geometry.attributes.position) {
-                    const positionCount = child.geometry.attributes.position.count;
-        
-                    // Ensure the geometry is indexed
-                    if (!child.geometry.index) {
-                        child.geometry = THREE.BufferGeometryUtils.mergeVertices(child.geometry);
-                        child.geometry.computeVertexNormals();
-                    }
-        
-                    // Ensure the `color` attribute exists
-                    if (!child.geometry.attributes.color) {
-                        const colorArray = new Float32Array(positionCount * 3);
-                        for (let i = 0; i < colorArray.length; i += 3) {
-                            colorArray[i] = 1;     // R (white)
-                            colorArray[i + 1] = 1; // G (white)
-                            colorArray[i + 2] = 1; // B (white)
-                        }
-                        child.geometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
-                    }
-                    child.material.vertexColors = true;
-        
-                    // console.log(`Mesh "${child.name}" has ${child.geometry.index.count / 3} faces`);
-                }
+                const textureSize = 1024; // Texture resolution
+                const canvas = document.createElement('canvas');
+                canvas.width = canvas.height = textureSize;
+                const context = canvas.getContext('2d');
+
+                // Fill the texture with white (base color)
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, textureSize, textureSize);
+
+                // Create a texture from the canvas
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.needsUpdate = true;
+
+                // Assign the texture to the material
+                child.material.map = texture;
+                child.material.needsUpdate = true;
+
+                // Store canvas and context for painting
+                child.userData.canvas = canvas;
+                child.userData.context = context;
+                child.userData.texture = texture;
             }
         });
     },
@@ -86,94 +84,123 @@ loader.load(
 // Raycaster for selecting faces
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let selectedFaces = new Set(); // Track the currently selected face
+// Create and add the UI container
+const uiContainer = document.createElement('div');
+uiContainer.style.position = 'absolute';
+uiContainer.style.top = '10px';
+uiContainer.style.left = '10px';
+uiContainer.style.zIndex = '10';
+uiContainer.style.background = 'rgba(255, 255, 255, 0.8)';
+uiContainer.style.padding = '10px';
+uiContainer.style.borderRadius = '5px';
 
-raycaster.params.Points.threshold = 0.1;
+// Create the label
+const label = document.createElement('label');
+label.textContent = 'Brush Radius: ';
+label.htmlFor = 'brush-radius';
 
-// Event listener for mouse clicks
-window.addEventListener('click', (event) => {
+// Create the span to show the current brush radius value
+const brushRadiusValue = document.createElement('span');
+brushRadiusValue.id = 'brush-radius-value';
+brushRadiusValue.textContent = '5';
+
+// Create the slider input
+const brushRadiusSlider = document.createElement('input');
+brushRadiusSlider.type = 'range';
+brushRadiusSlider.id = 'brush-radius';
+brushRadiusSlider.min = '1';
+brushRadiusSlider.max = '20';
+brushRadiusSlider.step = '5';
+brushRadiusSlider.value = '5';
+
+// Append the label and slider to the container
+uiContainer.appendChild(label);
+uiContainer.appendChild(brushRadiusSlider);
+uiContainer.appendChild(brushRadiusValue);
+
+// Append the container to the body
+document.body.appendChild(uiContainer);
+
+// Update the brushRadius dynamically
+brushRadiusSlider.addEventListener('input', (event) => {
+    brushRadius = parseFloat(event.target.value);
+    brushRadiusValue.textContent = brushRadius.toFixed(1);
+});
+
+let brushRadius = 5;
+let isDrawing = false;
+let isErasing = false;
+
+// Event listener for mouse down (start painting)
+window.addEventListener('mousedown', (event) => {
+    if (event.target === renderer.domElement) { // Ensure interaction is on the canvas
+        isDrawing = true;
+        controls.enabled = false; // Disable rotation controls
+        console.log('Drawing started. Controls disabled.');
+    }
+});
+
+// Event listener for mouse up (stop painting)
+window.addEventListener('mouseup', () => {
+    if (isDrawing) { 
+        isDrawing = false;
+        controls.enabled = true; // Re-enable rotation controls
+        console.log('Drawing stopped. Controls enabled.');
+    }
+});
+
+// Event listener for toggling erase mode (e.g., with the "E" key)
+window.addEventListener('keydown', (event) => {
+    if (event.key === 'e' || event.key === 'E') {
+        isErasing = !isErasing; // Toggle erase mode
+        console.log(`Erase mode: ${isErasing ? 'ON' : 'OFF'}`);
+    }
+});
+
+// Update brushRadius when the slider value changes
+brushRadiusSlider.addEventListener('input', (event) => {
+    brushRadius = parseFloat(event.target.value);
+    brushRadiusValue.textContent = brushRadius.toFixed(1); // Update the displayed value
+});
+
+// Event listener for mouse move (paint while moving)
+window.addEventListener('mousemove', (event) => {
+    if (!isDrawing || !model) return;
+
     // Update mouse coordinates in normalized device space
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    // Only run raycasting if the model is loaded
-    if (!model) return;
 
     // Set raycaster based on mouse position and camera
     raycaster.setFromCamera(mouse, camera);
 
     // Perform raycasting on the model
-    const intersects = raycaster.intersectObject(model, true); // 'true' to include children
+    const intersects = raycaster.intersectObject(model, true);
 
     if (intersects.length > 0) {
         const intersect = intersects[0];
-        const faceIndex = intersect.faceIndex;
+        const uv = intersect.uv;
+        const object = intersect.object;
 
-        // If the face is already selected, deselect it
-        if (selectedFaces.has(faceIndex)) {
-            deselectFace(intersect);
-        } else {
-            // Highlight the selected face
-            selectFace(intersect);
+        if (object.userData.context) {
+            const context = object.userData.context;
+            const canvas = object.userData.canvas;
+
+            // Convert UV coordinates to canvas coordinates
+            const x = Math.floor(uv.x * canvas.width);
+            const y = Math.floor((1 - uv.y) * canvas.height); // Flip Y-axis
+
+            // Draw on the canvas
+            context.beginPath();
+            context.arc(x, y, brushRadius, 0, 2 * Math.PI);
+            context.fillStyle = isErasing ? '#ffffff' : '#9575CD'; // Erase to white or paint red
+            context.fill();
+
+            // Update the texture
+            object.userData.texture.needsUpdate = true;
         }
-    } else {
-        console.log("No intersection detected");
     }
 });
-
-// Function to select a face
-function selectFace(intersect) {
-    const geometry = intersect.object.geometry;
-
-    if (geometry && geometry.index && geometry.attributes.color) {
-        const faceIndex = intersect.faceIndex;
-        selectedFaces.add(faceIndex);
-
-        const colors = geometry.attributes.color.array;
-        const vertexIndices = [
-            geometry.index.array[faceIndex * 3],
-            geometry.index.array[faceIndex * 3 + 1],
-            geometry.index.array[faceIndex * 3 + 2],
-        ];
-
-        // Change the colors of the vertices of the selected face
-        vertexIndices.forEach((vertexIndex) => {
-            colors[vertexIndex * 3] = 0; // R
-            colors[vertexIndex * 3 + 1] = 0; // G
-            colors[vertexIndex * 3 + 2] = 1; // B
-        });
-
-        geometry.attributes.color.needsUpdate = true;
-    } else {
-        console.error("Invalid geometry or color attributes for face selection");
-    }
-}
-
-// Function to deselect a face
-function deselectFace(intersect) {
-    const geometry = intersect.object.geometry;
-
-    if (geometry && geometry.index && geometry.attributes.color) {
-        const faceIndex = intersect.faceIndex;
-        selectedFaces.delete(faceIndex);
-
-        const colors = geometry.attributes.color.array;
-        const vertexIndices = [
-            geometry.index.array[faceIndex * 3],
-            geometry.index.array[faceIndex * 3 + 1],
-            geometry.index.array[faceIndex * 3 + 2],
-        ];
-
-        // Reset the colors of the vertices of the deselected face to white
-        vertexIndices.forEach((vertexIndex) => {
-            colors[vertexIndex * 3] = 1; // R
-            colors[vertexIndex * 3 + 1] = 1; // G
-            colors[vertexIndex * 3 + 2] = 1; // B
-        });
-
-        geometry.attributes.color.needsUpdate = true;
-    }
-}
 
 // Animation loop
 function animate() {
