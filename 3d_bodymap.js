@@ -188,16 +188,14 @@ window.addEventListener('mousemove', (event) => {
     raycaster.setFromCamera(mouse, camera);
 
     // Perform raycasting on the model
-    const intersects = raycaster.intersectObject(model.children, true);
+    const intersects = raycaster.intersectObject(model, true);
 
     if (intersects.length > 0) {
-        // Prioritize the body mesh if present
-        const bodyIntersect = intersects.find(intersect => intersect.object.name === 'Body');
-        const intersect = bodyIntersect || intersects[0]; // Use the body if available, otherwise the first intersected mesh
+        const intersect = intersects[0];
+        const uv = intersect.uv;
+        const object = intersect.object;
 
-        if (intersect && intersect.object.userData.context) {
-            const uv = intersect.uv;
-            const object = intersect.object;
+        if (object.userData.context) {
             const context = object.userData.context;
             const canvas = object.userData.canvas;
 
@@ -208,7 +206,7 @@ window.addEventListener('mousemove', (event) => {
             // Draw on the canvas
             context.beginPath();
             context.arc(x, y, brushRadius, 0, 2 * Math.PI);
-            context.fillStyle = isErasing ? '#ffffff' : '#ff0000'; // Erase to white or paint red
+            context.fillStyle = isErasing ? '#ffffff' : '#9575CD'; // Erase to white or paint red
             context.fill();
 
             // Update the texture
