@@ -133,10 +133,23 @@ let isErasing = false;
 
 // Event listener for mouse down (start painting)
 window.addEventListener('mousedown', (event) => {
-    if (event.target === renderer.domElement) { // Ensure interaction is on the canvas
+    if (!model) return; // Ensure the model is loaded
+
+    // Update mouse coordinates in normalized device space
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // Set raycaster based on mouse position and camera
+    raycaster.setFromCamera(mouse, camera);
+
+    // Check if the mouse is intersecting with the body map
+    const intersects = raycaster.intersectObject(model, true);
+
+    if (intersects.length > 0) {
+        // Start drawing only if the body map is intersected
         isDrawing = true;
         controls.enabled = false; // Disable rotation controls
-        console.log('Drawing started. Controls disabled.');
+        console.log('Drawing started on the body map.');
     }
 });
 
@@ -175,14 +188,16 @@ window.addEventListener('mousemove', (event) => {
     raycaster.setFromCamera(mouse, camera);
 
     // Perform raycasting on the model
-    const intersects = raycaster.intersectObject(model, true);
+    const intersects = raycaster.intersectObject(model.children, true);
 
     if (intersects.length > 0) {
-        const intersect = intersects[0];
-        const uv = intersect.uv;
-        const object = intersect.object;
+        // Prioritize the body mesh if present
+        const bodyIntersect = intersects.find(intersect => intersect.object.name === 'Body');
+        const intersect = bodyIntersect || intersects[0]; // Use the body if available, otherwise the first intersected mesh
 
-        if (object.userData.context) {
+        if (intersect && intersect.object.userData.context) {
+            const uv = intersect.uv;
+            const object = intersect.object;
             const context = object.userData.context;
             const canvas = object.userData.canvas;
 
@@ -193,7 +208,7 @@ window.addEventListener('mousemove', (event) => {
             // Draw on the canvas
             context.beginPath();
             context.arc(x, y, brushRadius, 0, 2 * Math.PI);
-            context.fillStyle = isErasing ? '#ffffff' : '#9575CD'; // Erase to white or paint red
+            context.fillStyle = isErasing ? '#ffffff' : '#ff0000'; // Erase to white or paint red
             context.fill();
 
             // Update the texture
