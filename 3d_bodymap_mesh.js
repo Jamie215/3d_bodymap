@@ -43,7 +43,7 @@ window.addEventListener('resize', () => {
 let model;
 const loader = new THREE.GLTFLoader();
 loader.load(
-    './preliminary_3D_manikin.glb',
+    './preliminary_3D_manikin_uniformmesh.glb',
     (gltf) => {
         model = gltf.scene;
         scene.add(model);
