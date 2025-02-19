@@ -1,0 +1,491 @@
+{
+    "asset": {
+      "generator": "Khronos glTF Blender I/O v4.2.60",
+      "version": "2.0"
+    },
+    "extensionsUsed": [
+      "KHR_materials_clearcoat"
+    ],
+    "scene": 0,
+    "scenes": [
+      {
+        "name": "Scene",
+        "nodes": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "mesh": 0,
+        "name": "Hair"
+      },
+      {
+        "mesh": 1,
+        "name": "Human"
+      },
+      {
+        "mesh": 2,
+        "name": "Shorts"
+      },
+      {
+        "mesh": 3,
+        "name": "Top"
+      }
+    ],
+    "materials": [
+      {
+        "alphaMode": "BLEND",
+        "doubleSided": true,
+        "extensions": {
+          "KHR_materials_clearcoat": {
+            "clearcoatRoughnessFactor": 0
+          }
+        },
+        "name": "Human.short03",
+        "pbrMetallicRoughness": {
+          "baseColorTexture": {
+            "index": 0
+          },
+          "metallicFactor": 0,
+          "roughnessFactor": 0.699999988079071
+        }
+      },
+      {
+        "doubleSided": true,
+        "name": "Skin",
+        "pbrMetallicRoughness": {
+          "baseColorFactor": [
+            0.800000011920929,
+            0.800000011920929,
+            0.800000011920929,
+            1
+          ],
+          "metallicFactor": 0,
+          "roughnessFactor": 0.5
+        }
+      },
+      {
+        "alphaMode": "BLEND",
+        "doubleSided": true,
+        "extensions": {
+          "KHR_materials_clearcoat": {
+            "clearcoatRoughnessFactor": 0
+          }
+        },
+        "name": "Human.elvs_crude_bootyshorts",
+        "normalTexture": {
+          "index": 1
+        },
+        "pbrMetallicRoughness": {
+          "baseColorTexture": {
+            "index": 2
+          },
+          "metallicFactor": 0,
+          "roughnessFactor": 0.699999988079071
+        }
+      },
+      {
+        "alphaMode": "BLEND",
+        "doubleSided": true,
+        "extensions": {
+          "KHR_materials_clearcoat": {
+            "clearcoatRoughnessFactor": 0
+          }
+        },
+        "name": "Human.punkduck_sport_bra",
+        "normalTexture": {
+          "index": 3
+        },
+        "pbrMetallicRoughness": {
+          "baseColorTexture": {
+            "index": 4
+          },
+          "metallicFactor": 0,
+          "roughnessFactor": 0.699999988079071
+        }
+      }
+    ],
+    "meshes": [
+      {
+        "name": "short03",
+        "primitives": [
+          {
+            "attributes": {
+              "POSITION": 0,
+              "NORMAL": 1,
+              "TEXCOORD_0": 2
+            },
+            "indices": 3,
+            "material": 0
+          }
+        ]
+      },
+      {
+        "name": "base",
+        "primitives": [
+          {
+            "attributes": {
+              "POSITION": 4,
+              "NORMAL": 5,
+              "TEXCOORD_0": 6
+            },
+            "indices": 7,
+            "material": 1
+          }
+        ]
+      },
+      {
+        "name": "elvs_bootyshorts2a",
+        "primitives": [
+          {
+            "attributes": {
+              "POSITION": 8,
+              "NORMAL": 9,
+              "TEXCOORD_0": 10
+            },
+            "indices": 11,
+            "material": 2
+          }
+        ]
+      },
+      {
+        "name": "sport_bra01",
+        "primitives": [
+          {
+            "attributes": {
+              "POSITION": 12,
+              "NORMAL": 13,
+              "TEXCOORD_0": 14
+            },
+            "indices": 15,
+            "material": 3
+          }
+        ]
+      }
+    ],
+    "textures": [
+      {
+        "sampler": 0,
+        "source": 0
+      },
+      {
+        "sampler": 0,
+        "source": 1
+      },
+      {
+        "sampler": 0,
+        "source": 2
+      },
+      {
+        "sampler": 0,
+        "source": 3
+      },
+      {
+        "sampler": 0,
+        "source": 4
+      }
+    ],
+    "images": [
+      {
+        "bufferView": 4,
+        "mimeType": "image/png",
+        "name": "short03_diffuse"
+      },
+      {
+        "bufferView": 13,
+        "mimeType": "image/png",
+        "name": "shnormals"
+      },
+      {
+        "bufferView": 14,
+        "mimeType": "image/png",
+        "name": "shorttex1"
+      },
+      {
+        "bufferView": 19,
+        "mimeType": "image/png",
+        "name": "sport_bra01_norm"
+      },
+      {
+        "bufferView": 20,
+        "mimeType": "image/png",
+        "name": "sport_bra01"
+      }
+    ],
+    "accessors": [
+      {
+        "bufferView": 0,
+        "componentType": 5126,
+        "count": 1034,
+        "max": [
+          0.07714024186134338,
+          1.6661463975906372,
+          0.15985006093978882
+        ],
+        "min": [
+          -0.09352751821279526,
+          1.4604028463363647,
+          -0.056843437254428864
+        ],
+        "type": "VEC3"
+      },
+      {
+        "bufferView": 1,
+        "componentType": 5126,
+        "count": 1034,
+        "type": "VEC3"
+      },
+      {
+        "bufferView": 2,
+        "componentType": 5126,
+        "count": 1034,
+        "type": "VEC2"
+      },
+      {
+        "bufferView": 3,
+        "componentType": 5123,
+        "count": 5766,
+        "type": "SCALAR"
+      },
+      {
+        "bufferView": 5,
+        "componentType": 5126,
+        "count": 14517,
+        "max": [
+          0.5255246162414551,
+          1.6594313383102417,
+          0.33447206020355225
+        ],
+        "min": [
+          -0.5255246162414551,
+          1.132139004766941e-8,
+          -0.09550102800130844
+        ],
+        "type": "VEC3"
+      },
+      {
+        "bufferView": 6,
+        "componentType": 5126,
+        "count": 14517,
+        "type": "VEC3"
+      },
+      {
+        "bufferView": 7,
+        "componentType": 5126,
+        "count": 14517,
+        "type": "VEC2"
+      },
+      {
+        "bufferView": 8,
+        "componentType": 5123,
+        "count": 80268,
+        "type": "SCALAR"
+      },
+      {
+        "bufferView": 9,
+        "componentType": 5126,
+        "count": 286,
+        "max": [
+          0.17887669801712036,
+          0.9519531726837158,
+          0.13047021627426147
+        ],
+        "min": [
+          -0.17885331809520721,
+          0.7624145150184631,
+          -0.09775511920452118
+        ],
+        "type": "VEC3"
+      },
+      {
+        "bufferView": 10,
+        "componentType": 5126,
+        "count": 286,
+        "type": "VEC3"
+      },
+      {
+        "bufferView": 11,
+        "componentType": 5126,
+        "count": 286,
+        "type": "VEC2"
+      },
+      {
+        "bufferView": 12,
+        "componentType": 5123,
+        "count": 1380,
+        "type": "SCALAR"
+      },
+      {
+        "bufferView": 15,
+        "componentType": 5126,
+        "count": 1236,
+        "max": [
+          0.14425328373908997,
+          1.408561110496521,
+          0.15968437492847443
+        ],
+        "min": [
+          -0.14425328373908997,
+          1.1114555597305298,
+          -0.0729265883564949
+        ],
+        "type": "VEC3"
+      },
+      {
+        "bufferView": 16,
+        "componentType": 5126,
+        "count": 1236,
+        "type": "VEC3"
+      },
+      {
+        "bufferView": 17,
+        "componentType": 5126,
+        "count": 1236,
+        "type": "VEC2"
+      },
+      {
+        "bufferView": 18,
+        "componentType": 5123,
+        "count": 5508,
+        "type": "SCALAR"
+      }
+    ],
+    "bufferViews": [
+      {
+        "buffer": 0,
+        "byteLength": 12408,
+        "byteOffset": 0,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 12408,
+        "byteOffset": 12408,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 8272,
+        "byteOffset": 24816,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 11532,
+        "byteOffset": 33088,
+        "target": 34963
+      },
+      {
+        "buffer": 0,
+        "byteLength": 2392930,
+        "byteOffset": 44620
+      },
+      {
+        "buffer": 0,
+        "byteLength": 174204,
+        "byteOffset": 2437552,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 174204,
+        "byteOffset": 2611756,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 116136,
+        "byteOffset": 2785960,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 160536,
+        "byteOffset": 2902096,
+        "target": 34963
+      },
+      {
+        "buffer": 0,
+        "byteLength": 3432,
+        "byteOffset": 3062632,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 3432,
+        "byteOffset": 3066064,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 2288,
+        "byteOffset": 3069496,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 2760,
+        "byteOffset": 3071784,
+        "target": 34963
+      },
+      {
+        "buffer": 0,
+        "byteLength": 13878035,
+        "byteOffset": 3074544
+      },
+      {
+        "buffer": 0,
+        "byteLength": 11792539,
+        "byteOffset": 16952580
+      },
+      {
+        "buffer": 0,
+        "byteLength": 14832,
+        "byteOffset": 28745120,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 14832,
+        "byteOffset": 28759952,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 9888,
+        "byteOffset": 28774784,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteLength": 11016,
+        "byteOffset": 28784672,
+        "target": 34963
+      },
+      {
+        "buffer": 0,
+        "byteLength": 737531,
+        "byteOffset": 28795688
+      },
+      {
+        "buffer": 0,
+        "byteLength": 353259,
+        "byteOffset": 29533220
+      }
+    ],
+    "samplers": [
+      {
+        "magFilter": 9729,
+        "minFilter": 9987
+      }
+    ],
+    "buffers": [
+      {
+        "byteLength": 29886480
+      }
+    ]
+  }
