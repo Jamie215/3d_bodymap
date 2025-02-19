@@ -50,8 +50,11 @@ controls.maxDistance = 10; // Maximum zoom
 controls.target.set(0, 1.5, 0); // Focus point
 controls.update();
 
+// Panning mode
+controls.enablePan = false;
+
 // Position the camera
-camera.position.set(0, 1.5, 5);
+camera.position.set(0, 1.5, 2);
 camera.lookAt(0, 1.5, 0);
 
 // Handle window resizing
@@ -68,7 +71,11 @@ loader.load(
     './preliminary_3D_manikin.glb',
     (gltf) => {
         model = gltf.scene;
+        model.position.y += 0.5;
+        
         scene.add(model);
+
+        console.log("GLTF Full Metadata:", JSON.stringify(gltf.parser.json, null, 2));
 
         // Traverse the model and inspect materials
         model.traverse((child) => {
@@ -134,11 +141,19 @@ uiContainer.style.zIndex = '10';
 uiContainer.style.background = 'rgba(255, 255, 255, 0.8)';
 uiContainer.style.padding = '10px';
 uiContainer.style.borderRadius = '5px';
+uiContainer.style.display = 'flex';
+uiContainer.style.alignItems = 'center';
+uiContainer.style.gap = '10px';
+uiContainer.style.fontFamily = "'Roboto', sans-serif";
+uiContainer.style.fontSize = "20px";
 
 // Create the label
 const label = document.createElement('label');
-label.textContent = 'Brush Radius: ';
+label.textContent = 'Brush Size: ';
 label.htmlFor = 'brush-radius';
+label.style.fontFamily = "'Roboto', sans-serif";
+label.style.fontSize = "20px";
+label.style.fontWeight = "bold";
 
 // Create the span to show the current brush radius value
 const brushRadiusValue = document.createElement('span');
@@ -154,9 +169,13 @@ brushRadiusSlider.max = '31';
 brushRadiusSlider.step = '5';
 brushRadiusSlider.value = '5';
 
+brushRadiusValue.style.fontFamily = "'Roboto', sans-serif";
+brushRadiusValue.style.fontSize = "20px";
+brushRadiusValue.style.marginLeft = "5px"; 
+
 // Create erase mode toggle button
 const eraseButton = document.createElement('button');
-eraseButton.textContent = 'Erase Mode: OFF'
+eraseButton.textContent = 'Drawing Mode'
 eraseButton.style.padding = '8px 12px';
 eraseButton.style.marginTop = '10px';
 eraseButton.style.marginLeft = '20px';
@@ -165,6 +184,7 @@ eraseButton.style.borderRadius = '5px';
 eraseButton.style.background = '#d32f2f'; // Red color for erasing
 eraseButton.style.color = '#ffffff';
 eraseButton.style.fontFamily = "'Roboto', sans-serif";
+eraseButton.style.fontSize = '20px';
 eraseButton.style.cursor = 'pointer';
 eraseButton.style.padding = '10px';
 
@@ -179,7 +199,23 @@ resetButton.style.borderRadius = '5px';
 resetButton.style.background = '#1976D2'; // Blue color for reset
 resetButton.style.color = '#ffffff';
 resetButton.style.fontFamily = "'Roboto', sans-serif";
+resetButton.style.fontSize = '20px';
 resetButton.style.cursor = 'pointer';
+resetButton.style.padding = '10px';
+
+// Create Pan Mode toggle button
+const panButton = document.createElement('button');
+panButton.textContent = "Pan Mode: OFF";
+panButton.style.padding = '8px 12px';
+panButton.style.marginTop = '10px';
+panButton.style.marginLeft = '20px';
+panButton.style.border = 'none';
+panButton.style.borderRadius = '5px';
+panButton.style.background = '#1976D2'; // Blue for active control
+panButton.style.color = '#ffffff';
+panButton.style.fontFamily = "'Roboto', sans-serif";
+panButton.style.fontSize = '20px';
+panButton.style.cursor = 'pointer';
 resetButton.style.padding = '10px';
 
 // Append the label and slider to the container
@@ -190,6 +226,7 @@ uiContainer.appendChild(brushRadiusValue);
 // Append buttons to the container
 uiContainer.appendChild(eraseButton);
 uiContainer.appendChild(resetButton);
+uiContainer.appendChild(panButton);
 
 // Append the container to the body
 document.body.appendChild(uiContainer);
@@ -203,10 +240,20 @@ brushRadiusSlider.addEventListener('input', (event) => {
 let brushRadius = 5;
 let isDrawing = false;
 let isErasing = false;
+let isDragging = false;
+let previousMousePosition = { x: 0, y: 0 };
 
 // Event listener for mouse down (start painting)
 window.addEventListener('mousedown', (event) => {
     if (!model) return; // Ensure the model is loaded
+
+    // For panning
+    if (isPanningMode) {
+        isDragging = true;
+        previousMousePosition.x = event.clientX;
+        previousMousePosition.y = event.clientY;
+        return;
+    }
 
     // Update mouse coordinates in normalized device space
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -228,6 +275,7 @@ window.addEventListener('mousedown', (event) => {
 
 // Event listener for mouse up (stop painting)
 window.addEventListener('mouseup', () => {
+    isDragging = false;
     if (isDrawing) { 
         isDrawing = false;
         controls.enabled = true; // Re-enable rotation controls
@@ -238,7 +286,7 @@ window.addEventListener('mouseup', () => {
 // Event listener for toggling erase mode
 eraseButton.addEventListener('click', () => {
     isErasing = !isErasing; // Toggle erase mode
-    eraseButton.textContent = `Erase Mode: ${isErasing ? 'ON' : 'OFF'}`;
+    eraseButton.textContent = `${isErasing ? 'Erase Mode' : 'Drawing Mode'}`;
     eraseButton.style.background = isErasing ? '#388E3C' : '#d32f2f'; // Green when ON, Red when OFF
 });
 
@@ -262,6 +310,16 @@ resetButton.addEventListener('click', () => {
     }
 });
 
+let isPanningMode = false;
+panButton.addEventListener('click', () => {
+    isPanningMode = !isPanningMode;
+    panButton.textContent = `Drag View: ${isPanningMode ? 'ON' : 'OFF'}`;
+    panButton.style.background = isPanningMode ? '#388E3C' : '#1976D2';
+    document.body.style.cursor = isPanningMode ? 'move' : 'default';
+
+    controls.enableRotate = !isPanningMode;
+});
+
 // Update brushRadius when the slider value changes
 brushRadiusSlider.addEventListener('input', (event) => {
     brushRadius = parseFloat(event.target.value);
@@ -270,6 +328,26 @@ brushRadiusSlider.addEventListener('input', (event) => {
 
 // Event listener for mouse move (paint while moving)
 window.addEventListener('mousemove', (event) => {
+    if (isPanningMode && isDragging) {
+        // Implement panning
+        const deltaX = event.clientX - previousMousePosition.x;
+        const deltaY = event.clientY - previousMousePosition.y;
+
+        previousMousePosition.x = event.clientX;
+        previousMousePosition.y = event.clientY;
+
+        const panSpeed = 0.005; // Adjust sensitivity
+
+        // Move both the camera position and controls target
+        camera.position.x -= deltaX * panSpeed;
+        camera.position.y += deltaY * panSpeed;
+        controls.target.x -= deltaX * panSpeed;
+        controls.target.y += deltaY * panSpeed;
+
+        controls.update();
+        return; // Exit early to avoid painting when panning
+    }
+    
     if (!isDrawing || !skinMesh) {
         // console.warn("Skipping paint event - skinMesh not assigned yet.");
         return;
@@ -361,15 +439,3 @@ function animate() {
     renderer.render(scene, camera);
 }
 animate();
-
-// Style related
-uiContainer.style.fontFamily = "'Roboto', sans-serif";
-uiContainer.style.fontSize = "20px";
-
-label.style.fontFamily = "'Roboto', sans-serif";
-label.style.fontSize = "20px";
-label.style.fontWeight = "bold";
-
-brushRadiusValue.style.fontFamily = "'Roboto', sans-serif";
-brushRadiusValue.style.fontSize = "20px";
-brushRadiusValue.style.marginLeft = "5px"; 
