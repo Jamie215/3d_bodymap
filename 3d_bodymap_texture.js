@@ -5,7 +5,7 @@ googleFont.href = 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&
 googleFont.rel = 'stylesheet';
 document.head.appendChild(googleFont);
 
-// For Future Testing
+// For Future Testing (Need to fix)
 // const bodyRegions = [
 //     { name: "Face", uvMin: { x: 0.8, y: 0.35 }, uvMax: { x: 1.0, y: 0.65 } },
 //     { name: "Neck", uvMin: { x: 0.2, y: 0.9 }, uvMax: { x: 0.55, y: 0.95 } },
@@ -64,74 +64,112 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Load the GLTF model
-let model;
-const loader = new THREE.GLTFLoader();
-loader.load(
-    './preliminary_3D_manikin.glb',
-    (gltf) => {
-        model = gltf.scene;
-        model.position.y += 0.5;
-        
-        scene.add(model);
-
-        console.log("GLTF Full Metadata:", JSON.stringify(gltf.parser.json, null, 2));
-
-        // Traverse the model and inspect materials
-        model.traverse((child) => {
-            if (child.isMesh) {
-                console.log(`Parent, Child_name: ${child.parent.name}, ${child.name}`);
-                console.log(`Child_material_name: ${child.material.name}`)
-                if (child.name == ("Hair")) {
-                    // console.log(`Skipping hair material for: ${child.name}`);
-                    return; // Skip modifying hair material
-                }
-                if (child.name === "Human") {
-                    // Assuming "base" is the skin layer
-                    skinMesh = child;
-
-                    const textureSize = 1024; // Texture resolution
-                    const canvas = document.createElement('canvas');
-                    canvas.width = canvas.height = textureSize;
-                    const context = canvas.getContext('2d');
-
-                    // Fill the texture with white (base color)
-                    context.fillStyle = '#ffffff';
-                    context.fillRect(0, 0, textureSize, textureSize);
-
-                    // Create a texture from the canvas
-                    const texture = new THREE.CanvasTexture(canvas);
-                    texture.needsUpdate = true;
-
-                    // Assign the texture to the material
-                    child.material.map = texture;
-                    child.material.transparent = true;
-                    child.material.alphaTest = 0.5;
-                    child.material.needsUpdate = true;
-
-                    // Store canvas and context for painting
-                    child.userData.canvas = canvas;
-                    child.userData.context = context;
-                    child.userData.texture = texture;
-                } 
-                else if (child.name === "Top" || child.name === "Shorts") {
-                    child.material.transparent = true;
-                    child.material.opacity = 0.8;
-                    child.material.depthWrite = false;
-                    child.material.blending = THREE.NormalBlending;
-                }
-            }
-        });
-    },
-    undefined,
-    (error) => {
-        console.error('Error loading model:', error);
-    }
-);
-
 // Raycaster for selecting faces
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+
+// Add model options
+const models = [
+    { name: 'Model 1', file: './preliminary_3D_manikin.glb' },
+    { name: 'Model 2', file: './preliminary_3D_manikin2.glb' }
+];
+
+// Create Model select option
+const modelSelect = document.createElement('select');
+modelSelect.id = 'model-select';
+
+let currentModelName = "Model 1";
+let model = null;
+let skinMesh = null;
+
+models.forEach((model) => {
+    const option = document.createElement('option');
+    option.value = model.file;
+    option.textContent = model.name;
+    if (model.name === currentModelName) option.selected = true;
+    modelSelect.appendChild(option);
+});
+
+function loadModel(modelPath, modelName) {
+    if (model) {
+        scene.remove(model);
+        model.traverse((child) => {
+            if (child.isMesh) {
+                child.geometry.dispose();
+                child.material.dispose();
+            }
+        });
+        model = null;
+        skinMesh = null;
+    }
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+        modelPath,
+        (gltf) => {
+            console.log(`Successfully loaded model: ${modelPath}`);
+            model = gltf.scene;
+            model.position.y += 0.5;
+            scene.add(model);
+
+            // console.log("GLTF Full Metadata:", JSON.stringify(gltf.parser.json, null, 2));
+
+            model.traverse((child) => {
+                if(child.isMesh) {
+                    // console.log(`Parent, Child_name: ${child.parent.name}, ${child.name}`);
+                    // console.log(`Child_material_name: ${child.material.name}`)
+                    if (child.name == ("Hair")) {
+                        // console.log(`Skipping hair material for: ${child.name}`);
+                        return; // Skip modifying hair material
+                    }
+                    else if (child.name === "Human") {
+                        // Assuming "base" is the skin layer
+                        skinMesh = child;
+
+                        const textureSize = 1024; // Texture resolution
+                        const canvas = document.createElement('canvas');
+                        canvas.width = canvas.height = textureSize;
+                        const context = canvas.getContext('2d');
+
+                        // Fill the texture with white (base color)
+                        context.fillStyle = '#ffffff';
+                        context.fillRect(0, 0, textureSize, textureSize);
+
+                        // Create a texture from the canvas
+                        const texture = new THREE.CanvasTexture(canvas);
+                        texture.needsUpdate = true;
+
+                        // Assign the texture to the material
+                        child.material.map = texture;
+                        child.material.transparent = true;
+                        child.material.alphaTest = 0.5;
+                        child.material.needsUpdate = true;
+
+                        // Store canvas and context for painting
+                        child.userData.canvas = canvas;
+                        child.userData.context = context;
+                        child.userData.texture = texture;
+                    } 
+                    else if (child.name === "Top" || child.name === "Shorts") {
+                        child.material.transparent = true;
+                        child.material.opacity = 0.8;
+                        child.material.depthWrite = false;
+                        child.material.blending = THREE.NormalBlending;
+                    }
+                }
+            });
+            currentModelName = modelName;
+            console.log(`Current model: ${currentModelName}`);
+
+            // Ensure controls are updated
+            controls.update();
+        },
+        undefined,
+        (error) => {
+            console.error("Error loading model: ", error);
+        }
+    );
+}
+
 // Create and add the UI container
 const uiContainer = document.createElement('div');
 uiContainer.style.position = 'absolute';
@@ -147,6 +185,12 @@ uiContainer.style.gap = '10px';
 uiContainer.style.fontFamily = "'Roboto', sans-serif";
 uiContainer.style.fontSize = "20px";
 
+// Styling the model selection
+modelSelect.fontFamily = "'Roboto', sans-serif";
+modelSelect.style.padding = '8px 12px';
+modelSelect.style.borderRadius = '5px';
+modelSelect.style.fontSize = "20px";
+
 // Create the label
 const label = document.createElement('label');
 label.textContent = 'Brush Size: ';
@@ -154,11 +198,6 @@ label.htmlFor = 'brush-radius';
 label.style.fontFamily = "'Roboto', sans-serif";
 label.style.fontSize = "20px";
 label.style.fontWeight = "bold";
-
-// Create the span to show the current brush radius value
-const brushRadiusValue = document.createElement('span');
-brushRadiusValue.id = 'brush-radius-value';
-brushRadiusValue.textContent = '5';
 
 // Create the slider input
 const brushRadiusSlider = document.createElement('input');
@@ -169,67 +208,75 @@ brushRadiusSlider.max = '31';
 brushRadiusSlider.step = '5';
 brushRadiusSlider.value = '5';
 
+// Create the span to show the current brush radius value
+const brushRadiusValue = document.createElement('span');
+brushRadiusValue.id = 'brush-radius-value';
+brushRadiusValue.textContent = '5';
+brushRadiusValue.style.marginRight = '20px';
 brushRadiusValue.style.fontFamily = "'Roboto', sans-serif";
 brushRadiusValue.style.fontSize = "20px";
-brushRadiusValue.style.marginLeft = "5px"; 
 
 // Create erase mode toggle button
 const eraseButton = document.createElement('button');
 eraseButton.textContent = 'Drawing Mode'
 eraseButton.style.padding = '8px 12px';
-eraseButton.style.marginTop = '10px';
-eraseButton.style.marginLeft = '20px';
 eraseButton.style.border = 'none';
 eraseButton.style.borderRadius = '5px';
-eraseButton.style.background = '#d32f2f'; // Red color for erasing
+eraseButton.style.background = '#388E3C';
 eraseButton.style.color = '#ffffff';
 eraseButton.style.fontFamily = "'Roboto', sans-serif";
 eraseButton.style.fontSize = '20px';
 eraseButton.style.cursor = 'pointer';
-eraseButton.style.padding = '10px';
 
 // Create reset button
 const resetButton = document.createElement('button');
 resetButton.textContent = 'Reset Drawing';
-resetButton.style.padding = '8px 12 px';
-resetButton.style.marginTop = '10px';
-resetButton.style.marginLeft = '20px';
+resetButton.style.padding = '8px 12px';
 resetButton.style.border = 'none';
 resetButton.style.borderRadius = '5px';
-resetButton.style.background = '#1976D2'; // Blue color for reset
+resetButton.style.background = '#1976D2'; // Blue
 resetButton.style.color = '#ffffff';
 resetButton.style.fontFamily = "'Roboto', sans-serif";
 resetButton.style.fontSize = '20px';
 resetButton.style.cursor = 'pointer';
-resetButton.style.padding = '10px';
 
 // Create Pan Mode toggle button
 const panButton = document.createElement('button');
-panButton.textContent = "Pan Mode: OFF";
+panButton.textContent = "Zoom / Rotate";
 panButton.style.padding = '8px 12px';
-panButton.style.marginTop = '10px';
-panButton.style.marginLeft = '20px';
 panButton.style.border = 'none';
 panButton.style.borderRadius = '5px';
-panButton.style.background = '#1976D2'; // Blue for active control
+panButton.style.background = '#1976D2'; // Blue
 panButton.style.color = '#ffffff';
 panButton.style.fontFamily = "'Roboto', sans-serif";
 panButton.style.fontSize = '20px';
 panButton.style.cursor = 'pointer';
-resetButton.style.padding = '10px';
 
-// Append the label and slider to the container
+// Append the elements to the container
+uiContainer.appendChild(modelSelect);
 uiContainer.appendChild(label);
 uiContainer.appendChild(brushRadiusSlider);
 uiContainer.appendChild(brushRadiusValue);
-
-// Append buttons to the container
 uiContainer.appendChild(eraseButton);
 uiContainer.appendChild(resetButton);
 uiContainer.appendChild(panButton);
 
 // Append the container to the body
 document.body.appendChild(uiContainer);
+
+// Event listener for model selection change
+modelSelect.addEventListener("change", (event) => {
+    const selectedModel = models.find(model => model.file === event.target.value);
+    if (selectedModel) {
+        loadModel(selectedModel.file, selectedModel.name);
+    }
+});
+
+// Re-append the model selector to UI
+uiContainer.appendChild(modelSelect);
+
+// Load the default model at startup
+loadModel(models[0].file, models[0].name);
 
 // Update the brushRadius dynamically
 brushRadiusSlider.addEventListener('input', (event) => {
@@ -287,7 +334,7 @@ window.addEventListener('mouseup', () => {
 eraseButton.addEventListener('click', () => {
     isErasing = !isErasing; // Toggle erase mode
     eraseButton.textContent = `${isErasing ? 'Erase Mode' : 'Drawing Mode'}`;
-    eraseButton.style.background = isErasing ? '#388E3C' : '#d32f2f'; // Green when ON, Red when OFF
+    eraseButton.style.background = isErasing ? '#d32f2f' : '#388E3C'; // Green when ON, Red when OFF
 });
 
 // Reset button functionality
@@ -313,7 +360,7 @@ resetButton.addEventListener('click', () => {
 let isPanningMode = false;
 panButton.addEventListener('click', () => {
     isPanningMode = !isPanningMode;
-    panButton.textContent = `Drag View: ${isPanningMode ? 'ON' : 'OFF'}`;
+    panButton.textContent = `${isPanningMode ? 'Drag / Pan' : 'Zoom / Rotate'}`;
     panButton.style.background = isPanningMode ? '#388E3C' : '#1976D2';
     document.body.style.cursor = isPanningMode ? 'move' : 'default';
 
