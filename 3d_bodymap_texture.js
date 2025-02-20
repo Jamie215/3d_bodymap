@@ -56,6 +56,8 @@ controls.enablePan = false;
 // Position the camera
 camera.position.set(0, 1.5, 2);
 camera.lookAt(0, 1.5, 0);
+camera.fov = 45; // Decrease FOV to zoom in
+camera.updateProjectionMatrix();
 
 // Handle window resizing
 window.addEventListener('resize', () => {
@@ -328,6 +330,14 @@ window.addEventListener('mouseup', () => {
         controls.enabled = true; // Re-enable rotation controls
         console.log('Drawing stopped. Controls enabled.');
     }
+});
+
+window.addEventListener('wheel', (event) => {
+    // Adjust FOV based on scroll direction
+    camera.fov += event.deltaY * 0.05; // Scroll down to increase, up to decrease
+    camera.fov = Math.max(20, Math.min(75, camera.fov)); // Keep FOV within limits
+
+    camera.updateProjectionMatrix(); // Apply the change
 });
 
 // Event listener for toggling erase mode
