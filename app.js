@@ -84,21 +84,64 @@ function loadModel(modelPath, modelName) {
         skinMesh = null;
     }
     
-    // Create an immediate visual indicator while loading
-    const geometry = new THREE.SphereGeometry(0.5, 32, 32);
-    const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const sphere = new THREE.Mesh(geometry, material);
-    sphere.position.set(0, 1.5, 0);
-    scene.add(sphere);
+    // Create a loading spinner element
+    const loadingContainer = document.createElement('div');
+    loadingContainer.id = 'loading-container';
+    loadingContainer.style.position = 'absolute';
+    loadingContainer.style.top = '50%';
+    loadingContainer.style.left = '50%';
+    loadingContainer.style.transform = 'translate(-50%, -50%)';
+    loadingContainer.style.display = 'flex';
+    loadingContainer.style.flexDirection = 'column';
+    loadingContainer.style.alignItems = 'center';
+    loadingContainer.style.justifyContent = 'center';
+    loadingContainer.style.zIndex = '1000';
+    
+    // Create spinner
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+    spinner.style.width = '50px';
+    spinner.style.height = '50px';
+    spinner.style.border = '5px solid rgba(255, 255, 255, 0.3)';
+    spinner.style.borderRadius = '50%';
+    spinner.style.borderTop = '5px solid #0277BD';
+    spinner.style.animation = 'spin 1s linear infinite';
+    loadingContainer.appendChild(spinner);
+    
+    // Create loading text
+    const loadingText = document.createElement('div');
+    loadingText.textContent = 'Loading...';
+    loadingText.style.marginTop = '15px';
+    loadingText.style.color = '#333';
+    loadingText.style.fontFamily = 'Roboto, sans-serif';
+    loadingText.style.fontSize = '18px';
+    loadingText.style.fontWeight = 'bold';
+    loadingContainer.appendChild(loadingText);
+    
+    // Add spinner animation style
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Add loading container to the document
+    document.body.appendChild(loadingContainer);
     
     console.log(`Loading model: ${modelPath}`);
+    
+    // Update status indicator
+    statusIndicator.textContent = `Loading: ${modelName}...`;
     
     const loader = new THREE.GLTFLoader();
     loader.load(
         modelPath,
         (gltf) => {
             console.log(`Successfully loaded model: ${modelPath}`);
-            scene.remove(sphere); // Remove loading indicator
+            document.body.removeChild(loadingContainer); // Remove loading indicator
             
             model = gltf.scene;
             model.position.y = 0; // Start at 0 and let's compute a better position
@@ -110,7 +153,6 @@ function loadModel(modelPath, modelName) {
             // Position model to be centered vertically in the viewport
             // The value 1.0 is our target center point (from camera settings)
             model.position.y = 1.0 - modelHeight/2;
-            // model.position.y += 0.5;
             scene.add(model);
 
             model.traverse((child) => {
@@ -157,8 +199,8 @@ function loadModel(modelPath, modelName) {
             console.log(`${(xhr.loaded / xhr.total * 100)}% loaded`);
         },
         (error) => {
+            document.body.removeChild(loadingContainer);
             console.error("Error loading model: ", error);
-            scene.remove(sphere); // Remove loading indicator on error
         }
     );
 }
