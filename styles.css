@@ -1,0 +1,306 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --primary-color: #0277BD;
+    --secondary-color: #333333;
+    --background-color: #ffffff;
+    --panel-background: #ffffff;
+    --border-radius: 8px;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    background:  #f0f0f0;
+    color: #333;
+    overflow: hidden;
+}
+
+canvas {
+    display: block;
+}
+
+#app-container {
+    display: flex;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+#drawing-control-panel {
+    width: 150px;
+    padding: 40px;
+    flex-shrink: 1;
+    background: transparent;
+    display: flex;
+    align-items: center;
+}
+
+#view-control-panel {
+    width: 400px;
+    padding: 40px;
+    flex-shrink: 1;
+    background: transparent;
+    display: flex;
+    align-items: center;
+}
+
+#canvas-panel {
+    flex-grow: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-indicator {
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 1000;
+}
+
+.drawing-tools-container {
+    background: var(--panel-background);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid #f0f0f0;
+}
+
+.view-tools-container {
+    background: var(--panel-background);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: left !important;
+    gap: 20px;
+    border: 1px solid #f0f0f0;
+}
+
+.control-title {
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    margin: 0 0 10px 0;
+}
+
+h3.control-title {
+    margin-bottom: 20px;
+}
+
+.button {
+    width: 100%;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.button:hover {
+    background: #e8e8e8;
+}
+
+.button-primary { 
+    background: var(--primary-color); 
+    color: white;
+}
+
+.button-secondary { 
+    background: #f5f5f5; 
+    color: var(--secondary-color);
+    border: 1px solid #e0e0e0;
+}
+
+.button-danger { 
+    background: #d32f2f; 
+    color: white;
+}
+
+.button-success { 
+    background: var(--primary-color); 
+    color: white;
+}
+
+.button svg {
+    margin-bottom: 8px;
+}
+
+.instruction {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 15px;
+    color: #555;
+}
+
+.instruction svg {
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.brush-size-display {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--primary-color);
+    text-align: right;
+}
+
+.label {
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+
+/* Custom slider styling */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Vertical slider styling */
+.vertical-slider-container {
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+
+.size-indicator {
+    position: absolute;
+    top: -15px; /* Position above the slider */
+    font-weight: bold;
+    color: var(--primary-color);
+    font-size: 14px;
+    text-align: center;
+}  
+  
+.vertical-slider {
+    -webkit-appearance: none;
+    width: 120px !important; /* Must be same as container height */
+    height: 6px !important;
+    margin: 0;
+    padding: 0;
+    background: #e0e0e0;
+    border-radius: 10px;
+    outline: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* The proper way to make a slider vertical: */
+    transform: translateX(-50%) translateY(-50%) rotate(270deg);
+}
+
+.vertical-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Firefox specific styling */
+.vertical-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+}
+
+.orientation-button-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+/* Reset the View button styling */
+.reset-view-button {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+/* Orientation buttons */
+.orientation-button {
+    padding: 8px;
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.orientation-button:hover {
+    background: #e8e8e8;
+}
+
+.orientation-button img {
+    width: 85%;
+    height: auto;
+}
+
+.orientation-button img.front-icon {
+    width: 95%;
+    height: auto;
+    margin: -3%;
+}
+
+/* Model selector styling */
+.model-selector {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+    cursor: pointer;
+}

@@ -31,9 +31,14 @@ scene.add(fillLight);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.minDistance = 1;
+controls.minDistance = 0.5;
 controls.maxDistance = 10;
 controls.target.set(0, 1.5, 0);
+controls.mouseButtons = {
+    LEFT: null,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: null
+};
 controls.update();
 
 // Store the initial camera and control settings for reset
@@ -190,7 +195,6 @@ function loadModel(modelPath, modelName) {
                 model.position.y + modelHeight/2, // Target the middle of the model
                 model.position.z
             );
-            controls.update();
 
             currentModelName = modelName;
             console.log(`Current model: ${currentModelName}`);
@@ -215,25 +219,37 @@ function resetPosition() {
 
 // Create container for the entire application
 const appContainer = document.createElement('div');
+appContainer.id = 'app-container';
+appContainer.style.display = 'flex';
 appContainer.style.position = 'absolute';
 appContainer.style.top = '0';
 appContainer.style.left = '0';
 appContainer.style.width = '100%';
 appContainer.style.height = '100%';
-appContainer.style.overflow = 'hidden';
+appContainer.style.background = '#F0F0F0';
 document.body.appendChild(appContainer);
 
-// Create canvas container
-const canvasContainer = document.createElement('div');
-canvasContainer.style.position = 'absolute';
-canvasContainer.style.top = '0';
-canvasContainer.style.left = '0';
-canvasContainer.style.width = '100%';
-canvasContainer.style.height = '100%';
-appContainer.appendChild(canvasContainer);
+// Left-side UI panel
+const uiPanel = document.createElement('div');
+uiPanel.id = 'ui-panel';
+uiPanel.style.background = 'transparent';
+uiPanel.style.display = 'flex';
+uiPanel.style.flexDirection = 'column';
+uiPanel.style.padding = '20px';
+uiPanel.style.justifyContent = "space-around";
+uiPanel.style.overflowY = 'auto';
+appContainer.appendChild(uiPanel);
 
-// Add the renderer to the canvas container
-canvasContainer.appendChild(renderer.domElement);
+// Right-side canvas panel
+const canvasPanel = document.createElement('div');
+canvasPanel.id = 'canvas-panel';
+canvasPanel.style.flexGrow = '1';
+canvasPanel.style.position = 'relative';
+canvasPanel.style.overflow = 'hidden';
+appContainer.appendChild(canvasPanel);
+
+// Add renderer to canvasPanel
+canvasPanel.appendChild(renderer.domElement);
 
 // Create UI container
 const uiContainer = document.createElement('div');
@@ -244,7 +260,7 @@ uiContainer.style.display = 'flex';
 uiContainer.style.flexDirection = 'column';
 uiContainer.style.gap = '20px'; // Increased gap between containers
 uiContainer.style.zIndex = '1000';
-canvasContainer.appendChild(uiContainer);
+uiPanel.appendChild(uiContainer);
 
 // Create drawing controls
 const drawingControlsContainer = document.createElement('div');
@@ -253,7 +269,7 @@ drawingControlsContainer.style.padding = '20px'; // Increased padding
 drawingControlsContainer.style.borderRadius = '10px'; // Larger border radius
 drawingControlsContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)';
 drawingControlsContainer.style.width = '240px'; // Slightly wider
-uiContainer.appendChild(drawingControlsContainer);
+uiPanel.appendChild(drawingControlsContainer);
 
 // Add title
 const title = document.createElement('h3');
@@ -392,7 +408,7 @@ viewControlsContainer.style.padding = '20px'; // Increased padding
 viewControlsContainer.style.borderRadius = '10px'; // Larger border radius
 viewControlsContainer.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)';
 viewControlsContainer.style.width = '280px'; // Wider than drawing controls
-uiContainer.appendChild(viewControlsContainer);
+uiPanel.appendChild(viewControlsContainer);
 
 // Add title
 const viewTitle = document.createElement('h3');
@@ -403,47 +419,6 @@ viewTitle.style.fontSize = '22px'; // Further increased font size
 viewTitle.style.fontWeight = 'bold';
 viewTitle.style.textAlign = 'center';
 viewControlsContainer.appendChild(viewTitle);
-
-// Add button container for rotation/pan
-const buttonContainer = document.createElement('div');
-buttonContainer.style.display = 'flex';
-buttonContainer.style.width = '100%';
-buttonContainer.style.marginBottom = '15px'; // Increased margin
-buttonContainer.style.border = '1px solid #e0e0e0';
-buttonContainer.style.borderRadius = '6px'; // Larger border radius
-buttonContainer.style.overflow = 'hidden';
-viewControlsContainer.appendChild(buttonContainer);
-
-// Modified SVG for rotate button (more intuitive rotation icon)
-const rotateButton = document.createElement('button');
-rotateButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg> <span style="font-size: 15px;">Rotate</span>';
-rotateButton.style.flex = '1';
-rotateButton.style.padding = '12px'; // Increased padding
-rotateButton.style.border = 'none';
-rotateButton.style.background = '#E8F5E9';
-rotateButton.style.color = '#333';
-rotateButton.style.fontSize = '15px'; // Increased font size
-rotateButton.style.cursor = 'pointer';
-rotateButton.style.display = 'flex';
-rotateButton.style.alignItems = 'center';
-rotateButton.style.justifyContent = 'center';
-rotateButton.style.gap = '5px';
-buttonContainer.appendChild(rotateButton);
-
-const panButton = document.createElement('button');
-panButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 9l-3 3 3 3M9 5.2l3-3 3 3M15 18.9l-3 3-3-3M18.9 9l3 3-3 3M3.3 12h17.4M12 3.2v17.6"></path></svg> <span style="font-size: 15px;">Pan</span>';
-panButton.style.flex = '1';
-panButton.style.padding = '12px'; // Increased padding
-panButton.style.border = 'none';
-panButton.style.background = '#ffffff';
-panButton.style.color = '#333';
-panButton.style.fontSize = '15px'; // Increased font size
-panButton.style.cursor = 'pointer';
-panButton.style.display = 'flex';
-panButton.style.alignItems = 'center';
-panButton.style.justifyContent = 'center';
-panButton.style.gap = '5px';
-buttonContainer.appendChild(panButton);
 
 // Add reset position button
 const resetPositionButton = document.createElement('button');
@@ -464,7 +439,7 @@ viewControlsContainer.appendChild(resetPositionButton);
 
 // Add instructions with increased font size
 const rotatePanInstructionsDiv = document.createElement('div');
-rotatePanInstructionsDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M3 5.188C3 2.341 5.22 0 8 0s5 2.342 5 5.188v5.625C13 13.658 10.78 16 8 16s-5-2.342-5-5.188V5.189zm4.5-4.155C5.541 1.289 4 3.035 4 5.188V5.5h3.5zm1 0V5.5H12v-.313c0-2.152-1.541-3.898-3.5-4.154M12 6.5H4v4.313C4 13.145 5.81 15 8 15s4-1.855 4-4.188z"/></svg> <span style="margin-left: 8px;">Click and drag to rotate the manikin</span>';
+rotatePanInstructionsDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M3 5.188C3 2.341 5.22 0 8 0s5 2.342 5 5.188v5.625C13 13.658 10.78 16 8 16s-5-2.342-5-5.188V5.189zm4.5-4.155C5.541 1.289 4 3.035 4 5.188V5.5h3.5zm1 0V5.5H12v-.313c0-2.152-1.541-3.898-3.5-4.154M12 6.5H4v4.313C4 13.145 5.81 15 8 15s4-1.855 4-4.188z"/></svg> <span style="margin-left: 8px;">Click arrows to rotate the model</span>';
 rotatePanInstructionsDiv.style.fontFamily = 'Roboto, sans-serif';
 rotatePanInstructionsDiv.style.fontSize = '15px'; // Increased font size
 rotatePanInstructionsDiv.style.margin = '8px 0';
@@ -473,15 +448,6 @@ rotatePanInstructionsDiv.style.alignItems = 'center';
 rotatePanInstructionsDiv.style.gap = '5px';
 rotatePanInstructionsDiv.style.color = '#555';
 viewControlsContainer.appendChild(rotatePanInstructionsDiv);
-
-// Function to update instructions based on current mode
-function updateInstructions(mode) {
-    if (mode === 'rotate') {
-        rotatePanInstructionsDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M3 5.188C3 2.341 5.22 0 8 0s5 2.342 5 5.188v5.625C13 13.658 10.78 16 8 16s-5-2.342-5-5.188V5.189zm4.5-4.155C5.541 1.289 4 3.035 4 5.188V5.5h3.5zm1 0V5.5H12v-.313c0-2.152-1.541-3.898-3.5-4.154M12 6.5H4v4.313C4 13.145 5.81 15 8 15s4-1.855 4-4.188z"/></svg> <span style="margin-left: 8px;">Click and drag to rotate the model</span>';
-    } else if (mode === 'pan') {
-        rotatePanInstructionsDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M3 5.188C3 2.341 5.22 0 8 0s5 2.342 5 5.188v5.625C13 13.658 10.78 16 8 16s-5-2.342-5-5.188V5.189zm4.5-4.155C5.541 1.289 4 3.035 4 5.188V5.5h3.5zm1 0V5.5H12v-.313c0-2.152-1.541-3.898-3.5-4.154M12 6.5H4v4.313C4 13.145 5.81 15 8 15s4-1.855 4-4.188z"/></svg> <span style="margin-left: 8px;">Click and drag to move the model</span>';
-    }
-}
 
 const zoomInstructionsDiv = document.createElement('div');
 zoomInstructionsDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M3.646 9.146a.5.5 0 0 1 .708 0L8 12.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708m0-2.292a.5.5 0 0 0 .708 0L8 3.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708"/></svg> <span style="margin-left: 8px;">Scroll to zoom in/out</span>';
@@ -507,12 +473,11 @@ statusIndicator.style.fontFamily = 'Roboto, sans-serif';
 statusIndicator.style.fontSize = '16px'; // Increased font size
 statusIndicator.style.zIndex = '1000';
 statusIndicator.textContent = 'Initializing...';
-canvasContainer.appendChild(statusIndicator);
+uiPanel.appendChild(statusIndicator);
 
 // Variables for interaction
 let isDrawing = false;
 let isErasing = false;
-let isPanningMode = false;
 let brushRadius = 15;
 
 // Button event listeners with updated instructions handling
@@ -545,26 +510,6 @@ resetPositionButton.addEventListener('click', () => {
     resetPosition();
 });
 
-rotateButton.addEventListener('click', () => {
-    isPanningMode = false;
-    controls.enableRotate = true;
-    controls.enablePan = false;
-    rotateButton.style.background = '#E8F5E9';
-    panButton.style.background = '#ffffff';
-    statusIndicator.textContent = 'Mode: Rotate View';
-    updateInstructions('rotate');
-});
-
-panButton.addEventListener('click', () => {
-    isPanningMode = true;
-    controls.enableRotate = false;
-    controls.enablePan = true;
-    rotateButton.style.background = '#ffffff';
-    panButton.style.background = '#E8F5E9';
-    statusIndicator.textContent = 'Mode: Pan View';
-    updateInstructions('pan');
-});
-
 // Brush size slider event listener
 brushSizeSlider.addEventListener('input', (event) => {
     brushRadius = parseInt(event.target.value);
@@ -580,27 +525,98 @@ modelSelect.addEventListener('change', (event) => {
     }
 });
 
-// Mouse event handling for panning implementation
-let isDragging = false;
-let previousMousePosition = { x: 0, y: 0 };
+const arrowContainer = document.createElement('div');
+arrowContainer.style.position = 'absolute';
+arrowContainer.style.top = '0';
+arrowContainer.style.left = '0';
+arrowContainer.style.width = '100%';
+arrowContainer.style.height = '100%';
+arrowContainer.style.pointerEvents = 'none';
+arrowContainer.style.zIndex = '900';
+arrowContainer.style.pointerEvents = 'none'; // allows click-through
 
-// Enhanced pan handling
-function handlePanning(event) {
-    if (!isPanningMode || !isDragging) return;
-    
-    const deltaX = (event.clientX - previousMousePosition.x);
-    const deltaY = (event.clientY - previousMousePosition.y);
-    
-    previousMousePosition.x = event.clientX;
-    previousMousePosition.y = event.clientY;
-    
-    // Apply model movement directly if in pan mode
-    if (model) {
-        const speed = 0.003;
-        model.position.x += deltaX * speed;
-        model.position.y -= deltaY * speed;
+function getArrowSymbol(direction) {
+    switch (direction) {
+        case 'up': return '↑';
+        case 'down': return '↓';
+        case 'left': return '←';
+        case 'right': return '→';
+        default: return '';
     }
 }
+
+['up', 'down', 'left', 'right'].forEach(dir => {
+    const btn = document.createElement('button');
+    btn.innerHTML = getArrowSymbol(dir); // e.g. ↑ ↓ ← →
+    btn.className = `arrow-btn arrow-${dir}`;
+    btn.style.position = 'absolute';
+    btn.style.pointerEvents = 'auto'; // clickable
+    btn.style.width = '48px';
+    btn.style.height = '48px';
+    btn.style.fontSize = '24px';
+    btn.style.fontWeight = 'bold';
+    btn.style.fontFamily = 'Roboto, sans-serif';
+    btn.style.background = 'rgba(0,0,0,0.5)';
+    btn.style.color = 'white';
+    btn.style.border = 'none';
+    btn.style.borderRadius = '50%';
+    btn.style.cursor = 'pointer';
+    btn.addEventListener('click', () => {
+        moveCamera(dir, 'rotate');
+    });
+    arrowContainer.appendChild(btn);
+});
+canvasPanel.appendChild(arrowContainer);
+
+arrowContainer.style.position = 'absolute';
+arrowContainer.style.top = '0';
+arrowContainer.style.left = '0';
+arrowContainer.style.width = '100%';
+arrowContainer.style.height = '100%';
+arrowContainer.style.pointerEvents = 'none'; // container doesn't block clicks
+arrowContainer.style.zIndex = '900';
+
+arrowContainer.querySelector('.arrow-up').style.left = `calc(50%)`;
+arrowContainer.querySelector('.arrow-up').style.top = '7%';
+arrowContainer.querySelector('.arrow-up').style.transform = 'translateX(-50%)';
+
+arrowContainer.querySelector('.arrow-down').style.left = `calc(50%)`;
+arrowContainer.querySelector('.arrow-down').style.bottom = '7%';
+arrowContainer.querySelector('.arrow-down').style.transform = 'translateX(-50%)';
+
+arrowContainer.querySelector('.arrow-left').style.left = 'calc(10%)';
+arrowContainer.querySelector('.arrow-left').style.top = '50%';
+arrowContainer.querySelector('.arrow-left').style.transform = 'translateY(-50%)';
+
+arrowContainer.querySelector('.arrow-right').style.right = '10%';
+arrowContainer.querySelector('.arrow-right').style.top = '50%';
+arrowContainer.querySelector('.arrow-right').style.transform = 'translateY(-50%)';
+
+
+function moveCamera(direction, mode = 'rotate') {
+    const rotateAmount = Math.PI / 6;  // ~30 degrees
+    const pivot = controls.target.clone();
+    const directionToCamera = camera.position.clone().sub(pivot);
+
+    let axis = new THREE.Vector3();
+    switch (direction) {
+        case 'left':  axis.copy(camera.up); break;
+        case 'right': axis.copy(camera.up).negate(); break;
+        case 'up':
+        case 'down':
+            // Sideways axis for vertical orbit
+            axis.copy(panRight);
+            if (direction === 'down') axis.negate();
+            break;
+    }
+
+    directionToCamera.applyAxisAngle(axis, rotateAmount);
+    camera.position.copy(pivot.clone().add(directionToCamera));
+    camera.lookAt(pivot);
+
+    controls.update();
+}
+
 
 function getMousePositionForRaycasting(event) {
     const canvasRect = renderer.domElement.getBoundingClientRect();
@@ -609,20 +625,23 @@ function getMousePositionForRaycasting(event) {
     return { x: mouseX, y: mouseY };
 }
 
-// Update mouse event handlers for both drawing and panning
+function getModelScreenPosition() {
+    const center = new THREE.Vector3();
+    new THREE.Box3().setFromObject(model).getCenter(center);
+    
+    const projected = center.clone().project(camera);
+    const x = (projected.x + 1) / 2 * window.innerWidth;
+    const y = (-projected.y + 1) / 2 * window.innerHeight;
+
+    return { x, y };
+}
+
 window.addEventListener('mousedown', (event) => {
     if (!model) return;
     
     // Don't process if clicking UI elements
     if (event.target !== renderer.domElement) return;
-    
-    if (isPanningMode) {
-        isDragging = true;
-        previousMousePosition.x = event.clientX;
-        previousMousePosition.y = event.clientY;
-        return;
-    }
-    
+        
     const mousePos = getMousePositionForRaycasting(event);
     mouse.x = mousePos.x;
     mouse.y = mousePos.y;
@@ -646,12 +665,6 @@ window.addEventListener('mouseup', () => {
 });
 
 window.addEventListener('mousemove', (event) => {
-    // Handle panning if in pan mode
-    if (isPanningMode) {
-        handlePanning(event);
-        return;
-    }
-    
     if (!isDrawing || !skinMesh || event.target !== renderer.domElement) return;
     
     const mousePos = getMousePositionForRaycasting(event);
@@ -681,9 +694,7 @@ window.addEventListener('mousemove', (event) => {
 
 // Handle window resizing
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    updateCanvasSize();
 });
 
 // Animation loop
@@ -693,18 +704,26 @@ function animate() {
     renderer.render(scene, camera);
 }
 
+function updateCanvasSize() {
+    const canvasPanel = document.getElementById('canvas-panel');
+    const width = canvasPanel.clientWidth;
+    const height = canvasPanel.clientHeight;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+}
+
 // Initialize
 function init() {
+    updateCanvasSize();
     // Start animation
     animate();
     
     // Load model
     loadModel(models[0].file, models[0].name);
     
-    // Enable pan mode for controls
-    controls.enablePan = false; // Start with rotate mode as default
-
-    updateInstructions('rotate');
+    controls.enableRotate = false;
     
     // Update status
     statusIndicator.textContent = 'Ready';
@@ -712,6 +731,37 @@ function init() {
     // Debug message
     console.log('Application initialized');
 }
+
+renderer.domElement.addEventListener('dblclick', (event) => {
+    if (!model) return;
+
+    // Get normalized device coordinates (-1 to +1) for raycasting
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    const mouseVec = new THREE.Vector2(mouseX, mouseY);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouseVec, camera);
+
+    const intersects = raycaster.intersectObject(model, true);
+    if (intersects.length > 0) {
+        const point = intersects[0].point;
+
+        // Move camera halfway toward the clicked point
+        const direction = new THREE.Vector3().subVectors(point, camera.position).normalize();
+        const distance = camera.position.distanceTo(point);
+        const zoomFactor = 0.4;  // Lower = stronger zoom
+
+        const newPosition = camera.position.clone().add(direction.multiplyScalar(distance * zoomFactor));
+        camera.position.copy(newPosition);
+        controls.target.copy(point);
+
+        controls.update();
+        statusIndicator.textContent = 'Zoomed to selection';
+    }
+});
+
 
 // Start the application
 init();
