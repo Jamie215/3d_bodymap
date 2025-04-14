@@ -94,6 +94,7 @@ export function createDrawingControls(drawingControlsPanel) {
         drawButton.classList.add('button-primary');
         eraseButton.classList.remove('button-primary');
         eraseButton.classList.add('button-secondary');
+        brushSizeLabel.textContent = 'Brush Size';
     });
 
     eraseButton.addEventListener('click', () => {
@@ -102,6 +103,7 @@ export function createDrawingControls(drawingControlsPanel) {
         eraseButton.classList.add('button-primary');
         drawButton.classList.remove('button-primary');
         drawButton.classList.add('button-secondary');
+        brushSizeLabel.textContent = 'Eraser Size';
     });
 
     resetDrawingButton.addEventListener('click', () => {
