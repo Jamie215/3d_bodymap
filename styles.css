@@ -38,7 +38,7 @@ canvas {
 }
 
 #view-control-panel {
-    width: 400px;
+    width: 450px;
     padding: 40px;
     flex-shrink: 1;
     background: transparent;
@@ -53,18 +53,6 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.status-indicator {
-    position: absolute;
-    bottom: 15px;
-    left: 15px;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    border-radius: 4px;
-    font-size: 14px;
-    z-index: 1000;
 }
 
 .drawing-tools-container {
@@ -151,7 +139,7 @@ h3.control-title {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
-    font-size: 15px;
+    font-size: 18px;
     color: #555;
 }
 
@@ -256,10 +244,12 @@ input[type="range"]::-webkit-slider-thumb {
 .reset-view-button {
     width: 100%;
     padding: 12px;
-    background: var(--primary-color);
-    color: white;
-    border: none;
+    background: var(--panel-background);
+    color: var(--primary-color);
+    border: var(--primary-color);
     border-radius: 4px;
+    border-style: solid;
+    border-width: 2px;
     font-size: 16px;
     font-weight: 500;
     cursor: pointer;
@@ -300,7 +290,89 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 8px 12px;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 16px;
     background-color: white;
     cursor: pointer;
 }
+
+/* Base layout that stacks on mobile */
+@media (max-width: 768px) {
+    #app-container {
+      flex-direction: column;
+      overflow-y: auto;
+      height: auto;
+    }
+    
+    #drawing-control-panel,
+    #view-control-panel {
+      width: 100%;
+      padding: 15px;
+      order: 2; /* Move control panels below canvas */
+    }
+    
+    #canvas-panel {
+      width: 100%;
+      height: 50vh; /* Half viewport height on mobile */
+      order: 1; /* Make canvas the first element */
+    }
+    
+    .drawing-tools-container,
+    .view-tools-container {
+      max-width: 100%;
+    }
+    
+    /* Orientation buttons adjustments for small screens */
+    .orientation-button-container {
+      grid-template-columns: repeat(2, 1fr); /* 2 buttons per row on mobile */
+      gap: 10px;
+    }
+  }
+  
+  /* Tablet layout */
+  @media (min-width: 769px) and (max-width: 1200px) {
+    #drawing-control-panel {
+      width: 20%; /* Percentage-based width */
+      padding: 20px;
+    }
+    
+    #view-control-panel {
+      width: 30%; /* Percentage-based width */
+      padding: 20px;
+    }
+    
+    .button {
+      padding: 8px; /* Smaller buttons on tablets */
+    }
+  }
+  
+  /* Large screens - keep current layout but make panel widths more adaptive */
+  @media (min-width: 1201px) {
+    #drawing-control-panel {
+      width: 15%; /* More proportional on large screens */
+      max-width: 250px;
+    }
+    
+    #view-control-panel {
+      width: 25%; /* More proportional on large screens */
+      max-width: 450px;
+    }
+  }
+  
+  /* Shared responsive adjustments */
+  .vertical-slider-container {
+    width: 100%;
+    max-width: 120px;
+    margin: 0 auto;
+  }
+  
+  /* Improve button responsiveness */
+  .button svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  /* Make the reset view button more touch-friendly */
+  .reset-view-button {
+    padding: 12px 8px;
+    margin-top: 15px;
+  }

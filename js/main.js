@@ -36,7 +36,7 @@ const { scene, camera, renderer, controls } = createScene(canvasPanel);
 // Hook up modules
 createDrawingControls(drawingControlsPanel);
 createViewControls(scene, controls, viewControlsPanel, models);
-enableInteraction(renderer, camera, scene, controls);
+enableInteraction(renderer, camera, controls);
 
 // Load initial model
 loadModel(models[0].file, models[0].name, scene, controls);

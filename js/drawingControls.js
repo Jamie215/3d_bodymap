@@ -20,7 +20,6 @@ export function createDrawingControls(drawingControlsPanel) {
     <span>Draw</span>
 `;
 
-
     // Erase Button
     const eraseButton = document.createElement('button');
     eraseButton.classList.add('button', 'button-secondary');
@@ -71,7 +70,7 @@ export function createDrawingControls(drawingControlsPanel) {
     brushSizeSlider.value = AppState.brushRadius;
     brushSizeSlider.classList.add('vertical-slider');
 
-    // Size indicator value - optional but helpful
+    // Size indicator value
     const sizeIndicator = document.createElement('div');
     sizeIndicator.classList.add('size-indicator');
     sizeIndicator.textContent = brushSizeSlider.value;
@@ -119,5 +118,6 @@ export function createDrawingControls(drawingControlsPanel) {
 
     brushSizeSlider.addEventListener('input', (e) => {
         AppState.brushRadius = parseInt(e.target.value);
+        sizeIndicator.textContent = e.target.value;
     });
 }

@@ -10,7 +10,7 @@ export function createViewControls(scene, controls, viewControlsPanel, modelList
     // View Controls Title
     const title = document.createElement('div');
     title.classList.add('control-title');
-    title.textContent = 'Adjust Body View:';
+    title.textContent = 'Adjust Body View';
 
     // Double-click instruction
     const doubleClickInstruction = document.createElement('div');

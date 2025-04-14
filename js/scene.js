@@ -42,7 +42,25 @@ export function createScene(canvasContainer) {
 export function resizeRenderer(camera, renderer, container) {
     const width = container.clientWidth;
     const height = container.clientHeight;
-    renderer.setSize(width, height);
+    
+    // Update camera aspect ratio
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    
+    // Update renderer size
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+    
+    // Handle orientation changes on mobile
+    if (window.innerWidth <= 768) {
+        // Adjust camera for portrait mode on mobile
+        if (window.innerHeight > window.innerWidth) {
+            // In portrait mode, we might need to adjust the camera position
+            // to ensure the model is fully visible
+            camera.position.z = Math.max(1.5, 2.0); // Increase distance
+        } else {
+            // In landscape, we can use a value closer to desktop
+            camera.position.z = 1.5;
+        }
+    }
 }
