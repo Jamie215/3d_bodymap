@@ -123,9 +123,25 @@ function handleDoubleTap(event, canvas, camera, controls) {
     // Get pointer coordinates
     const rect = canvas.getBoundingClientRect();
 
-    // Handle both mouse and touch events
-    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    let clientX, clientY;
+    
+    // Check if it's a touch event with changedTouches
+    if (event.changedTouches && event.changedTouches.length > 0) {
+        // For touchend, use changedTouches
+        clientX = event.changedTouches[0].clientX;
+        clientY = event.changedTouches[0].clientY;
+    } else if (event.touches && event.touches.length > 0) {
+        // For touchstart/touchmove, use touches
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+    } else if (event.clientX !== undefined && event.clientY !== undefined) {
+        // For mouse events
+        clientX = event.clientX;
+        clientY = event.clientY;
+    } else {
+        // If we can't determine coordinates, exit
+        return;
+    }
 
     const mouseX = ((clientX - rect.left) / rect.width) * 2 - 1;
     const mouseY = -((clientY - rect.top) / rect.height) * 2 + 1;
