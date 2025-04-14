@@ -32,6 +32,10 @@ export function createViewControls(scene, controls, viewControlsPanel, modelList
         <span>Scroll up <span style="color:#666;font-weight:400;">to zoom in,</span> scroll down <span style="color:#666;font-weight:400;">to zoom out</span></span>
     `;
 
+    // Divider 
+    const divider = document.createElement('hr');
+    divider.classList.add('divider');
+
     // Model Selector
     const modelLabel = document.createElement('div');
     modelLabel.classList.add('label');
@@ -69,6 +73,10 @@ export function createViewControls(scene, controls, viewControlsPanel, modelList
             }, 500);
         }
     });
+
+    // Divider 2
+    const divider2 = document.createElement('hr');
+    divider2.classList.add('divider');
 
     // Direction change section
     const directionHeader = document.createElement('div');
@@ -138,8 +146,10 @@ export function createViewControls(scene, controls, viewControlsPanel, modelList
     viewToolsContainer.appendChild(title);
     viewToolsContainer.appendChild(doubleClickInstruction);
     viewToolsContainer.appendChild(scrollInstruction);
+    viewToolsContainer.appendChild(divider);
     viewToolsContainer.appendChild(modelLabel);
     viewToolsContainer.appendChild(modelSelect);
+    viewToolsContainer.appendChild(divider2);
     viewToolsContainer.appendChild(directionHeader);
     viewToolsContainer.appendChild(orientationContainer);
     viewToolsContainer.appendChild(resetViewButton);

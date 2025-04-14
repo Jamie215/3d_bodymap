@@ -160,6 +160,13 @@ h3.control-title {
     margin-bottom: 8px;
 }
 
+.divider {
+    width: 100%;
+    margin: 5px 0 15px;
+    border: none;
+    border-top: 1px solid #eaeaea;
+}
+
 /* Custom slider styling */
 input[type="range"] {
     -webkit-appearance: none;
@@ -254,6 +261,11 @@ input[type="range"]::-webkit-slider-thumb {
     font-weight: 500;
     cursor: pointer;
     margin-top: 10px;
+}
+
+.reset-view-button:hover {
+    background: var(--primary-color);
+    color: var(--panel-background);
 }
 
 /* Orientation buttons */

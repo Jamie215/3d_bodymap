@@ -45,10 +45,7 @@ export function createDrawingControls(drawingControlsPanel) {
 
     // Divider 
     const divider = document.createElement('hr');
-    divider.style.width = '100%';
-    divider.style.margin = '5px 0 15px';
-    divider.style.border = 'none';
-    divider.style.borderTop = '1px solid #eaeaea';
+    divider.classList.add('divider');
 
     // Brush Size Controls
     const brushSizeLabel = document.createElement('div');
