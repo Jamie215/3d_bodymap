@@ -77,6 +77,59 @@ export function enableInteraction(renderer, camera, controls) {
     });
 }
 
+export function setupCursorManagement(renderer) {
+    const canvasPanel = document.getElementById('canvas-panel');
+    
+    if (!canvasPanel) return;
+    
+    // Create a cursor element
+    const cursorElement = document.createElement('div');
+    cursorElement.classList.add('custom-cursor');
+    document.body.appendChild(cursorElement);
+    
+    // Hide default cursor over canvas
+    canvasPanel.style.cursor = 'none';
+    
+    // Update cursor position and appearance
+    canvasPanel.addEventListener('mousemove', (e) => {
+        // Only show cursor when hovering over canvas
+        cursorElement.style.display = 'block';
+        
+        // Update position
+        cursorElement.style.left = `${e.clientX}px`;
+        cursorElement.style.top = `${e.clientY}px`;
+        
+        // Update size based on brush radius
+        const size = AppState.brushRadius * 2;
+        cursorElement.style.width = `${size}px`;
+        cursorElement.style.height = `${size}px`;
+        
+        // Update color based on mode
+        if (AppState.isErasing) {
+            cursorElement.style.border = '2px solid #FF5252';
+            cursorElement.style.backgroundColor = 'rgba(255, 82, 82, 0.2)';
+        } else {
+            cursorElement.style.border = '2px solid #0277BD';
+            cursorElement.style.backgroundColor = 'rgba(2, 119, 189, 0.2)';
+        }
+    });
+
+    // Hide cursor when leaving canvas
+    canvasPanel.addEventListener('mouseleave', () => {
+        cursorElement.style.display = 'none';
+    });
+
+    // Update cursor size when brush size changes
+    const brushSizeSlider = document.querySelector('.vertical-slider');
+    if (brushSizeSlider) {
+        brushSizeSlider.addEventListener('input', () => {
+        const size = AppState.brushRadius * 2;
+        cursorElement.style.width = `${size}px`;
+        cursorElement.style.height = `${size}px`;
+        });
+    }
+}
+  
 function updatePointer(event, canvas) {
     const rect = canvas.getBoundingClientRect();
 

@@ -1,6 +1,6 @@
 import { createScene, resizeRenderer } from './scene.js';
 import { loadModel } from './modelLoader.js';
-import { enableInteraction } from './interaction.js';
+import { enableInteraction, setupCursorManagement } from './interaction.js';
 import { createDrawingControls } from './drawingControls.js';
 import { createViewControls } from './viewControls.js';
 
@@ -37,6 +37,7 @@ const { scene, camera, renderer, controls } = createScene(canvasPanel);
 createDrawingControls(drawingControlsPanel);
 createViewControls(scene, controls, viewControlsPanel, models);
 enableInteraction(renderer, camera, controls);
+setupCursorManagement(renderer);
 
 // Handle window resize
 window.addEventListener('resize', () => resizeRenderer(camera, renderer, canvasPanel));
@@ -170,7 +171,7 @@ function resetToDesktopLayout() {
       });
     }
   }
-  
+
 // Call this function after your initial UI setup
 window.addEventListener('DOMContentLoaded', setupMobileLayout);
 window.addEventListener('resize', setupMobileLayout);

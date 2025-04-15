@@ -53,6 +53,7 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: default;
 }
 
 .drawing-tools-container {
@@ -88,6 +89,18 @@ canvas {
 
 h3.control-title {
     margin-bottom: 20px;
+}
+
+.custom-cursor {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    transition: 
+        width 0.2s,
+        height 0.2s,
+        background-color 0.2s
 }
 
 .button {
