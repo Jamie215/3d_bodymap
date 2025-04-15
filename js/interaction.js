@@ -82,35 +82,101 @@ export function setupCursorManagement(renderer) {
     
     if (!canvasPanel) return;
     
-    // Create a cursor element
-    const cursorElement = document.createElement('div');
-    cursorElement.classList.add('custom-cursor');
-    document.body.appendChild(cursorElement);
+    // Create container for cursor elements
+    const cursorContainer = document.createElement('div');
+    cursorContainer.classList.add('cursor-container');
+    cursorContainer.style.position = 'absolute';
+    cursorContainer.style.pointerEvents = 'none';
+    cursorContainer.style.zIndex = '9999';
+    cursorContainer.style.transform = 'translate(-50%, -50%)';
+    cursorContainer.style.display = 'none';
+    cursorContainer.style.width = '40px';
+    cursorContainer.style.height = '40px';
+    document.body.appendChild(cursorContainer);
+    
+    // Create size indicator circle
+    const sizeCircle = document.createElement('div');
+    sizeCircle.classList.add('cursor-size');
+    sizeCircle.style.position = 'absolute';
+    sizeCircle.style.borderRadius = '50%';
+    sizeCircle.style.transition = 'width 0.2s, height 0.2s, background-color 0.2s';
+    sizeCircle.style.top = '50%';
+    sizeCircle.style.left = '50%';
+    sizeCircle.style.transform = 'translate(-50%, -50%)';
+    cursorContainer.appendChild(sizeCircle);
+    
+    // Create tool icon element
+    const toolIcon = document.createElement('div');
+    toolIcon.classList.add('cursor-icon');
+    toolIcon.style.position = 'absolute';
+    toolIcon.style.top = '50%';
+    toolIcon.style.left = '50%';
+    toolIcon.style.transform = 'translate(-50%, -50%)';
+    toolIcon.style.width = '18px';
+    toolIcon.style.height = '18px';
+    toolIcon.style.overflow = 'visible';
+    toolIcon.style.display = 'flex';
+    toolIcon.style.alignItems = 'center';
+    toolIcon.style.justifyContent = 'center'
+    cursorContainer.appendChild(toolIcon);
     
     // Hide default cursor over canvas
     canvasPanel.style.cursor = 'none';
     
+    // Create SVG icons as data URLs
+    const getDrawIconSvg = (color) => `
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"></path>
+        </svg>
+    `;
+    
+    const getEraseIconSvg = (color) => `
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
+            <path d="M22 21H7"></path>
+            <path d="m5 11 9 9"></path>
+        </svg>
+    `;
+
+    const updateToolIcon = (svg) => {
+        toolIcon.innerHTML = svg;
+    };
+
+    const drawColor = '#0277BD';
+    const eraseColor = '#FF5252';
+    
     // Update cursor position and appearance
     canvasPanel.addEventListener('mousemove', (e) => {
-        // Only show cursor when hovering over canvas
-        cursorElement.style.display = 'block';
+        // Show cursor container
+        cursorContainer.style.display = 'block';
         
         // Update position
-        cursorElement.style.left = `${e.clientX}px`;
-        cursorElement.style.top = `${e.clientY}px`;
+        cursorContainer.style.left = `${e.clientX}px`;
+        cursorContainer.style.top = `${e.clientY}px`;
         
         // Update size based on brush radius
         const size = AppState.brushRadius * 2;
-        cursorElement.style.width = `${size}px`;
-        cursorElement.style.height = `${size}px`;
+        sizeCircle.style.width = `${size}px`;
+        sizeCircle.style.height = `${size}px`;
         
-        // Update color based on mode
+        // Update color and icon based on mode
         if (AppState.isErasing) {
-            cursorElement.style.border = '2px solid #FF5252';
-            cursorElement.style.backgroundColor = 'rgba(255, 82, 82, 0.2)';
+            sizeCircle.style.border = `2px solid ${eraseColor}`;
+            sizeCircle.style.backgroundColor = `rgba(255, 82, 82, 0.1)`;
+            
+            // Only update the icon if it's changed to avoid DOM manipulation on every move
+            if (!toolIcon.dataset.currentTool || toolIcon.dataset.currentTool !== 'erase') {
+            updateToolIcon(getEraseIconSvg(eraseColor));
+            toolIcon.dataset.currentTool = 'erase';
+            }
         } else {
-            cursorElement.style.border = '2px solid #0277BD';
-            cursorElement.style.backgroundColor = 'rgba(2, 119, 189, 0.2)';
+            sizeCircle.style.border = `2px solid ${drawColor}`;
+            sizeCircle.style.backgroundColor = `rgba(2, 119, 189, 0.1)`;
+            
+            if (!toolIcon.dataset.currentTool || toolIcon.dataset.currentTool !== 'draw') {
+            updateToolIcon(getDrawIconSvg(drawColor));
+            toolIcon.dataset.currentTool = 'draw';
+            }
         }
     });
 
@@ -124,10 +190,42 @@ export function setupCursorManagement(renderer) {
     if (brushSizeSlider) {
         brushSizeSlider.addEventListener('input', () => {
         const size = AppState.brushRadius * 2;
-        cursorElement.style.width = `${size}px`;
-        cursorElement.style.height = `${size}px`;
+            sizeCircle.style.width = `${size}px`;
+            sizeCircle.style.height = `${size}px`;
         });
     }
+
+    // Update cursor when switching tools
+    const drawButton = document.querySelector('.button-primary');
+    const eraseButton = document.querySelector('.button-secondary');
+    
+    if (drawButton) {
+        drawButton.addEventListener('click', () => {
+            updateToolIcon(getDrawIconSvg(drawColor));
+            toolIcon.dataset.currentTool = 'draw';
+            sizeCircle.style.border = `2px solid ${drawColor}`;
+            sizeCircle.style.backgroundColor = `rgba(2, 119, 189, 0.1)`;
+        });
+    }
+    
+    if (eraseButton) {
+        eraseButton.addEventListener('click', () => {
+            updateToolIcon(getEraseIconSvg(eraseColor));
+            toolIcon.dataset.currentTool = 'erase';
+            sizeCircle.style.border = `2px solid ${eraseColor}`;
+            sizeCircle.style.backgroundColor = `rgba(255, 82, 82, 0.1)`;
+        });
+    }
+
+    canvasPanel.addEventListener('mousedown', () => {
+        if (AppState.isDrawing) {
+          sizeCircle.style.opacity = '0.8';
+        }
+    });
+      
+    window.addEventListener('mouseup', () => {
+        sizeCircle.style.opacity = '0.4';
+    });
 }
   
 function updatePointer(event, canvas) {

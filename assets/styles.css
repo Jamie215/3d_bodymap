@@ -91,16 +91,50 @@ h3.control-title {
     margin-bottom: 20px;
 }
 
-.custom-cursor {
-    position: absolute;
+.cursor-container {
     pointer-events: none;
-    z-index: 9999;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    transition: 
-        width 0.2s,
-        height 0.2s,
-        background-color 0.2s
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Style the size indicator circle */
+.cursor-size {
+    opacity: 0.4;
+    transition: opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
+    pointer-events: none;
+}
+  
+/* Style the tool icon */
+.cursor-icon {
+    width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible !important;
+  pointer-events: none;
+}
+
+.cursor-icon svg {
+    overflow: visible !important;
+    width: 100%;
+    height: 100%;
+  }
+  
+/* Only show custom cursor on desktop */
+@media (max-width: 768px) {
+    .cursor-container {
+      display: none !important;
+    }
+}
+  
+/* Hide cursor when drawing is active */
+body.drawing-active {
+    cursor: none;
+}
+  
+body.drawing-active .cursor-container .cursor-size {
+    opacity: 0.8;
 }
 
 .button {
