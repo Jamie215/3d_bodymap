@@ -1,8 +1,10 @@
 import { createScene, resizeRenderer } from './scene.js';
-import { loadModel } from './modelLoader.js';
-import { enableInteraction, setupCursorManagement } from './interaction.js';
+import { loadModel, cleanupAllModels } from './modelLoader.js';
+import { enableInteraction, cleanupInteraction, setupCursorManagement } from './interaction.js';
 import { createDrawingControls } from './drawingControls.js';
 import { createViewControls } from './viewControls.js';
+import texturePool from './textureManager.js';
+import eventManager from './eventManager.js';
 
 // Initial UI setup
 const appContainer = document.createElement('div');
@@ -26,8 +28,8 @@ appContainer.appendChild(viewControlsPanel);
 
 // Models
 const models = [
-    { name: 'Model 1', file: './assets/female_young_avgheight.glb' },
-    { name: 'Model 2', file: './assets/male_young_avgheight.glb' }
+    { name: 'Type 1', file: './assets/female_young_avgheight.glb' },
+    { name: 'Type 2', file: './assets/male_young_avgheight.glb' }
 ];
 
 // Create scene, camera, renderer
@@ -186,3 +188,20 @@ animate();
 
 // Update status when ready
 console.log('Application initialized');
+
+function cleanupApplication() {
+    cleanupInteraction();
+    cleanupAllModels();
+
+    if (renderer) {
+      renderer.dispose();
+    }
+
+    eventManager.removeAll();
+    texturePool.disposeAll();
+
+    console.log('Application Resources cleaned up');
+}
+
+window.addEventListener('beforeunload', cleanupApplication);
+window.cleanupApplication = cleanupApplication;

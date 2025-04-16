@@ -1,7 +1,17 @@
 import AppState from './state.js';
+import eventManager from './eventManager.js';
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
+
+const eventIds = [];
+
+// Add a cleanup function
+export function cleanupInteraction() {
+    // Remove all registered event listeners
+    eventIds.forEach(id => eventManager.remove(id));
+    eventIds.length = 0; // Clear the array
+}
 
 export function enableInteraction(renderer, camera, controls) {
     const canvas = renderer.domElement;
@@ -10,71 +20,63 @@ export function enableInteraction(renderer, camera, controls) {
     canvas.style.touchAction = 'none';
     
     // Mouse-based interaction
-    canvas.addEventListener('mousedown', (event) => {
+    eventIds.push(eventManager.add(canvas, 'mousedown', (event) => {
         if (!AppState.model || event.target !== canvas) return;
-
         updatePointer(event, canvas);
         handlePointerDown(camera, controls);
-    });
+    }));
 
-    window.addEventListener('mouseup', () => {
+    eventIds.push(eventManager.add(window, 'mouseup', () => {
         if (AppState.isDrawing) {
             AppState.isDrawing = false;
             controls.enabled = true;
         }
-    });
+    }));
 
-    window.addEventListener('mousemove', (event) => {
+    
+    eventIds.push(eventManager.add(window, 'mousemove', (event) => {
         if (!AppState.isDrawing || !AppState.skinMesh || event.target !== canvas) return;
-
         updatePointer(event, canvas);
         drawAtPointer(camera);
-    });
+    }));
 
-    canvas.addEventListener('dblclick', (event) => {
+    eventIds.push(eventManager.add(canvas, 'dblclick', (event) => {
         if (!AppState.model) return;
-
         handleDoubleTap(event, canvas, camera, controls);
-    });
+    }));
 
     // Touch-based Interaction
-    canvas.addEventListener('touchstart', (event) => {
+    eventIds.push(eventManager.add(canvas, 'touchstart', (event) => {
         event.preventDefault();
-
         if (!AppState.model) return;
-        
         updatePointer(event, canvas);
         handlePointerDown(camera, controls);
-    }, {passive: false});
+    }, {passive: false}));
 
-    canvas.addEventListener('touchend', () => {
+    eventIds.push(eventManager.add(canvas, 'touchend', () => {
         if (AppState.isDrawing) {
             AppState.isDrawing = false;
             controls.enabled = true;
         }
-    });
+    }));
     
-    canvas.addEventListener('touchmove', (event) => {
+    eventIds.push(eventManager.add(canvas, 'touchmove', (event) => {
         event.preventDefault();
-
         if(!AppState.isDrawing || !AppState.skinMesh) return;
-
         updatePointer(event, canvas);
         drawAtPointer(camera);
-    }, {passive: false});
+    }, {passive: false}));
 
     let lastTapTime = 0;
 
-    canvas.addEventListener('touchend', (event) => {
+    eventIds.push(eventManager.add(canvas, 'touchend', (event) => {
         const currentTime = new Date().getTime();
         const tapLength = currentTime - lastTapTime;
-
         if (tapLength < 300 && tapLength > 0) {
             handleDoubleTap(event, canvas, camera, controls);
         }
-
         lastTapTime = currentTime;
-    });
+    }));
 }
 
 export function setupCursorManagement(renderer) {
@@ -182,7 +184,7 @@ export function setupCursorManagement(renderer) {
 
     // Hide cursor when leaving canvas
     canvasPanel.addEventListener('mouseleave', () => {
-        cursorElement.style.display = 'none';
+        cursorContainer.style.display = 'none';
     });
 
     // Update cursor size when brush size changes

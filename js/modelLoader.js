@@ -1,9 +1,59 @@
 import AppState from './state.js';
+import texturePool from './textureManager.js'
 
 const loader = new THREE.GLTFLoader();
 
 // Track the current loading request
 let currentLoadingRequest = null;
+
+function disposeNode(node) {
+    if (node.geometry) {
+        node.geometry.dispose();
+    }
+
+    if (node.material) {
+        if (Array.isArray(node.material)) {
+            node.material.forEach(material => disposeMaterial(material));
+        } else {
+            disposeMaterial(node.material);
+        }
+    }
+
+    if (node.userData && node.userData.texture) {
+        node.userData.texture.dispose();
+    }
+}
+
+function disposeMaterial(material) {
+    // Skip if material is null or undefined
+    if (!material) return;
+    
+    // Dispose textures and other disposable properties
+    for (const prop in material) {
+        try {
+            const value = material[prop];
+            // Only try to dispose if the value has a dispose function
+            if (value && typeof value.dispose === 'function') {
+                value.dispose();
+            }
+        } catch (e) {
+            console.warn(`Error disposing material property ${prop}:`, e);
+        }
+    }
+    
+    // Finally dispose the material itself
+    if (typeof material.dispose === 'function') {
+        material.dispose();
+    }
+}
+
+// Clean up a model and its resources
+function cleanupModel(model) {
+    if (!model) return;
+    
+    // Traverse the model to dispose all resources
+    model.traverse(disposeNode);
+}
 
 export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
     // Cancel any previous loading by tracking the current request
@@ -16,26 +66,23 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
     
     // Set this as the current request
     currentLoadingRequest = thisRequest;
-    
-    // Function to clean up the previous model
-    const cleanupPreviousModel = () => {
-        if (AppState.model) {
-            scene.remove(AppState.model);
-            AppState.model.traverse(child => {
-                if (child.isMesh) {
-                    child.geometry.dispose();
-                    child.material.dispose();
-                }
-            });
-            AppState.model = null;
-            AppState.skinMesh = null;
+
+    // Clean up previous model
+    if (AppState.model) {
+        scene.remove(AppState.model);
+        cleanupModel(AppState.model);
+
+        if (AppState.skinMesh?.userData?.textureId) {
+            texturePool.releaseTexture(AppState.skinMesh.userData.textureId);
         }
-    };
+
+        AppState.model = null;
+        AppState.skinMesh = null;
+    }
 
     // Only show loading spinner if not cancelled
     if (!thisRequest.cancelled) {
         showLoadingSpinner();
-        cleanupPreviousModel();
     }
 
     loader.load(path, 
@@ -60,22 +107,29 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
             model.traverse((child) => {
                 if (!child.isMesh) return;
 
-                if (child.name === 'Hair') return;
+                if (child.name === 'Hair') {
+                    child.material = child.material.clone();
+                    child.material.transparent = true;
+                    child.material.opacity = 0.4;
+                    child.material.needsUpdate = true;
+                }
 
                 if (child.name === 'Human') {
                     skinMesh = child;
-                    const canvas = document.createElement('canvas');
-                    canvas.width = canvas.height = 1024;
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#fff';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    const tex = new THREE.CanvasTexture(canvas);
+                    const textureId = `model-${name}-skin`;
+                    const { canvas, context, threeTexture } = texturePool.getTexture(textureId);
+                    
                     child.material = child.material.clone();
-                    child.material.map = tex;
+                    child.material.map = threeTexture;
                     child.material.needsUpdate = true;
 
-                    child.userData = { canvas, context: ctx, texture: tex };
+                    child.userData = { 
+                        canvas, 
+                        context, 
+                        texture: threeTexture, 
+                        textureId 
+                    };
                 }
 
                 if (['Top', 'Shorts'].includes(child.name)) {
@@ -100,12 +154,12 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                 onLoaded();
             }
         },
-        // Progress callback
+         // Progress callback
         (xhr) => {
-            // Optional: you could update a progress bar here
+            if (thisRequest.cancelled) return;            
             // if (xhr.lengthComputable) {
             //     const percentComplete = xhr.loaded / xhr.total * 100;
-            //     updateProgressBar(percentComplete);
+            //     console.log(`${path}: ${Math.round(percentComplete)}% loaded`);
             // }
         },
         // Error callback
@@ -159,4 +213,16 @@ function showLoadingSpinner() {
 function hideLoadingSpinner() {
     const el = document.getElementById('loading-container');
     if (el) document.body.removeChild(el);
+}
+
+export function cleanupAllModels() {
+    if (AppState.model) {
+        cleanupModel(AppState.model);
+        AppState.model = null;
+        AppState.skinMesh = null;
+    }
+
+    if (typeof texturePool !== 'undefined') {
+        texturePool.disposeAll();
+    }
 }

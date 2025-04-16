@@ -10,7 +10,7 @@ export function createViewControls(scene, controls, viewControlsPanel, modelList
     // View Controls Title
     const title = document.createElement('div');
     title.classList.add('control-title');
-    title.textContent = 'Adjust Body View';
+    title.textContent = 'Adjust My Body View';
 
     // Double-click instruction
     const doubleClickInstruction = document.createElement('div');
@@ -19,7 +19,7 @@ export function createViewControls(scene, controls, viewControlsPanel, modelList
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
             <path d="M3 5.188C3 2.341 5.22 0 8 0s5 2.342 5 5.188v5.625C13 13.658 10.78 16 8 16s-5-2.342-5-5.188V5.189zm4.5-4.155C5.541 1.289 4 3.035 4 5.188V5.5h3.5zm1 0V5.5H12v-.313c0-2.152-1.541-3.898-3.5-4.154M12 6.5H4v4.313C4 13.145 5.81 15 8 15s4-1.855 4-4.188z"/>
         </svg>
-        <span>Click or Tap twice in a row <span style="color:#666;font-weight:400;">for a closer look</span></span>
+        <span>Click or tap twice in a row <span style="color:#666;font-weight:400;">for a closer look</span></span>
     `;
 
     // Scroll instruction
@@ -39,7 +39,7 @@ export function createViewControls(scene, controls, viewControlsPanel, modelList
     // Model Selector
     const modelLabel = document.createElement('div');
     modelLabel.classList.add('label');
-    modelLabel.innerHTML = '<strong>Select Model:</strong>';
+    modelLabel.innerHTML = '<strong>Select My Body Type:</strong>';
 
     const modelSelect = document.createElement('select');
     modelSelect.classList.add('model-selector');
@@ -82,7 +82,7 @@ export function createViewControls(scene, controls, viewControlsPanel, modelList
     const directionHeader = document.createElement('div');
     directionHeader.classList.add('control-title');
     directionHeader.style.marginTop = '20px';
-    directionHeader.textContent = 'Change the Direction the Body is Facing:';
+    directionHeader.textContent = 'Change the Direction My Body is Facing:';
 
     // Create orientation buttons container
     const orientationContainer = document.createElement('div');
