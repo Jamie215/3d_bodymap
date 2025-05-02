@@ -248,6 +248,8 @@ function handlePointerDown(camera, controls) {
     if (intersects.length > 0) {
         AppState.isDrawing = true;
         controls.enabled = false;
+
+        drawAtPointer(camera);
     }
 }
 
@@ -256,18 +258,40 @@ function drawAtPointer(camera) {
     const intersects = raycaster.intersectObject(AppState.skinMesh, true);
     if (intersects.length === 0) return;
 
-    const uv = intersects[0].uv;
-    if (!uv) return;
+    const { canvas, context, texture } = AppState.skinMesh.userData;
+    const fillStyle = AppState.isErasing ? '#ffffff' : '#9575CD';
+    context.fillStyle = fillStyle;
 
-    const {canvas, context, texture } = AppState.skinMesh.userData;
+    const hit = intersects[0];
+    const uv = hit.uv;
+    const point = hit.point;
+    drawBrushAtUV(uv, canvas, context, AppState.brushRadius);
+
+    // Mirror only if physically near center (X=0)
+    const seamDistanceThreshold = 0.008;
+    if (Math.abs(point.x) < seamDistanceThreshold) {
+        const mirroredPoint = point.clone();
+        mirroredPoint.x *= -1;
+
+        const mirroredDir = new THREE.Vector3().subVectors(mirroredPoint, camera.position).normalize();
+        raycaster.set(camera.position, mirroredDir);
+        const mirroredHits = raycaster.intersectObject(AppState.skinMesh, true);
+
+        if (mirroredHits.length > 0 && mirroredHits[0].uv) {
+            drawBrushAtUV(mirroredHits[0].uv, canvas, context, AppState.brushRadius/2);
+        }
+    }
+
+    texture.needsUpdate = true;
+}
+
+function drawBrushAtUV(uv, canvas, context, radius) {
     const x = Math.floor(uv.x * canvas.width);
-    const y = Math.floor((1 -uv.y) * canvas.height);
+    const y = Math.floor((1 - uv.y) * canvas.height);
 
     context.beginPath();
-    context.arc(x, y, AppState.brushRadius, 0, 2*Math.PI);
-    context.fillStyle = AppState.isErasing ? '#ffffff' : '#9575CD';
+    context.arc(x, y, radius, 0, 2 * Math.PI);
     context.fill();
-    texture.needsUpdate = true;
 }
 
 function handleDoubleTap(event, canvas, camera, controls) {
