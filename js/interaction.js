@@ -160,6 +160,9 @@ export function setupCursorManagement(renderer) {
         const size = AppState.brushRadius * 2;
         sizeCircle.style.width = `${size}px`;
         sizeCircle.style.height = `${size}px`;
+
+        const iconOffset = { x: 0, y: -15 }; // Customize these values to your preference
+        toolIcon.style.transform = `translate(${iconOffset.x}px, ${iconOffset.y}px)`;
         
         // Update color and icon based on mode
         if (AppState.isErasing) {
@@ -262,23 +265,27 @@ function drawAtPointer(camera) {
     const fillStyle = AppState.isErasing ? '#ffffff' : '#9575CD';
     context.fillStyle = fillStyle;
 
-    const hit = intersects[0];
-    const uv = hit.uv;
-    const point = hit.point;
-    drawBrushAtUV(uv, canvas, context, AppState.brushRadius);
+    const currentHit = intersects[0];
+    const currentPoint = currentHit.point;
 
-    // Mirror only if physically near center (X=0)
-    const seamDistanceThreshold = 0.008;
-    if (Math.abs(point.x) < seamDistanceThreshold) {
-        const mirroredPoint = point.clone();
-        mirroredPoint.x *= -1;
+    drawBrushAtUV(currentHit.uv, canvas, context, AppState.brushRadius);
 
-        const mirroredDir = new THREE.Vector3().subVectors(mirroredPoint, camera.position).normalize();
-        raycaster.set(camera.position, mirroredDir);
+    AppState.previousHitPoint = currentPoint;
+
+    // Handle mirroring across seam at the back
+    const seamDistanceThreshold = 0.0075;
+    if (Math.abs(currentPoint.x) < seamDistanceThreshold) {
+        const mirroredOrigin = raycaster.ray.origin.clone();
+        mirroredOrigin.x *= -1;
+
+        const mirroredDir = raycaster.ray.direction.clone();
+        mirroredDir.x *= -1;
+
+        raycaster.set(mirroredOrigin, mirroredDir);
         const mirroredHits = raycaster.intersectObject(AppState.skinMesh, true);
 
         if (mirroredHits.length > 0 && mirroredHits[0].uv) {
-            drawBrushAtUV(mirroredHits[0].uv, canvas, context, AppState.brushRadius/2);
+            drawBrushAtUV(mirroredHits[0].uv, canvas, context, AppState.brushRadius / 2);
         }
     }
 

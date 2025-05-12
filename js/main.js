@@ -28,8 +28,8 @@ appContainer.appendChild(viewControlsPanel);
 
 // Models
 const models = [
-    { name: 'Type 1', file: './assets/female_young_avgheight.glb' },
-    { name: 'Type 2', file: './assets/male_young_avgheight.glb' }
+    { name: 'Type 1', file: './assets/female_young_avgheight2.glb' },
+    { name: 'Type 2', file: './assets/male_young_avgheight2.glb' }
 ];
 
 // Create scene, camera, renderer
