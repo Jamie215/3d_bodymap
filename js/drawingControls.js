@@ -1,4 +1,5 @@
 import AppState from './state.js';
+import texturePool from './textureManager.js'
 
 export function createDrawingControls(drawingControlsPanel) {
     // Drawing Controls Container
@@ -67,25 +68,13 @@ export function createDrawingControls(drawingControlsPanel) {
     brushSizeSlider.value = AppState.brushRadius;
     brushSizeSlider.classList.add('vertical-slider');
 
-    // Size indicator value
+    // Size Indicator Value
     const sizeIndicator = document.createElement('div');
     sizeIndicator.classList.add('size-indicator');
     sizeIndicator.textContent = brushSizeSlider.value;
 
     sliderContainer.appendChild(brushSizeSlider);
     sliderContainer.appendChild(sizeIndicator);
-    
-    // Assemble the container
-    drawingToolsContainer.appendChild(title);
-    drawingToolsContainer.appendChild(drawButton);
-    drawingToolsContainer.appendChild(eraseButton);
-    drawingToolsContainer.appendChild(resetDrawingButton);
-    drawingToolsContainer.appendChild(divider);
-    drawingToolsContainer.appendChild(brushSizeLabel);
-    drawingToolsContainer.appendChild(sliderContainer);
-
-    // Append to panel
-    drawingControlsPanel.appendChild(drawingToolsContainer);
 
     // Event Listeners
     drawButton.addEventListener('click', () => {
@@ -119,4 +108,93 @@ export function createDrawingControls(drawingControlsPanel) {
         AppState.brushRadius = parseInt(e.target.value);
         sizeIndicator.textContent = e.target.value;
     });
+
+    const instanceSelector = document.createElement('select');
+    instanceSelector.classList.add('instance-selector');
+    instanceSelector.addEventListener('change', (e) => {
+        AppState.currentDrawingIndex = parseInt(e.target.value);
+        updateCurrentDrawing();
+    });
+
+    function updateInstanceSelector() {
+        instanceSelector.innerHTML = '';
+        AppState.drawingInstances.forEach((_, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `Drawing ${index+1}`;
+            instanceSelector.appendChild(option)
+        });
+        instanceSelector.value = AppState.currentDrawingIndex;
+    }
+
+    // Assemble the container
+    drawingToolsContainer.appendChild(title);
+    drawingToolsContainer.appendChild(drawButton);
+    drawingToolsContainer.appendChild(eraseButton);
+    drawingToolsContainer.appendChild(resetDrawingButton);
+    drawingToolsContainer.appendChild(divider);
+    drawingToolsContainer.appendChild(brushSizeLabel);
+    drawingToolsContainer.appendChild(sliderContainer);
+    drawingToolsContainer.appendChild(instanceSelector);
+    updateInstanceSelector();
+
+    // Append to panel
+    drawingControlsPanel.appendChild(drawingToolsContainer);
+}
+
+export function addNewDrawingInstance() {
+    const instanceId = `drawing-${AppState.drawingInstances.length + 1}`;
+    const newTexture = texturePool.getNewTexture(instanceId);
+
+    // Store the new instance in AppState
+    AppState.drawingInstances.push(newTexture);
+    AppState.currentDrawingIndex = AppState.drawingInstances.length - 1;
+    updateCurrentDrawing();
+}
+
+export function isCurrentDrawingBlank() {
+    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+    if(!currentInstance || !currentInstance.canvas) return true;
+
+    const ctx = currentInstance.context;
+    const { width, height } = currentInstance.canvas;
+    const imageData = ctx.getImageData(0, 0, width, height).data;
+
+    // Check if all pixels are white (or nearly white)
+    for (let i = 0; i < imageData.length; i += 4) {
+        const r = imageData[i];
+        const g = imageData[i + 1];
+        const b = imageData[i + 2];
+        const a = imageData[i + 3];
+
+        // If anything isn't fully white/transparent
+        if (!(r === 255 && g === 255 && b === 255 && a === 255)) {
+            return false; // Non-blank pixel found
+        }
+    }
+    return true;
+}
+export function updateCurrentDrawing() {
+    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+    if (!currentInstance || !AppState.skinMesh || !AppState.skinMesh.material) return;
+
+    const material = AppState.skinMesh.material;
+    if (!material) {
+        console.warn("updateCurrentDrawing: skinMesh.material is not ready.");
+        return;
+    }
+
+    AppState.skinMesh.userData.canvas = currentInstance.canvas;
+    AppState.skinMesh.userData.context = currentInstance.context;
+    AppState.skinMesh.userData.texture = currentInstance.texture;
+
+    material.map = currentInstance.texture;
+    material.needsUpdate = true;
+    currentInstance.texture.needsUpdate = true;
+
+    const statusBar = document.getElementById('drawing-status-bar');
+    if (statusBar) {
+        const current = AppState.currentDrawingIndex + 1;
+        statusBar.textContent = `Add Your Main Area of Pain or Symptom #${current}`;
+    }
 }

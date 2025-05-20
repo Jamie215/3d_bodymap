@@ -22,41 +22,45 @@ canvas {
 }
 
 #app-container {
-    display: flex;
-    position: absolute;
-    width: 100%;
-    height: 100%;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
 }
 
 #drawing-control-panel {
-    width: 150px;
-    padding: 40px;
-    flex-shrink: 1;
+    width: 20vw;
+    flex-shrink: 0;
+    padding: 24px;
+    box-sizing: border-box;
     background: transparent;
     display: flex;
     align-items: center;
+    /* justify-content: center; */
 }
 
 #view-control-panel {
-    width: 450px;
-    padding: 40px;
-    flex-shrink: 1;
+    width: 30vw;
+    flex-shrink: 0;
+    padding: 24px;
+    box-sizing: border-box;
     background: transparent;
     display: flex;
     align-items: center;
+    justify-content: center;
 }
 
 #canvas-panel {
-    flex-grow: 1;
-    position: relative;
-    overflow: hidden;
+    width: 50vw;
+    flex-shrink: 0;
+    box-sizing: border-box;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     cursor: default;
 }
 
-.drawing-tools-container {
+.drawing-tools-container, .view-tools-container {
     background: var(--panel-background);
     padding: 20px;
     border-radius: var(--border-radius);
@@ -65,18 +69,6 @@ canvas {
     flex-direction: column;
     align-items: center;
     gap: 15px;
-    border: 1px solid #f0f0f0;
-}
-
-.view-tools-container {
-    background: var(--panel-background);
-    padding: 20px;
-    border-radius: var(--border-radius);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    align-items: left !important;
-    gap: 20px;
     border: 1px solid #f0f0f0;
 }
 
@@ -106,7 +98,7 @@ h3.control-title {
   
 /* Style the tool icon */
 .cursor-icon {
-    width: 18px;
+  width: 18px;
   height: 18px;
   display: flex;
   align-items: center;
@@ -119,7 +111,7 @@ h3.control-title {
     overflow: visible !important;
     width: 100%;
     height: 100%;
-  }
+}
   
 /* Only show custom cursor on desktop */
 @media (max-width: 768px) {
@@ -353,208 +345,121 @@ input[type="range"]::-webkit-slider-thumb {
     background-color: white;
     cursor: pointer;
 }
-
-/* Base layout that stacks on mobile */
-@media (max-width: 768px) {
-    html, body {
-        height: 100%;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-    }
-
-    #app-container {
-        flex-direction: column;
-        height: 100vh;
-        overflow: hidden;
-        padding: 0;
-        margin: 0;
-    }
-    
-    #canvas-panel {
-        order: 1;
-        width: 100%;
-        height: 60vh;
-        padding: 0;
-        margin: 0;
-    }
-
-    .mobile-controls-container {
-        order: 2;
-        display: flex;
-        flex-direction: row;
-        width: 100%;
-        height: 40vh;
-        overflow-y: auto;
-        align-items: stretch;
-        padding: 0;
-        margin: 0;
-        box-sizing: border-box;
-        border-top: 1px solid #ddd;
-    }
-
-    .drawing-tools-container,
-    .view-tools-container {
-      padding: 10px;
-      margin: 0;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      box-sizing: border-box;
-      gap: 8px; /* Consistent spacing between elements */
-    }
-
-    #drawing-control-panel {
-        width: 30%; 
-      }
-      
-    #view-control-panel {
-        width: 70%;
-    }
-    
-    .drawing-tools-container {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 8px;
-        margin: 0;
-        height: auto;
-      }
-      
-    .view-tools-container {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 8px;
-        margin: 0;
-        height: auto;
-    }
-    
-     /* Simplify UI */
-     .control-title {
-        display: none;
-    }
-    
-    /* Hide instructions on mobile */
-    .instruction {
-        display: none;
-    }
-    
-    /* Smaller buttons */
-    .button {
-        padding: 6px;
-        min-height: 36px;
-        margin-bottom: 4px;
-    }
-    
-    .button span {
-        font-size: 12px;
-    }
-    
-    .button svg {
-        width: 18px;
-        height: 18px;
-        margin-bottom: 5px;
-    }
-
-    .model-selector {
-        margin: 4px 0;
-        padding: 6px;
-    }
-
-    .label {
-        margin: 2px 0;
-    }
-    
-    /* Make orientation buttons more compact */
-    .orientation-button-container {
-        gap: 3px;
-        margin: 4px 0;
-    }
-
-    .orientation-button {
-        padding: 4px;
-    }
-
-    .orientation-button img {
-        width: 70%;
-    }
-    
-    /* Horizontal slider for brush size */
-    .vertical-slider {
-        transform: none !important;
-        position: static !important;
-        top: auto !important;
-        left: auto !important;
-        height: 6px !important;
-    }
-      
-    .vertical-slider-container {
-        height: auto;
-        width: 100%;
-        margin: 10px 0;
-        position: relative;
-        display: block;
-    }
-    
-    /* Make sure the size indicator is visible */
-    .size-indicator {
-        position: static;
-        margin-top: 2px;
-    }
+  
+/* Drawing Instance Control Related */
+#drawing-status-bar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: transparent;
+  color: black;
+  font-weight: 700;
+  font-size: 32px;
+  text-align: left;
+  padding: 20px;
+  z-index: 1001;
 }
-  
-  /* Tablet layout */
-  @media (min-width: 769px) and (max-width: 1200px) {
-    #drawing-control-panel {
-      width: 20%; /* Percentage-based width */
-      padding: 20px;
-    }
-    
-    #view-control-panel {
-      width: 30%; /* Percentage-based width */
-      padding: 20px;
-    }
-    
-    .button {
-      padding: 8px; /* Smaller buttons on tablets */
-    }
-  }
-  
-  /* Large screens - keep current layout but make panel widths more adaptive */
-  @media (min-width: 1201px) {
-    #drawing-control-panel {
-      width: 15%; /* More proportional on large screens */
-      max-width: 250px;
-    }
-    
-    #view-control-panel {
-      width: 25%; /* More proportional on large screens */
-      max-width: 450px;
-    }
-  }
-  
-  /* Shared responsive adjustments */
-  .vertical-slider-container {
+
+#bottom-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 10%;
+  background-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 1000;
+}
+
+.bottom-continue-button {
+  padding: 10px 32px;
+  width: auto;
+  min-width: 220px;
+  font-size: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  margin-top: 10px;
+  margin-right: 140px;
+  transition: background-color 0.2s;
+}
+
+.bottom-continue-button:hover {
+    background-color: #005f99;
+    color: white;
+}
+
+#confirmation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    max-width: 120px;
-    margin: 0 auto;
-  }
-  
-  /* Improve button responsiveness */
-  .button svg {
-    width: 20px;
-    height: 20px;
-  }
-  
-  /* Make the reset view button more touch-friendly */
-  .reset-view-button {
-    padding: 12px 8px;
-    margin-top: 15px;
-  }
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  text-align: center;
+  font-family: sans-serif;
+  max-width: 500px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.modal-button-group {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.modal-button {
+  padding: 10px 20px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  background-color: #f5f5f5;
+  color: #333;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.modal-button:disabled,
+.modal-button.disabled {
+    background-color: #ccc;
+    color: #888;
+    border: 1px solid #bbb;
+    cursor: not-allowed;
+}
+
+.modal-button:hover {
+  background-color: #e0e0e0;
+}
+
+.drawing-preview {
+  width: 400px;
+  height: auto;
+  max-height: 300px;
+  max-width: 400px;
+  object-fit: contain;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}

@@ -49,6 +49,14 @@ def supinate_armature():
     r_wrist_bone.rotation_mode = 'XYZ'
     r_wrist_bone.rotation_euler = (math.radians(0), math.radians(0), math.radians(0))
     
+    l_foot_bone = armature.bones.get('foot.L')
+    l_foot_bone.rotation_mode = 'XYZ'
+    l_foot_bone.rotation_euler = (math.radians(75), math.radians(0), math.radians(0))
+    
+    r_foot_bone = armature.bones.get('foot.R')
+    r_foot_bone.rotation_mode = 'XYZ'
+    r_foot_bone.rotation_euler = (math.radians(75), math.radians(0), math.radians(0))
+    
 
 # Run the function
 supinate_armature()

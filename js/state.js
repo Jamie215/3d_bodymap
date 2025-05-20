@@ -4,7 +4,10 @@ const AppState = {
     isDrawing: false,
     isErasing: false,
     brushRadius: 15,
-    currentModelName: 'Model 1'
+    currentModelName: 'Model 1',
+    drawingInstances: [],
+    currentDrawingIndex: 0,
+    drawnBoneNames: new Set()
 };
 
 export default AppState;

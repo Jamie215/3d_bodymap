@@ -55,6 +55,56 @@ function cleanupModel(model) {
     model.traverse(disposeNode);
 }
 
+// For mapping UV coordinates to body locations
+function buildBoneVertexMap(skinnedMesh) {
+    const geometry = skinnedMesh.geometry;
+    const skinIndex = geometry.attributes.skinIndex;
+    const skinWeight = geometry.attributes.skinWeight;
+    const position = geometry.attributes.position;
+
+    if (!skinIndex || !skinWeight) {
+        console.warn("Model missing skinIndex or skinWeight attributes.");
+        return {};
+    }
+
+    const boneVertexMap = {};
+
+    for (let i = 0; i < position.count; i++) {
+        const boneIndices = [
+            skinIndex.getX(i),
+            skinIndex.getY(i),
+            skinIndex.getZ(i),
+            skinIndex.getW(i),
+        ];
+        const weights = [
+            skinWeight.getX(i),
+            skinWeight.getY(i),
+            skinWeight.getZ(i),
+            skinWeight.getW(i),
+        ];
+
+        for (let j = 0; j < 4; j++) {
+            const weight = weights[j];
+            const boneIndex = boneIndices[j];
+            if (weight > 0.2) {  // use a threshold to ignore weak influences
+                const boneName = skinnedMesh.skeleton.bones[boneIndex].name;
+                if (!boneVertexMap[boneName]) boneVertexMap[boneName] = [];
+
+                const vertex = new THREE.Vector3(
+                    position.getX(i),
+                    position.getY(i),
+                    position.getZ(i)
+                );
+
+                boneVertexMap[boneName].push(vertex);
+            }
+        }
+    }
+
+    return boneVertexMap;
+}
+
+
 export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
     // Cancel any previous loading by tracking the current request
     const thisRequest = { cancelled: false };
@@ -122,6 +172,8 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                     
                     child.material = child.material.clone();
                     child.material.map = threeTexture;
+                    child.material.transparent = true;
+                    child.material.opacity = 0.75;
                     child.material.needsUpdate = true;
 
                     child.userData = { 
@@ -130,6 +182,9 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                         texture: threeTexture, 
                         textureId 
                     };
+
+                    AppState.skinMesh = skinMesh;
+                    AppState.boneVertexMap = buildBoneVertexMap(skinMesh);
                 }
 
                 if (['Top', 'Shorts'].includes(child.name)) {
@@ -144,7 +199,6 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
             controls.update();
 
             AppState.model = model;
-            AppState.skinMesh = skinMesh;
             AppState.currentModelName = name;
 
             console.log(`Loaded model: ${name}`);

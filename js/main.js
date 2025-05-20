@@ -1,10 +1,11 @@
 import { createScene, resizeRenderer } from './scene.js';
 import { loadModel, cleanupAllModels } from './modelLoader.js';
-import { enableInteraction, cleanupInteraction, setupCursorManagement } from './interaction.js';
-import { createDrawingControls } from './drawingControls.js';
+import { enableInteraction, cleanupInteraction, setupCursorManagement, getBoneFromPaintedUV } from './interaction.js';
+import { createDrawingControls, addNewDrawingInstance, updateCurrentDrawing, isCurrentDrawingBlank } from './drawingControls.js';
 import { createViewControls } from './viewControls.js';
 import texturePool from './textureManager.js';
 import eventManager from './eventManager.js';
+import AppState from './state.js';
 
 // Initial UI setup
 const appContainer = document.createElement('div');
@@ -14,17 +15,133 @@ document.body.appendChild(appContainer);
 // Left panel (Drawing Controls)
 const drawingControlsPanel = document.createElement('div');
 drawingControlsPanel.id = 'drawing-control-panel';
-appContainer.appendChild(drawingControlsPanel);
 
 // Center panel (Canvas/3D Model)
 const canvasPanel = document.createElement('div');
 canvasPanel.id = 'canvas-panel';
-appContainer.appendChild(canvasPanel);
 
 // Right panel (View Controls)
 const viewControlsPanel = document.createElement('div')
 viewControlsPanel.id = 'view-control-panel';
+
+// Drawing Status Bar
+const statusBar = document.createElement('div');
+statusBar.id = 'drawing-status-bar';
+statusBar.textContent = 'Add Your Main Area of Pain or Symptom #1';
+
+// Bottom Footer Control
+const footerBar = document.createElement('div');
+footerBar.id = 'bottom-footer';
+
+const continueButton = document.createElement('button');
+continueButton.textContent = 'Continue';
+continueButton.classList.add('button', 'button-primary', 'bottom-continue-button');
+
+footerBar.appendChild(continueButton);
+
+appContainer.appendChild(statusBar);
+appContainer.appendChild(drawingControlsPanel);
+appContainer.appendChild(canvasPanel);
 appContainer.appendChild(viewControlsPanel);
+appContainer.appendChild(footerBar);
+
+// Confirmation Display Modal
+const modal = document.createElement('div');
+modal.id = 'confirmation-modal';
+modal.innerHTML = `
+  <div class="modal-content">
+    <h3 id="modal-text">Does this drawing capture your intended pain or symptom?</h3>
+    <img id="drawing-preview" class="drawing-preview" /?
+    <div class="modal-button-group">
+      <button id="modal-continue" class="modal-button">Yes, Proceed </button>
+      <button id="modal-return" class="modal-button">No, Return to My Drawing </button>
+    </div>
+  </div>
+`;
+
+document.body.appendChild(modal);
+
+const modalEl = document.getElementById('confirmation-modal');
+const modalText = document.getElementById('modal-text');
+const modalContinueButton = document.getElementById('modal-continue');
+const modalReturnButton = document.getElementById('modal-return');
+// const modalAddButton = document.getElementById('modal-add');
+const drawingPreview = document.getElementById('drawing-preview');
+
+continueButton.addEventListener('click', () => {
+    if (isCurrentDrawingBlank()) {
+        modalText.textContent = "No drawing has been found!";
+        modalContinueButton.disabled = true;
+        modalContinueButton.classList.add('disabled');
+        drawingPreview.style.display = 'none';
+    } else {
+        modalText.textContent = "A drawing has been found in the following region(s)"
+        modalContinueButton.disabled = false;
+        modalContinueButton.classList.remove('disabled');
+        drawingPreview.style.display = 'block';
+
+        const regionBoneList = [...AppState.drawnBoneNames];
+
+
+        if (regionBoneList.length > 0) {
+            console.log("Detected bones:", regionBoneList);
+
+            // Store in AppState
+            AppState.drawingInstances[AppState.currentDrawingIndex].boneNames = regionBoneList;
+            focusCameraOnBones(regionBoneList, camera, controls, AppState.skinMesh);
+            setTimeout(() => {
+                const previewWidth = 400;
+                const previewHeight = 300;
+
+                const originalSize = renderer.getSize(new THREE.Vector2());
+                const originalPixelRatio = renderer.getPixelRatio();
+
+                renderer.setSize(previewWidth, previewHeight);
+                renderer.setPixelRatio(1);
+                renderer.render(scene, camera); // force re-render
+                const dataURL = renderer.domElement.toDataURL('image/png');
+                drawingPreview.src = dataURL;
+
+                renderer.setSize(originalSize.x, originalSize.y);
+                renderer.setPixelRatio(originalPixelRatio);
+
+
+            }, 100);
+            
+            // // Build list HTML
+            // const labelHTML = `
+            //     <ul style="margin-top: 0;">
+            //         ${regionBoneList.map(b => `<li>${b}</li>`).join('')}
+            //     </ul>
+            // `;
+
+            // // Insert into modal below main text
+            // const infoContainer = document.createElement('div');
+            // infoContainer.innerHTML = labelHTML;
+            // modalText.after(infoContainer);
+        }
+    }
+    modalEl.style.display = 'flex';
+});
+
+modalContinueButton.addEventListener('click', () => {
+    modalEl.style.display = 'none';
+    // infoContainer.remove();
+    alert('Proceeding to next step...'); // Replace with your actual action
+});
+
+modalReturnButton.addEventListener('click', () => {
+    modalEl.style.display = 'none';
+    AppState.drawnBoneNames = new Set();
+    // infoContainer?.remove();
+})
+
+// modalAddButton.addEventListener('click', () => {
+//     modalEl.style.display = 'none';
+//     AppState.drawnBoneNames = new Set();
+//     // infoContainer?.remove();
+//     addNewDrawingInstance(); // use your existing function
+// });
 
 // Models
 const models = [
@@ -48,135 +165,22 @@ resizeRenderer(camera, renderer, canvasPanel);
 window.camera = camera;
 window.controls = controls;
 
-function zoomCameraForMobile() {
-    if (window.innerWidth <= 768) {
-      // Adjust the initial camera position for mobile
-      if (camera && controls) {
-        // Get current direction vector
-        const direction = new THREE.Vector3().subVectors(
-          camera.position,
-          controls.target
-        ).normalize();
-        
-        // Default distance
-        const defaultDistance = 1.5; 
-        
-        // Use a closer distance for mobile
-        const mobileDistance = 1.0; 
-        
-        // Set new position
-        camera.position.copy(
-          controls.target.clone().add(
-            direction.multiplyScalar(mobileDistance)
-          )
-        );
-        
-        // Update controls
-        controls.update();
+// Load initial model and then zoom for mobile
+loadModel(models[0].file, models[0].name, scene, controls, () => {
+
+  // Wait until skinMesh is ready
+  const waitUntilSkinMeshReady = setInterval(() => {
+    if (AppState.skinMesh) {
+      clearInterval(waitUntilSkinMeshReady);
+      
+      if (AppState.drawingInstances.length === 0) {
+        addNewDrawingInstance();
+      } else {
+        updateCurrentDrawing();
       }
     }
-}
-
-// Load initial model and then zoom for mobile
-loadModel(models[0].file, models[0].name, scene, controls);
-
-// Call zoom after a short delay to ensure model is loaded
-setTimeout(() => {
-    zoomCameraForMobile();
-}, 500);
-
-function setupMobileLayout() {
-    // Check if we're on a mobile device
-    const isMobile = window.innerWidth <= 768;
-    
-    if (isMobile) {
-        const appContainer = document.getElementById('app-container');
-        const canvasPanel = document.getElementById('canvas-panel');
-        const drawingPanel = document.getElementById('drawing-control-panel');
-        const viewPanel = document.getElementById('view-control-panel');
-        
-        // Check if mobile container already exists
-        let mobileContainer = document.querySelector('.mobile-controls-container');
-        
-        if (!mobileContainer) {
-          // Create container for the controls
-          mobileContainer = document.createElement('div');
-          mobileContainer.classList.add('mobile-controls-container');
-          
-          // Reorder elements
-          appContainer.appendChild(canvasPanel); // Canvas first
-          appContainer.appendChild(mobileContainer); // Controls container second
-          
-          // Move panels into the mobile container
-          mobileContainer.appendChild(drawingPanel);
-          mobileContainer.appendChild(viewPanel);
-          
-          // Simplify UI text
-          simplifyMobileUI();
-        }
-    } else {
-    // Reset to desktop layout if needed
-    resetToDesktopLayout();
-    }
-}
-
-function simplifyMobileUI() {
-    // Convert vertical slider to horizontal
-    const slider = document.querySelector('.vertical-slider');
-    if (slider) {
-        slider.style.transform = 'none';
-        slider.style.position = 'static';
-        slider.style.width = '100%';
-    }
-    
-    // Hide instructions
-    const instructions = document.querySelectorAll('.instruction');
-    instructions.forEach(el => {
-        el.style.display = 'none';
-    });
-}
-
-function resetToDesktopLayout() {
-    // Get references to elements
-    const appContainer = document.getElementById('app-container');
-    const canvasPanel = document.getElementById('canvas-panel');
-    const drawingPanel = document.getElementById('drawing-control-panel');
-    const viewPanel = document.getElementById('view-control-panel');
-    const mobileContainer = document.querySelector('.mobile-controls-container');
-    
-    // Only reset if we were in mobile layout
-    if (mobileContainer) {
-      // Move panels back to app container
-      appContainer.insertBefore(drawingPanel, appContainer.firstChild);
-      appContainer.insertBefore(canvasPanel, appContainer.childNodes[1] || null);
-      appContainer.appendChild(viewPanel);
-      
-      // Remove mobile container
-      mobileContainer.remove();
-      
-      // Reset UI text
-      const titleElements = document.querySelectorAll('.control-title');
-      titleElements.forEach(element => {
-        if (element.textContent === 'Draw') {
-          element.textContent = 'Drawing Controls';
-        } else if (element.textContent === 'View') {
-          element.textContent = 'Adjust Body View:';
-        } else if (element.textContent === 'Rotate') {
-          element.textContent = 'Change the Direction the Body is Facing:';
-        }
-      });
-      
-      // Show instructions again
-      const instructions = document.querySelectorAll('.instruction');
-      instructions.forEach(el => {
-        el.style.display = 'flex';
-      });
-    }
-  }
-
-// Call this function after your initial UI setup
-window.addEventListener('DOMContentLoaded', setupMobileLayout);
-window.addEventListener('resize', setupMobileLayout);
+  }, 50);
+});
 
 // Start render loop
 function animate() {
@@ -205,3 +209,37 @@ function cleanupApplication() {
 
 window.addEventListener('beforeunload', cleanupApplication);
 window.cleanupApplication = cleanupApplication;
+
+function initializeDrawings() {
+    if (AppState.drawingInstances.length === 0) {
+        addNewDrawingInstance();
+    }
+}
+
+initializeDrawings();
+
+function focusCameraOnBones(boneNames, camera, controls, mesh) {
+    const boneList = mesh.skeleton.bones.filter(b => boneNames.includes(b.name));
+
+    if (boneList.length === 0) {
+        console.warn("No matching bones found");
+        return;
+    }
+
+    const center = new THREE.Vector3();
+    boneList.forEach(bone => {
+        const pos = new THREE.Vector3();
+        bone.getWorldPosition(pos);
+        center.add(pos);
+    });
+    center.divideScalar(boneList.length);
+
+    const distance = camera.position.distanceTo(controls.target);
+    const direction = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+
+    const newPosition = center.clone().addScaledVector(direction, distance*0.8);
+
+    camera.position.copy(newPosition);
+    controls.target.copy(center);
+    controls.update();
+}

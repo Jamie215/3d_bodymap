@@ -1,4 +1,5 @@
 // textureManager.js
+
 const texturePool = {
     available: [],
     inUse: new Map(),
@@ -43,6 +44,23 @@ const texturePool = {
         // Mark this texture as in use
         this.inUse.set(id, texture);
         return texture;
+    },
+
+    getNewTexture(id, width = 1024, height = 1024) {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const context = canvas.getContext('2d');
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        return {
+            id,
+            canvas,
+            context,
+            texture: new THREE.CanvasTexture(canvas)
+        };
     },
     
     releaseTexture(id) {
