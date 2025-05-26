@@ -102,30 +102,13 @@ export function createDrawingControls(drawingControlsPanel) {
             context.fillRect(0, 0, canvas.width, canvas.height);
             texture.needsUpdate = true;
         }
+        AppState.drawnBoneNames = new Set();
     });
 
     brushSizeSlider.addEventListener('input', (e) => {
         AppState.brushRadius = parseInt(e.target.value);
         sizeIndicator.textContent = e.target.value;
     });
-
-    const instanceSelector = document.createElement('select');
-    instanceSelector.classList.add('instance-selector');
-    instanceSelector.addEventListener('change', (e) => {
-        AppState.currentDrawingIndex = parseInt(e.target.value);
-        updateCurrentDrawing();
-    });
-
-    function updateInstanceSelector() {
-        instanceSelector.innerHTML = '';
-        AppState.drawingInstances.forEach((_, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = `Drawing ${index+1}`;
-            instanceSelector.appendChild(option)
-        });
-        instanceSelector.value = AppState.currentDrawingIndex;
-    }
 
     // Assemble the container
     drawingToolsContainer.appendChild(title);
@@ -135,8 +118,6 @@ export function createDrawingControls(drawingControlsPanel) {
     drawingToolsContainer.appendChild(divider);
     drawingToolsContainer.appendChild(brushSizeLabel);
     drawingToolsContainer.appendChild(sliderContainer);
-    drawingToolsContainer.appendChild(instanceSelector);
-    updateInstanceSelector();
 
     // Append to panel
     drawingControlsPanel.appendChild(drawingToolsContainer);
@@ -174,6 +155,7 @@ export function isCurrentDrawingBlank() {
     }
     return true;
 }
+
 export function updateCurrentDrawing() {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     if (!currentInstance || !AppState.skinMesh || !AppState.skinMesh.material) return;

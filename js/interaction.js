@@ -79,7 +79,7 @@ export function enableInteraction(renderer, camera, controls) {
     }));
 }
 
-export function setupCursorManagement(renderer) {
+export function setupCursorManagement() {
     const canvasPanel = document.getElementById('canvas-panel');
     
     if (!canvasPanel) return;
@@ -232,7 +232,19 @@ export function setupCursorManagement(renderer) {
         sizeCircle.style.opacity = '0.4';
     });
 }
-  
+
+export function disableCursorManagement() {
+    const canvasPanel = document.getElementById('canvas-panel');
+    const cursorContainer = document.querySelector('.cursor-container');
+
+    if (canvasPanel && cursorContainer) {
+        canvasPanel.style.cursor = 'default';
+        cursorContainer.style.display = 'none';
+
+        canvasPanel.onmousemove = null;
+    }
+}
+
 function updatePointer(event, canvas) {
     const rect = canvas.getBoundingClientRect();
 
@@ -266,14 +278,14 @@ function drawAtPointer(camera) {
     const fillStyle = AppState.isErasing ? '#ffffff' : '#9575CD';
     context.fillStyle = fillStyle;
 
+    // Get the hit on the skin mesh
     const currentHit = intersects[0];
     const currentPoint = currentHit.point;
 
+    // Draw on UV map
     drawBrushAtUV(currentHit.uv, canvas, context, AppState.brushRadius);
 
-    AppState.previousHitPoint = currentPoint;
-
-    // Handle mirroring across seam at the back
+    // Mirror across seam edge at the back for smoothing
     const seamDistanceThreshold = 0.0075;
     if (Math.abs(currentPoint.x) < seamDistanceThreshold) {
         const mirroredOrigin = raycaster.ray.origin.clone();
@@ -303,6 +315,7 @@ function drawAtPointer(camera) {
     const b = indexAttr.getX(faceIndex * 3 + 1);
     const c = indexAttr.getX(faceIndex * 3 + 2);
 
+    // Get the most influential bone for the vertex
     function getDominantBone(vertIndex) {
         const indices = [
             skinIndex.getX(vertIndex),
@@ -325,9 +338,47 @@ function drawAtPointer(camera) {
         .map(i => AppState.skinMesh.skeleton.bones[i]?.name)
         .filter(Boolean);
 
-    // --- Save detected bones per stroke ---
+    const x = Math.round(currentHit.uv.x * canvas.width);
+    const y = Math.round((1 - currentHit.uv.y) * canvas.height);
+    const key = `${x},${y}`;
+
+    // Save & remove detected bones & bone pixel map
     if (!AppState.drawnBoneNames) AppState.drawnBoneNames = new Set();
-    boneNames.forEach(name => AppState.drawnBoneNames.add(name));
+    if (!AppState.bonePixelMap) AppState.bonePixelMap = {};
+
+    if (!AppState.isErasing) {
+        boneNames.forEach(name => {
+            AppState.drawnBoneNames.add(name);
+            if(!AppState.bonePixelMap[name]) AppState.bonePixelMap[name] = new Set();
+            AppState.bonePixelMap[name].add(key);
+        });
+    } else {
+        // Consider all affected pixels within the drawing radius
+        const radius = AppState.brushRadius;
+        for (let dx=-radius; dx<=radius; dx++) {
+            for (let dy=-radius; dy<=radius; dy++) {
+                if (dx * dx + dy * dy > radius * radius) continue;
+
+                const px = x + dx;
+                const py = y + dy;
+
+                // Bounds check
+                if (px < 0 || py < 0 || px >= canvas.width || py >= canvas.height) continue;
+
+                const eraseKey = `${px},${py}`;
+
+                boneNames.forEach(name => {
+                    const pixelSet = AppState.bonePixelMap[name];
+                    if (pixelSet) {
+                        pixelSet.delete(eraseKey);
+                        if (pixelSet.size === 0) {
+                            AppState.drawnBoneNames.delete(name);
+                        }
+                    }
+                });
+            }
+        }
+    }
 }
 
 function drawBrushAtUV(uv, canvas, context, radius) {
@@ -383,156 +434,4 @@ function handleDoubleTap(event, canvas, camera, controls) {
         controls.target.copy(point);
         controls.update();
     }
-}
-
-export function getRegionFromUVHit(uv, uvVertexMap, skinnedMesh) {
-    const geometry = skinnedMesh.geometry;
-    const skinIndex = geometry.attributes.skinIndex;
-    const skinWeight = geometry.attributes.skinWeight;
-
-    if (!skinIndex || !skinWeight) {
-        console.warn("Missing skinning data on mesh.");
-        return null;
-    }
-
-    // Find the closest UV in the map
-    let minDist = Infinity;
-    let bestMatch = null;
-    for (let i = 0; i < uvVertexMap.length; i++) {
-        const { u: mapU, v: mapV } = uvVertexMap[i];
-        const dist = Math.hypot(uv.u - mapU, uv.v - mapV);
-        if (dist < minDist) {
-            minDist = dist;
-            bestMatch = uvVertexMap[i];
-        }
-    }
-
-    if (!bestMatch || bestMatch.index == null) {
-        console.warn("No valid UV match found.");
-        return null;
-    }
-
-    const idx = bestMatch.index;
-
-    if (idx >= skinIndex.count) {
-        console.warn("Vertex index out of bounds:", idx);
-        return null;
-    }
-
-    const indices = [
-        skinIndex.getX(idx),
-        skinIndex.getY(idx),
-        skinIndex.getZ(idx),
-        skinIndex.getW(idx)
-    ];
-    const weights = [
-        skinWeight.getX(idx),
-        skinWeight.getY(idx),
-        skinWeight.getZ(idx),
-        skinWeight.getW(idx)
-    ];
-
-    const maxWeightIdx = weights.indexOf(Math.max(...weights));
-    const boneIndex = indices[maxWeightIdx];
-    const boneName = skinnedMesh.skeleton.bones[boneIndex]?.name || null;
-
-    return boneName;
-}
-
-export function getBoneFromPaintedUV(canvas, skinnedMesh) {
-    const ctx = canvas.getContext('2d');
-    const { width, height } = canvas;
-    const imageData = ctx.getImageData(0, 0, width, height).data;
-
-    const geometry = skinnedMesh.geometry;
-    const uvAttr = geometry.attributes.uv;
-    const indexAttr = geometry.index;
-    const skinIndex = geometry.attributes.skinIndex;
-    const skinWeight = geometry.attributes.skinWeight;
-
-    const boneWeightMap = new Map();
-
-    const N = 10;
-    for (let y = 0; y < height; y += N) {
-        for (let x = 0; x < width; x += N) {
-            const idx = (y * width + x) * 4;
-            const alpha = imageData[idx + 3];
-            if (alpha < 10) continue;
-
-            const u = x / width;
-            const v = 1 - y / height;
-
-            // Loop through all triangles
-            for (let i = 0; i < indexAttr.count; i += 3) {
-                const a = indexAttr.getX(i);
-                const b = indexAttr.getX(i + 1);
-                const c = indexAttr.getX(i + 2);
-
-                const uvA = new THREE.Vector2(uvAttr.getX(a), uvAttr.getY(a));
-                const uvB = new THREE.Vector2(uvAttr.getX(b), uvAttr.getY(b));
-                const uvC = new THREE.Vector2(uvAttr.getX(c), uvAttr.getY(c));
-
-                if (pointInTriangle(u, v, uvA, uvB, uvC)) {
-                    // All 3 vertices contribute
-                    [a, b, c].forEach(vert => {
-                        const bones = [
-                            skinIndex.getX(vert),
-                            skinIndex.getY(vert),
-                            skinIndex.getZ(vert),
-                            skinIndex.getW(vert),
-                        ];
-                        const weights = [
-                            skinWeight.getX(vert),
-                            skinWeight.getY(vert),
-                            skinWeight.getZ(vert),
-                            skinWeight.getW(vert),
-                        ];
-
-                        for (let j = 0; j < 4; j++) {
-                            const bone = bones[j];
-                            const weight = weights[j];
-                            if (weight > 0.01) {
-                                boneWeightMap.set(bone, (boneWeightMap.get(bone) || 0) + weight);
-                            }
-                        }
-                    });
-                    break; // move on to next painted pixel
-                }
-            }
-        }
-    }
-
-    const sortedBones = [...boneWeightMap.entries()]
-    .filter(([_, weight]) => weight > 2.0)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
-
-    return sortedBones.map(([boneIndex, _]) => skinnedMesh.skeleton.bones[boneIndex]?.name).filter(Boolean);
-}
-
-function pointInTriangle(u, v, A, B, C) {
-    const P = new THREE.Vector2(u, v);
-
-    // Vectors from A to B and A to C
-    const v0 = C.clone().sub(A);
-    const v1 = B.clone().sub(A);
-    const v2 = P.clone().sub(A);
-
-    const dot00 = v0.dot(v0);
-    const dot01 = v0.dot(v1);
-    const dot02 = v0.dot(v2);
-    const dot11 = v1.dot(v1);
-    const dot12 = v1.dot(v2);
-
-    const denom = dot00 * dot11 - dot01 * dot01;
-
-    // Triangle is degenerate
-    if (denom === 0) return false;
-
-    const invDenom = 1 / denom;
-    const uCoord = (dot11 * dot02 - dot01 * dot12) * invDenom;
-    const vCoord = (dot00 * dot12 - dot01 * dot02) * invDenom;
-
-    // Point is inside the triangle if uCoord and vCoord are both >= 0 and their sum <= 1
-    return uCoord >= 0 && vCoord >= 0 && (uCoord + vCoord <= 1);
 }

@@ -1,11 +1,14 @@
 import { createScene, resizeRenderer } from './scene.js';
 import { loadModel, cleanupAllModels } from './modelLoader.js';
-import { enableInteraction, cleanupInteraction, setupCursorManagement, getBoneFromPaintedUV } from './interaction.js';
+import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement } from './interaction.js';
 import { createDrawingControls, addNewDrawingInstance, updateCurrentDrawing, isCurrentDrawingBlank } from './drawingControls.js';
 import { createViewControls } from './viewControls.js';
+import { surveyJson } from './questionnaires.js';
+import { customTheme, applyCustomTheme } from './questionnaires_theme.js';
 import texturePool from './textureManager.js';
 import eventManager from './eventManager.js';
 import AppState from './state.js';
+import SurveyKO from "https://cdn.skypack.dev/survey-knockout";
 
 // Initial UI setup
 const appContainer = document.createElement('div');
@@ -51,7 +54,7 @@ modal.id = 'confirmation-modal';
 modal.innerHTML = `
   <div class="modal-content">
     <h3 id="modal-text">Does this drawing capture your intended pain or symptom?</h3>
-    <img id="drawing-preview" class="drawing-preview" /?
+    <img id="drawing-preview" class="drawing-preview" />
     <div class="modal-button-group">
       <button id="modal-continue" class="modal-button">Yes, Proceed </button>
       <button id="modal-return" class="modal-button">No, Return to My Drawing </button>
@@ -65,7 +68,6 @@ const modalEl = document.getElementById('confirmation-modal');
 const modalText = document.getElementById('modal-text');
 const modalContinueButton = document.getElementById('modal-continue');
 const modalReturnButton = document.getElementById('modal-return');
-// const modalAddButton = document.getElementById('modal-add');
 const drawingPreview = document.getElementById('drawing-preview');
 
 continueButton.addEventListener('click', () => {
@@ -75,18 +77,16 @@ continueButton.addEventListener('click', () => {
         modalContinueButton.classList.add('disabled');
         drawingPreview.style.display = 'none';
     } else {
-        modalText.textContent = "A drawing has been found in the following region(s)"
+        modalText.textContent = "Does the following drawing represent your intended pain/symptom area?"
         modalContinueButton.disabled = false;
         modalContinueButton.classList.remove('disabled');
         drawingPreview.style.display = 'block';
 
         const regionBoneList = [...AppState.drawnBoneNames];
 
-
         if (regionBoneList.length > 0) {
             console.log("Detected bones:", regionBoneList);
 
-            // Store in AppState
             AppState.drawingInstances[AppState.currentDrawingIndex].boneNames = regionBoneList;
             focusCameraOnBones(regionBoneList, camera, controls, AppState.skinMesh);
             setTimeout(() => {
@@ -104,44 +104,40 @@ continueButton.addEventListener('click', () => {
 
                 renderer.setSize(originalSize.x, originalSize.y);
                 renderer.setPixelRatio(originalPixelRatio);
-
-
             }, 100);
-            
-            // // Build list HTML
-            // const labelHTML = `
-            //     <ul style="margin-top: 0;">
-            //         ${regionBoneList.map(b => `<li>${b}</li>`).join('')}
-            //     </ul>
-            // `;
-
-            // // Insert into modal below main text
-            // const infoContainer = document.createElement('div');
-            // infoContainer.innerHTML = labelHTML;
-            // modalText.after(infoContainer);
         }
     }
     modalEl.style.display = 'flex';
 });
 
 modalContinueButton.addEventListener('click', () => {
+    // Switch to survey view  
     modalEl.style.display = 'none';
-    // infoContainer.remove();
-    alert('Proceeding to next step...'); // Replace with your actual action
+    drawingControlsPanel.style.display = 'none';
+    viewControlsPanel.style.display = 'none';
+    footerBar.style.display = 'none';
+    statusBar.style.display = 'none';
+
+    cleanupInteraction();
+    disableCursorManagement();
+    document.body.classList.add('survey-mode');
+
+    document.body.classList.remove('drawing-active');
+    canvasPanel.style.cursor = 'default';
+
+    surveyPanel.style.display = 'block';
+    renderSurveyForCurrentDrawing();
 });
 
 modalReturnButton.addEventListener('click', () => {
+    // Close the modal
     modalEl.style.display = 'none';
-    AppState.drawnBoneNames = new Set();
-    // infoContainer?.remove();
 })
 
-// modalAddButton.addEventListener('click', () => {
-//     modalEl.style.display = 'none';
-//     AppState.drawnBoneNames = new Set();
-//     // infoContainer?.remove();
-//     addNewDrawingInstance(); // use your existing function
-// });
+const surveyPanel = document.createElement('div');
+surveyPanel.id = 'survey-panel';
+surveyPanel.style.display = 'none';
+appContainer.appendChild(surveyPanel);
 
 // Models
 const models = [
@@ -156,7 +152,7 @@ const { scene, camera, renderer, controls } = createScene(canvasPanel);
 createDrawingControls(drawingControlsPanel);
 createViewControls(scene, controls, viewControlsPanel, models);
 enableInteraction(renderer, camera, controls);
-setupCursorManagement(renderer);
+setupCursorManagement();
 
 // Handle window resize
 window.addEventListener('resize', () => resizeRenderer(camera, renderer, canvasPanel));
@@ -167,17 +163,12 @@ window.controls = controls;
 
 // Load initial model and then zoom for mobile
 loadModel(models[0].file, models[0].name, scene, controls, () => {
-
-  // Wait until skinMesh is ready
-  const waitUntilSkinMeshReady = setInterval(() => {
+    // Wait until skinMesh is ready
+    const waitUntilSkinMeshReady = setInterval(() => {
     if (AppState.skinMesh) {
       clearInterval(waitUntilSkinMeshReady);
-      
-      if (AppState.drawingInstances.length === 0) {
-        addNewDrawingInstance();
-      } else {
-        updateCurrentDrawing();
-      }
+      updateCurrentDrawing();
+      enableInteraction(renderer, camera, controls);
     }
   }, 50);
 });
@@ -189,9 +180,6 @@ function animate() {
     renderer.render(scene, camera);
 }
 animate();
-
-// Update status when ready
-console.log('Application initialized');
 
 function cleanupApplication() {
     cleanupInteraction();
@@ -237,9 +225,84 @@ function focusCameraOnBones(boneNames, camera, controls, mesh) {
     const distance = camera.position.distanceTo(controls.target);
     const direction = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
 
-    const newPosition = center.clone().addScaledVector(direction, distance*0.8);
+    const newPosition = center.clone().addScaledVector(direction, distance*0.75);
 
     camera.position.copy(newPosition);
     controls.target.copy(center);
     controls.update();
+}
+
+function renderSurveyForCurrentDrawing() {
+  const i = AppState.currentDrawingIndex;
+  applyCustomTheme(customTheme);
+  
+  const survey = new SurveyKO.Model(surveyJson);
+  const surveyPanel = document.getElementById("survey-panel");
+  surveyPanel.innerHTML = "";
+  survey.css = { ...survey.css, root: "sv-root-modern sv-root-plain", page: "custom-page"};
+  survey.render("survey-panel");
+  survey.onAfterRenderQuestion.add(function (survey, options) {
+    if (options.question.name === "intensityScale") {
+      const questionEl = options.htmlElement;
+      const ratingContent = questionEl.querySelector(".sd-question__content");
+
+      if (!ratingContent) return;
+
+      const ratingRow = ratingContent.querySelector(".sd-rating");
+
+      if (!ratingRow) return;
+
+      // Create wrapper to hold labels and rating
+      const layoutRow = document.createElement("div");
+      layoutRow.style.display = "flex";
+      layoutRow.style.alignItems = "center";
+      layoutRow.style.justifyContent = "space-between";
+      layoutRow.style.width = "100%";
+      layoutRow.style.flex = "1"; // allow it to grow/shrink
+      layoutRow.style.overflowX = "auto";
+
+      // Min label
+      const minLabel = document.createElement("div");
+      minLabel.innerHTML = "No pain<br>or symptom";
+      minLabel.style.fontSize = "14px";
+      minLabel.style.lineHeight = "1.2";
+      minLabel.style.textAlign = "left";
+
+      // Max label
+      const maxLabel = document.createElement("div");
+      maxLabel.innerHTML = "Worst pain<br>or symptom<br>imaginable";
+      maxLabel.style.fontSize = "14px";
+      maxLabel.style.lineHeight = "1.2";
+      maxLabel.style.textAlign = "left";
+
+      // Remove the scale from its original container
+      ratingContent.removeChild(ratingRow);
+
+      // Insert into new layout
+      layoutRow.appendChild(minLabel);
+      layoutRow.appendChild(ratingRow);
+      layoutRow.appendChild(maxLabel);
+
+      // Add layout row to question content
+      ratingContent.appendChild(layoutRow);
+    }
+  });
+
+  survey.onComplete.add(sender => {
+    AppState.drawingInstances[i].questionnaireData = sender.data;
+    console.log(`Saved survey for Drawing ${i + 1}`, sender.data);
+
+    // Return to drawing view
+    surveyPanel.style.display = 'none';
+    drawingControlsPanel.style.display = 'flex';
+    viewControlsPanel.style.display = 'flex';
+    footerBar.style.display = 'flex';
+    statusBar.style.display = 'flex';
+    AppState.drawnBoneNames = new Set();
+
+    // Add next drawing instance
+    document.body.classList.remove('survey-mode');
+    addNewDrawingInstance();
+    enableInteraction(renderer, camera, controls);
+  });
 }

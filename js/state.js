@@ -7,7 +7,8 @@ const AppState = {
     currentModelName: 'Model 1',
     drawingInstances: [],
     currentDrawingIndex: 0,
-    drawnBoneNames: new Set()
+    drawnBoneNames: new Set(),
+    bonePixelMap: {}
 };
 
 export default AppState;
