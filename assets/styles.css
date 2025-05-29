@@ -6,6 +6,8 @@
     --background-color: #ffffff;
     --panel-background: #ffffff;
     --border-radius: 8px;
+    --padding: 16px;
+    --min-font-size: 22px;
 }
 
 body, html {
@@ -22,27 +24,151 @@ canvas {
 }
 
 #app-container {
-  display: flex;
-  width: 100vw;
-  height: 100vh;
-  box-sizing: border-box;
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+/* Only show custom cursor on desktop */
+@media (max-width: 768px) {
+    .cursor-container {
+      display: none !important;
+    }
+}
+
+.button {
+    min-width: 200px;
+    padding: 12px 20px 12px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 22px;
+    font-weight: 500;
+    transition: var(--background-color) 0.2s;
+}
+
+.button:hover {
+    background: #e8e8e8;
+}
+
+.button-primary { 
+    background: var(--primary-color); 
+    color: white;
+}
+
+.button-primary:hover {
+    background: #01578b;
+}
+
+.button-secondary { 
+    background: #f5f5f5; 
+    color: var(--secondary-color);
+    border: 1px solid #e0e0e0;
+}
+
+.button-danger { 
+    background: #d32f2f; 
+    color: white;
+}
+
+.button-success { 
+    background: var(--primary-color); 
+    color: white;
+}
+
+.button svg {
+    margin-bottom: 8px;
+}
+
+/* Model Selection View Related */
+#model-selection-view {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+}
+
+#model-selector-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 50vw;
+    gap: 3rem;
+}
+
+#model-buttons-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.model-selection-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 2px solid transparent;
+    border-radius: var(--border-radius);
+    background: white;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: normal;
+    gap: 0.5rem;
+}
+
+.model-selection-button:hover {
+    background-color: #f5f5f5;
+}
+
+.model-selection-button.selected {
+    border-color: var(--primary-color) !important;
+}
+
+/* Drawing View Related */
+#drawing-view {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+#drawing-main-row {
+    display: flex;
+    flex: 1;
+}
+
+#drawing-canvas-panel {
+    display: flex;
+    flex: 1;
+    height: 100%;
+}
+
+#model-preview-panel {
+    display: flex;
+    flex: 2;
+    height: 100%;
 }
 
 #drawing-control-panel {
     width: 20vw;
     flex-shrink: 0;
-    padding: 24px;
+    padding: var(--padding);
     box-sizing: border-box;
     background: transparent;
     display: flex;
     align-items: center;
-    /* justify-content: center; */
 }
 
 #view-control-panel {
     width: 30vw;
     flex-shrink: 0;
-    padding: 24px;
+    padding: var(--padding);
     box-sizing: border-box;
     background: transparent;
     display: flex;
@@ -60,9 +186,17 @@ canvas {
     cursor: default;
 }
 
+#canvas-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex: 1;
+    justify-content: center;
+}
+
 .drawing-tools-container, .view-tools-container {
-    background: var(--panel-background);
-    padding: 20px;
+    background: var(--background-color);
+    padding: var(--padding);
     border-radius: var(--border-radius);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -70,13 +204,6 @@ canvas {
     align-items: center;
     gap: 15px;
     border: 1px solid #f0f0f0;
-}
-
-.control-title {
-    font-size: 20px;
-    font-weight: 600;
-    text-align: center;
-    margin: 0 0 10px 0;
 }
 
 h3.control-title {
@@ -117,95 +244,35 @@ body.survey-mode .cursor-container {
   display: none !important;
 }
 
-/* Only show custom cursor on desktop */
-@media (max-width: 768px) {
-    .cursor-container {
-      display: none !important;
-    }
-}
-  
-/* Hide cursor when drawing is active */
-body.drawing-active {
-    cursor: none;
-}
-  
-body.drawing-active .cursor-container .cursor-size {
-    opacity: 0.8;
-}
-
-.button {
-    width: 100%;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: background-color 0.2s;
-}
-
-.button:hover {
-    background: #e8e8e8;
-}
-
-.button-primary { 
-    background: var(--primary-color); 
-    color: white;
-}
-
-.button-secondary { 
-    background: #f5f5f5; 
-    color: var(--secondary-color);
-    border: 1px solid #e0e0e0;
-}
-
-.button-danger { 
-    background: #d32f2f; 
-    color: white;
-}
-
-.button-success { 
-    background: var(--primary-color); 
-    color: white;
-}
-
-.button svg {
-    margin-bottom: 8px;
-}
-
 .instruction {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
-    font-size: 18px;
+    justify-content: center;
+    margin: 10px;
+    font-size: var(--min-font-size);
     color: #555;
 }
 
 .instruction svg {
-    margin-right: 10px;
+    margin-right: 14px;
     flex-shrink: 0;
 }
 
 .brush-size-display {
-    font-weight: 500;
-    font-size: 14px;
+    font-weight: normal;
+    font-size: var(--min-font-size);
     color: var(--primary-color);
-    text-align: right;
+    text-align: center;
 }
 
 .label {
-    font-size: 15px;
+    font-size: var(--min-font-size);
     margin-bottom: 8px;
 }
 
 .divider {
     width: 100%;
-    margin: 5px 0 15px;
+    margin: 5px 0 5px 0;
     border: none;
     border-top: 1px solid #eaeaea;
 }
@@ -232,7 +299,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Vertical slider styling */
 .vertical-slider-container {
-    height: 120px;
+    height: 150px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -244,7 +311,7 @@ input[type="range"]::-webkit-slider-thumb {
     top: -15px; /* Position above the slider */
     font-weight: bold;
     color: var(--primary-color);
-    font-size: 14px;
+    font-size: var(--min-font-size);
     text-align: center;
 }  
   
@@ -287,21 +354,28 @@ input[type="range"]::-webkit-slider-thumb {
 .orientation-button-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    gap: 1rem;
+    color: #555;
+}
+
+.orientation-button-text {
+    margin-top: 8px;
+    font-size: var(--min-font-size);
+    text-align: center;
 }
 
 /* Reset the View button styling */
 .reset-view-button {
     width: 100%;
-    padding: 12px;
+    padding: var(--padding);
     background: var(--panel-background);
     color: var(--primary-color);
     border: var(--primary-color);
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     border-style: solid;
     border-width: 2px;
-    font-size: 16px;
-    font-weight: 500;
+    font-size: var(--min-font-size);
+    font-weight: normal;
     cursor: pointer;
     margin-top: 10px;
 }
@@ -339,17 +413,6 @@ input[type="range"]::-webkit-slider-thumb {
     margin: -3%;
 }
 
-/* Model selector styling */
-.model-selector {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    font-size: 16px;
-    background-color: white;
-    cursor: pointer;
-}
-  
 /* Drawing Instance Control Related */
 #drawing-status-bar {
   position: fixed;
@@ -357,46 +420,22 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
   background: transparent;
   color: black;
-  font-weight: 700;
+  font-weight: bold;
   font-size: 32px;
   text-align: left;
   padding: 20px;
-  z-index: 1001;
 }
 
 #bottom-footer {
   position: fixed;
   bottom: 0;
-  left: 0;
   width: 100%;
-  height: 10%;
+  padding: var(--padding);
   background-color: rgba(255, 255, 255, 0.5);
   box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  z-index: 1000;
-}
-
-.bottom-continue-button {
-  padding: 10px 32px;
-  width: auto;
-  min-width: 220px;
-  font-size: 24px;
-  border-radius: 6px;
-  cursor: pointer;
-  white-space: nowrap;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  margin-top: 10px;
-  margin-right: 140px;
-  transition: background-color 0.2s;
-}
-
-.bottom-continue-button:hover {
-    background-color: #005f99;
-    color: white;
 }
 
 #confirmation-modal {
@@ -405,6 +444,7 @@ input[type="range"]::-webkit-slider-thumb {
     left: 0;
     width: 100%;
     height: 100%;
+    margin: auto;
     background-color: rgba(0,0,0,0.5);
     display: none;
     align-items: center;
@@ -414,74 +454,122 @@ input[type="range"]::-webkit-slider-thumb {
 
 .modal-content {
   background: white;
-  padding: 24px;
-  border-radius: 8px;
+  padding: var(--padding);
+  border-radius: var(--border-radius);
   text-align: center;
   font-family: sans-serif;
-  max-width: 500px;
+  max-width: 600px;
+  max-height: 700px;
   width: 100%;
   box-sizing: border-box;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--min-font-size);
+  font-weight: bold;
 }
 
 .modal-button-group {
   display: flex;
   justify-content: center;
-  gap: 16px;
+  gap: 1rem;
 }
 
 .modal-button {
   padding: 10px 20px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  background-color: #f5f5f5;
-  color: #333;
-  border-radius: 6px;
+  font-size: var(--min-font-size);
+  border: 1px solid var(--secondary-color);
+  background-color: var(--background-color);
+  border-radius: var(--border-radius);
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .modal-button:disabled,
 .modal-button.disabled {
-    background-color: #ccc;
-    color: #888;
+    background-color: #ccc !important;
+    color: #888 !important;
     border: 1px solid #bbb;
     cursor: not-allowed;
 }
 
 .modal-button:hover {
-  background-color: #e0e0e0;
+  background: #e0e0e0;
+}
+
+#modal-continue {
+    background: #88b4a2;
+    color: white;
+}
+
+#modal-continue:hover {
+    background: #69a08a;
 }
 
 .drawing-preview {
-  width: 400px;
-  height: auto;
-  max-height: 300px;
-  max-width: 400px;
-  object-fit: contain;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  margin-bottom: 16px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+    object-fit: contain;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 16px;
+    border: 1px solid #ccc;
+    border-radius: var(--border-radius);
+}
+
+/* Survey View Related */
+#survey-view {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
 }
 
 #survey-panel {
-  width: 100%;
-  max-width: 800px;
-  padding: 0 22px;
-  margin: 0 auto;
-  box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: 60vw;
+    padding: var(--padding);
+    margin: auto;
+    box-sizing: border-box;
+    gap: 1rem;
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+#return-drawing-button {
+    max-width: 25%;
+    margin: 0;
+    padding: 0;
+    font-weight: bold;
+    background-color: #f0f0f0;
+    border-color: transparent;
+}
+
+#survey-inner {
+  border: 2px solid #ccc;
+  border-radius: var(--border-radius);
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .sd-question {
-  margin-bottom: 16px !important;
+    margin-bottom: 16px !important;
 }
 
-.custom-page {
-  max-width: 800px !important;
-  padding-left: clamp(10px, 1.5vw, 16px) !important;
-  padding-right: clamp(10px, 1.5vw, 16px) !important;
+.sd-navigation__next-btn {
+  background-color: #269DE0 !important;
+  color: #fff !important;
+}
+
+.sd-navigation__next-btn:hover {
+  background-color: #1d87c2 !important;
+  color: #fff !important;
+}
+
+.sd-navigation__prev-btn {
+  background-color: transparent !important;
+  border: 2px solid #269DE0 !important;
+  color: #269DE0 !important;
+}
+
+.sd-navigation__prev-btn:hover {
+  background-color: #e0f4ff !important;
+  color: #269DE0 !important;
 }

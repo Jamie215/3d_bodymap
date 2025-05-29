@@ -7,8 +7,7 @@ export function createDrawingControls(drawingControlsPanel) {
     drawingToolsContainer.classList.add('drawing-tools-container');
 
     // Title
-    const title = document.createElement('div');
-    title.classList.add('control-title');
+    const title = document.createElement('h2');
     title.textContent = 'Drawing Controls';
 
     // Draw Button
@@ -49,11 +48,9 @@ export function createDrawingControls(drawingControlsPanel) {
     divider.classList.add('divider');
 
     // Brush Size Controls
-    const brushSizeLabel = document.createElement('div');
+    const brushSizeLabel = document.createElement('h2');
     brushSizeLabel.textContent = 'Brush Size';
     brushSizeLabel.style.alignSelf = 'flex-start';
-    brushSizeLabel.style.fontWeight = '500';
-    brushSizeLabel.style.marginBottom = '10px';
 
     // Container for the vertical slider
     const sliderContainer = document.createElement('div');

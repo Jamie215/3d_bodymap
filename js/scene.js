@@ -25,7 +25,7 @@ export function createScene(canvasContainer) {
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.minDistance = 0.5;
+    controls.minDistance = 0.25;
     controls.maxDistance = 10;
     controls.target.set(0, 1.5, 0);
     controls.enableRotate = false;

@@ -1,6 +1,7 @@
 export const surveyJson = {
   title: "Area-Specific Questionnaire",
   showQuestionNumbers: "off",
+  showTitle: false,
   pages: [
     {
       name: "page1",
@@ -76,7 +77,7 @@ export const surveyJson = {
         {
           type: "comment",
           name: "comment",
-          title: "Is there anything else you would like to tell us about this pain or symptom?",
+          title: "Is there anything else you would like to tell us about this pain or symptom? (Optional)",
           maxLength: 200
         }
       ]

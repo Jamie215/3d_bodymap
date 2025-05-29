@@ -12,7 +12,7 @@ export const customTheme = {
 
     "--sjs-general-backcolor": "#f0f0f0",               // app background
     "--sjs-question-background": "var(--panel-background)", // white
-    "--sjs-questionpanel-backcolor": "#f0f0f0",
+    "--sjs-questionpanel-backcolor": "#ffffff",
     "--sjs-questionpanel-cornerRadius": "8px",
 
     // Text Colors
@@ -24,18 +24,8 @@ export const customTheme = {
     // Font & Spacing
     "--sjs-font-family": "'Inter', sans-serif",
     "--sjs-font-size": "20px",
-    "--sjs-base-unit": "6px",
-    "--sjs-corner-radius": "8px",
-
-    // Borders & Shadows
-    // "--sjs-border-light": "#e0e0e0",
-    // "--sjs-border-default": "#e0e0e0",
-    // "--sjs-shadow-small": "0 1px 3px rgba(0,0,0,0.1)",
-
-    // Header Style
-    "--sjs-header-backcolor": "var(--primary-color)",
-    "--sjs-font-headertitle-color": "#ffffff",
-    "--sjs-font-headerdescription-color": "#ffffff",
+    "--sjs-base-unit": "8px",
+    "--sjs-corner-radius": "var(--padding)",
   }
 };
 
