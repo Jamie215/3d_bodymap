@@ -1,7 +1,4 @@
-export function createViewControls(scene, controls, viewControlsPanel, modelList) {
-    // Track the current model cancel function
-    let currentModelCancelFn = null;
-    
+export function createViewControls(controls, viewControlsPanel) {    
     const viewToolsContainer = document.createElement('div');
     viewToolsContainer.classList.add('view-tools-container');
 

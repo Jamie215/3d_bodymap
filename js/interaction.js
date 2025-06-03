@@ -21,7 +21,7 @@ export function enableInteraction(renderer, camera, controls) {
     
     // Mouse-based interaction
     eventIds.push(eventManager.add(canvas, 'mousedown', (event) => {
-        if (!AppState.model || event.target !== canvas) return;
+        if (!AppState.skinMesh || event.target !== canvas) return;
         updatePointer(event, canvas);
         handlePointerDown(camera, controls);
     }));
@@ -32,7 +32,6 @@ export function enableInteraction(renderer, camera, controls) {
             controls.enabled = true;
         }
     }));
-
     
     eventIds.push(eventManager.add(window, 'mousemove', (event) => {
         if (!AppState.isDrawing || !AppState.skinMesh || event.target !== canvas) return;
@@ -258,7 +257,7 @@ function updatePointer(event, canvas) {
 
 function handlePointerDown(camera, controls) {
     raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObject(AppState.model, true);
+    const intersects = raycaster.intersectObject(AppState.skinMesh, true);
 
     if (intersects.length > 0) {
         AppState.isDrawing = true;
@@ -274,6 +273,9 @@ function drawAtPointer(camera) {
     if (intersects.length === 0) return;
 
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+    currentInstance.drawnBoneNames = currentInstance.drawnBoneNames || new Set();
+    currentInstance.bonePixelMap = currentInstance.bonePixelMap || {};
+    
     const { canvas, context, texture } = currentInstance
     const fillStyle = AppState.isErasing ? '#ffffff' : '#9575CD';
     context.fillStyle = fillStyle;
@@ -342,16 +344,13 @@ function drawAtPointer(camera) {
     const y = Math.round((1 - currentHit.uv.y) * canvas.height);
     const key = `${x},${y}`;
 
-    // Save & remove detected bones & bone pixel map
-    if (!AppState.drawnBoneNames) AppState.drawnBoneNames = new Set();
-    if (!AppState.bonePixelMap) AppState.bonePixelMap = {};
-
     if (!AppState.isErasing) {
         boneNames.forEach(name => {
-            AppState.drawnBoneNames.add(name);
-            if(!AppState.bonePixelMap[name]) AppState.bonePixelMap[name] = new Set();
-            AppState.bonePixelMap[name].add(key);
-        });
+            currentInstance.drawnBoneNames.add(name);
+            if(!currentInstance.bonePixelMap[name]) 
+                currentInstance.bonePixelMap[name] = new Set();
+                currentInstance.bonePixelMap[name].add(key);
+            });
     } else {
         // Consider all affected pixels within the drawing radius
         const radius = AppState.brushRadius;
@@ -368,11 +367,12 @@ function drawAtPointer(camera) {
                 const eraseKey = `${px},${py}`;
 
                 boneNames.forEach(name => {
-                    const pixelSet = AppState.bonePixelMap[name];
+                    const pixelSet = currentInstance.bonePixelMap[name];
                     if (pixelSet) {
                         pixelSet.delete(eraseKey);
                         if (pixelSet.size === 0) {
-                            AppState.drawnBoneNames.delete(name);
+                            delete currentInstance.bonePixelMap[name];
+                            currentInstance.drawnBoneNames.delete(name);
                         }
                     }
                 });
@@ -422,7 +422,7 @@ function handleDoubleTap(event, canvas, camera, controls) {
 
     const localRay = new THREE.Raycaster();
     localRay.setFromCamera(mouseVec, camera);
-    const intersects = localRay.intersectObject(AppState.model, true);
+    const intersects = localRay.intersectObject(AppState.skinMesh, true);
 
     if (intersects.length > 0) {
         const point = intersects[0].point;

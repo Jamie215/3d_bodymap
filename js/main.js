@@ -16,6 +16,46 @@ appContainer.id = 'app-container';
 document.body.appendChild(appContainer);
 
 // Model Summary View - Composed of Model Preview, Status Check
+const modelSummaryView = document.createElement('div');
+modelSummaryView.id = 'model-summary-view';
+
+// Summary Status Panel
+const summaryStatusPanel = document.createElement('div');
+summaryStatusPanel.id = 'summary-status-panel';
+summaryStatusPanel.innerHTML = '<p style="margin: 5%">You currently don’t have any pain or symptoms logged.</p><p>Select <span style="font-weight: bold;">Add a New Pain or Symptom</span> to start.</p>'
+
+const changeModelButton = document.createElement('button');
+changeModelButton.id = 'change-model-button';
+changeModelButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"></path>
+    </svg>
+    <span>Change My Body Type</span>
+    `;
+changeModelButton.classList.add('button');
+
+changeModelButton.addEventListener('click', () => {
+  showView('selection');
+})
+
+const addNewInstanceButton = document.createElement('button');
+addNewInstanceButton.textContent = 'Add a New Pain or Symptom';
+addNewInstanceButton.classList.add('button', 'button-primary');
+
+addNewInstanceButton.addEventListener('click', () => {
+  addNewDrawingInstance();
+  showView('drawing');
+});
+
+const summaryDoneButton = document.createElement('button');
+summaryDoneButton.textContent = 'Done';
+summaryDoneButton.classList.add('button', 'button-secondary');
+summaryDoneButton.disabled = true;
+summaryDoneButton.style.marginRight = '5%';
+
+summaryDoneButton.addEventListener('click', () => {
+  alert('Logging Pain & Symptom Completed!');
+});
 
 // Model Selection View - Composed of Model Preview, Model Selector
 const modelSelectionView = document.createElement('div');
@@ -29,7 +69,7 @@ modelPreviewPanel.id = 'model-preview-panel';
 const modelSelectorPanel = document.createElement('div');
 modelSelectorPanel.id = 'model-selector-panel';
 
-// Drawing Status Bar
+// Select Status Bar
 const selectStatusBar = document.createElement('h1');
 selectStatusBar.id = 'select-status-bar';
 selectStatusBar.textContent = 'Select My Body';
@@ -40,14 +80,24 @@ const models = [
     { name: 'Type 2', file: './assets/male_young_avgheight2.glb' }
 ];
 
+// Default selected to be the first model
+const initialModel = models[0];
+let selectedModelPath = initialModel.file;
+
 const modelButtonsContainer = document.createElement('div');
 modelButtonsContainer.id = 'model-buttons-container'
 
+const returnSummaryButton = document.createElement('button');
+returnSummaryButton.innerHTML = '← Return to Summary';
+returnSummaryButton.classList.add('button', 'return-button');
+
+returnSummaryButton.addEventListener('click', () => {
+  showView('summary');
+})
+
+modelSelectorPanel.appendChild(returnSummaryButton);
 modelSelectorPanel.appendChild(selectStatusBar);
 modelSelectorPanel.appendChild(modelButtonsContainer);
-
-// Default Selected to be first model
-let selectedModelPath = models[0].file;
 
 models.forEach(model => {
   const button = document.createElement('button');
@@ -88,26 +138,14 @@ models.forEach(model => {
   }
 });
 
-const startDrawingBtn = document.createElement('button');
-startDrawingBtn.textContent = 'Draw My Pain or Symptom';
-startDrawingBtn.classList.add('button', 'button-primary');
+const startDrawingButton = document.createElement('button');
+startDrawingButton.textContent = 'Add a New Pain or Symptom';
+startDrawingButton.classList.add('button', 'button-primary');
 
-startDrawingBtn.addEventListener('click', () => {
-  const waitUntilSkinMeshReady = setInterval(() => {
-    if (AppState.skinMesh) {
-      clearInterval(waitUntilSkinMeshReady);
-      
-      showView('drawing');
-
-      updateCurrentDrawing();
-
-      if (AppState.drawingInstances.length === 0) {
-        addNewDrawingInstance();
-      }
-      enableInteraction(renderer, camera, controls);
-    }
-  }, 50);
-})
+startDrawingButton.addEventListener('click', () => {
+  addNewDrawingInstance();
+  showView('drawing');
+});
 
 // Drawing View - Composed of Drawing Controls, Canvas, View Controls
 const drawingView = document.createElement('div');
@@ -138,16 +176,10 @@ const statusBar = document.createElement('div');
 statusBar.id = 'drawing-status-bar';
 statusBar.textContent = 'Add Your Main Area of Pain or Symptom #1';
 
-// Bottom Footer Control
-const footerBar = document.createElement('div');
-footerBar.id = 'bottom-footer';
-
 const continueButton = document.createElement('button');
 continueButton.textContent = 'Continue';
 continueButton.classList.add('button', 'button-primary');
 continueButton.style.marginRight = '8%';
-
-footerBar.appendChild(continueButton);
 
 // Confirmation Display Modal
 const modal = document.createElement('div');
@@ -178,12 +210,13 @@ continueButton.addEventListener('click', () => {
         modalContinueButton.classList.add('disabled');
         drawingPreview.style.display = 'none';
     } else {
+        updateCurrentDrawing();
         modalText.textContent = "Does this represent your intended pain/symptom area?"
         modalContinueButton.disabled = false;
         modalContinueButton.classList.remove('disabled');
         drawingPreview.style.display = 'block';
 
-        const regionBoneList = [...AppState.drawnBoneNames];
+        const regionBoneList = [...AppState.drawingInstances[AppState.currentDrawingIndex].drawnBoneNames];
 
         if (regionBoneList.length > 0) {
             console.log("Detected bones:", regionBoneList);
@@ -215,10 +248,6 @@ modalContinueButton.addEventListener('click', () => {
     modalEl.style.display = 'none';
     cleanupInteraction();
     disableCursorManagement();
-
-    document.body.classList.add('survey-mode');
-    canvasPanel.style.cursor = 'default';
-
     showView('survey');
     renderSurveyForCurrentDrawing();
 });
@@ -239,25 +268,34 @@ const surveyInnerContainer = document.createElement('div');
 surveyInnerContainer.id ='survey-inner';
 
 const returnDrawingButton = document.createElement('button');
-returnDrawingButton.id = 'return-drawing-button';
 returnDrawingButton.innerHTML = '← Return to Drawing';
-returnDrawingButton.classList.add('button', 'button-secondary');
+returnDrawingButton.classList.add('button', 'button-secondary', 'return-button');
 
 returnDrawingButton.addEventListener('click', () => {
-    // Return to drawing view
     showView('drawing');
-    document.body.classList.remove('survey-mode');    
-    enableInteraction(renderer, camera, controls);
 })
 surveyPanel.appendChild(returnDrawingButton);
 surveyPanel.appendChild(surveyInnerContainer);
 
 const canvasWrapper = document.createElement('div');
 canvasWrapper.id = 'canvas-wrapper';
+canvasWrapper.appendChild(changeModelButton);
 canvasWrapper.appendChild(canvasPanel);
 
+const footer = document.createElement('div');
+footer.id = 'footer';
+
 // Append elements based on views
-modelSelectorPanel.appendChild(startDrawingBtn);
+footer.appendChild(addNewInstanceButton);
+footer.appendChild(summaryDoneButton);
+footer.appendChild(continueButton);
+appContainer.appendChild(footer);
+
+modelSummaryView.appendChild(canvasWrapper);
+modelSummaryView.appendChild(summaryStatusPanel);
+appContainer.appendChild(modelSummaryView);
+
+modelSelectorPanel.appendChild(startDrawingButton);
 modelSelectionView.appendChild(modelPreviewPanel);
 modelSelectionView.appendChild(modelSelectorPanel);
 appContainer.appendChild(modelSelectionView);
@@ -267,7 +305,6 @@ drawingMainRow.appendChild(drawingCanvasPanel);
 drawingMainRow.appendChild(viewControlsPanel);
 drawingView.appendChild(statusBar);
 drawingView.appendChild(drawingMainRow);
-drawingView.appendChild(footerBar);
 appContainer.appendChild(drawingView);
 
 surveyView.appendChild(surveyPanel);
@@ -278,12 +315,42 @@ function showView(viewName) {
     canvasWrapper.parentElement.removeChild(canvasWrapper);
   }
 
+  modelSummaryView.style.display = 'none';
   modelSelectionView.style.display = 'none';
   drawingView.style.display = 'none';
   surveyView.style.display = 'none';
 
+  footer.style.display = 'none';
+  addNewInstanceButton.style.display = 'none';
+  summaryDoneButton.style.display = 'none';
+  continueButton.style.display = 'none';
+  changeModelButton.style.display = 'none';
+
   switch (viewName) {
-    case 'modelSelection':
+    case 'summary':
+      modelSummaryView.insertBefore(canvasWrapper, summaryStatusPanel);
+      canvasWrapper.style.width = '70vw';
+      if (AppState.drawingInstances.length === 0) {
+        changeModelButton.style.display = 'block';
+        canvasPanel.style.height = '100vh';
+      }
+      modelSummaryView.style.display = 'flex';
+      footer.style.display = 'flex';
+      addNewInstanceButton.style.display = 'flex';
+      summaryDoneButton.style.display = 'flex';
+      
+      document.body.classList.add('non-drawing-mode');
+      const mergedTexture = generateMergedTextureFromDrawings();
+      if (AppState.skinMesh && AppState.skinMesh.material && mergedTexture) {
+          AppState.skinMesh.material.map = mergedTexture;
+          AppState.skinMesh.material.needsUpdate = true;
+          AppState.skinMesh.userData.texture = mergedTexture;
+      }
+      renderer.render(scene, camera)
+      controls.enableZoom = false;
+      updateSummaryStatus();
+      break;
+    case 'selection':
       modelPreviewPanel.appendChild(canvasWrapper);
       canvasWrapper.style.width = '50vw';
       modelSelectionView.style.display = 'flex';
@@ -292,14 +359,20 @@ function showView(viewName) {
       drawingCanvasPanel.appendChild(canvasWrapper);
       canvasWrapper.style.width = '50vw';
       drawingView.style.display = 'flex';
+      footer.style.display = 'flex';
+      continueButton.style.display = 'flex';
 
+      document.body.classList.remove('non-drawing-mode');
       enableInteraction(renderer, camera, controls);
+      controls.enableZoom = true;
       setupCursorManagement();
       break;
     case 'survey':
       surveyView.insertBefore(canvasWrapper, surveyPanel);
       canvasWrapper.style.width = '40vw';
+      controls.enableZoom = false;
       surveyView.style.display = 'flex';
+      document.body.classList.add('non-drawing-mode');
       break;
   }
 
@@ -310,9 +383,8 @@ function showView(viewName) {
 
 // Create scene, camera, renderer
 const { scene, camera, renderer, controls } = createScene(canvasPanel);
-showView('modelSelection');
+showView('summary');
 
-const initialModel = models[0]; // or whichever is selected
 loadModel(initialModel.file, initialModel.name, scene, controls, () => {
   const waitUntilSkinMeshReady = setInterval(() => {
     if (AppState.skinMesh) {
@@ -324,7 +396,7 @@ loadModel(initialModel.file, initialModel.name, scene, controls, () => {
 });
 
 createDrawingControls(drawingControlsPanel);
-createViewControls(scene, controls, viewControlsPanel, models);
+createViewControls(controls, viewControlsPanel);
 
 // Handle window resize
 window.addEventListener('resize', () => resizeRenderer(camera, renderer, canvasPanel));
@@ -384,6 +456,75 @@ function focusCameraOnBones(boneNames, camera, controls, mesh) {
     controls.update();
 }
 
+function generateMergedTextureFromDrawings() {
+    if (AppState.drawingInstances.length === 0 || !AppState.drawingInstances[0].canvas) return null;
+    
+    const width = AppState.drawingInstances[0].canvas.width;
+    const height = AppState.drawingInstances[0].canvas.height;
+
+    const mergedCanvas = document.createElement('canvas');
+    mergedCanvas.width = width;
+    mergedCanvas.height = height;
+    const mergedCtx = mergedCanvas.getContext('2d');
+    mergedCtx.fillStyle = '#ffffff';
+    mergedCtx.fillRect(0, 0, width, height);
+
+    const mergedImageData = mergedCtx.createImageData(width, height);
+    const mergedData = mergedImageData.data;
+
+    // Set non-purple pixels to be white for rendering
+    for (let i = 0; i < mergedData.length; i += 4) {
+        mergedData[i] = 255;     // R
+        mergedData[i + 1] = 255; // G
+        mergedData[i + 2] = 255; // B
+        mergedData[i + 3] = 255; // A
+    }
+
+    AppState.drawingInstances.forEach(instance => {
+      const ctx = instance.canvas.getContext('2d');
+      const srcImageData = ctx.getImageData(0, 0, width, height);
+      const srcData = srcImageData.data;
+
+      for (let j = 0; j < srcData.length; j += 4) {
+        const r = srcData[j];
+        const g = srcData[j+1];
+        const b = srcData[j+2];
+        const a = srcData[j+3];
+
+        // Keep the purple pixels for merging
+        const isPurple = r === 149 && g === 117 && b === 205 && a > 0;
+        if (isPurple) {
+          mergedData[j] = r;
+          mergedData[j+1] = g;
+          mergedData[j+2] = b;
+          mergedData[j+3] = 255;
+        } 
+      }
+    })
+
+    mergedCtx.putImageData(mergedImageData, 0, 0);
+
+    const texture = new THREE.CanvasTexture(mergedCanvas);
+    texture.needsUpdate = true;
+
+    // Update the camera view back to origin view
+    controls.target.set(0, 1.0, 0);
+    controls.object.position.set(0, 1.0, 1.5);
+    controls.update();
+
+    return texture;
+}
+
+function updateSummaryStatus() {
+  const count = AppState.drawingInstances.length;
+  if (count > 0) {
+    summaryStatusPanel.innerHTML = `You have <span style="color: var(--primary-color); display: inline !important; font-weight: bold !important;">${count}</span> pain or symptom(s) logged.`;
+    summaryDoneButton.disabled = false;
+  } else {
+    summaryDoneButton.disabled = true;
+  }
+}
+
 function renderSurveyForCurrentDrawing() {
   const i = AppState.currentDrawingIndex;
   applyCustomTheme(customTheme);
@@ -394,53 +535,43 @@ function renderSurveyForCurrentDrawing() {
   survey.css = { ...survey.css, root: "sv-root-modern sv-root-plain"};
   survey.render("survey-inner");
   survey.onAfterRenderQuestion.add(function (survey, options) {
+    // Reformat the intensity scale question
     if (options.question.name === "intensityScale") {
       const questionEl = options.htmlElement;
       const ratingContent = questionEl.querySelector(".sd-question__content");
 
       if (!ratingContent) return;
-
       const ratingRow = ratingContent.querySelector(".sd-rating");
-
       if (!ratingRow) return;
 
-      // Create wrapper to hold labels and rating
       const layoutRow = document.createElement("div");
       layoutRow.classList.add('rating-layout-row');
 
-      // Min label
       const minLabel = document.createElement("div");
       minLabel.innerHTML = "No pain<br>or symptom";
       minLabel.classList.add('rating-layout-label');
 
-      // Max label
       const maxLabel = document.createElement("div");
       maxLabel.innerHTML = "Worst pain or<br>symptom imaginable";
       maxLabel.classList.add('rating-layout-label');
 
-      // Remove the scale from its original container
       ratingContent.removeChild(ratingRow);
 
-      // Insert into new layout
       layoutRow.appendChild(minLabel);
       layoutRow.appendChild(ratingRow);
       layoutRow.appendChild(maxLabel);
 
-      // Add layout row to question content
       ratingContent.appendChild(layoutRow);
     }
   });
 
   survey.onComplete.add(sender => {
+    const canvas = AppState.drawingInstances[i]?.canvas;
+    AppState.drawingInstances[i].uvDrawingData = canvas.toDataURL('image/png');
     AppState.drawingInstances[i].questionnaireData = sender.data;
-    console.log(`Saved survey for Drawing ${i + 1}`, sender.data);
+    console.log(`Saved survey for Drawing ${i + 1}`);
 
-    // Return to drawing view
-    showView('drawing');
-    AppState.drawnBoneNames = new Set();
-    document.body.classList.remove('survey-mode');
-    
-    addNewDrawingInstance();
-    enableInteraction(renderer, camera, controls);
+    // Return to summary view
+    showView('summary');
   });
 }

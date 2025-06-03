@@ -18,7 +18,7 @@ export function createDrawingControls(drawingControlsPanel) {
         <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"></path>
     </svg>
     <span>Draw</span>
-`;
+    `;
 
     // Erase Button
     const eraseButton = document.createElement('button');
@@ -99,7 +99,13 @@ export function createDrawingControls(drawingControlsPanel) {
             context.fillRect(0, 0, canvas.width, canvas.height);
             texture.needsUpdate = true;
         }
-        AppState.drawnBoneNames = new Set();
+
+        const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+        currentInstance.drawnBoneNames = new Set();
+        currentInstance.bonePixelMap = {};
+        currentInstance.questionnaireData = null;
+        currentInstance.texture.needsUpdate = true;
+        updateCurrentDrawing();
     });
 
     brushSizeSlider.addEventListener('input', (e) => {
@@ -122,10 +128,21 @@ export function createDrawingControls(drawingControlsPanel) {
 
 export function addNewDrawingInstance() {
     const instanceId = `drawing-${AppState.drawingInstances.length + 1}`;
-    const newTexture = texturePool.getNewTexture(instanceId);
+    const textureBundle = texturePool.getNewTexture(instanceId);
+
+    const newInstance = {
+        id: instanceId,
+        canvas: textureBundle.canvas,
+        context: textureBundle.context,
+        texture: textureBundle.texture,
+        drawnBoneNames: new Set(),
+        bonePixelMap: {},
+        questionnaireData: null,
+        uvDrawingData: null
+    };
 
     // Store the new instance in AppState
-    AppState.drawingInstances.push(newTexture);
+    AppState.drawingInstances.push(newInstance);
     AppState.currentDrawingIndex = AppState.drawingInstances.length - 1;
     updateCurrentDrawing();
 }
@@ -154,12 +171,13 @@ export function isCurrentDrawingBlank() {
 }
 
 export function updateCurrentDrawing() {
+    // Update the current drawing instance
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     if (!currentInstance || !AppState.skinMesh || !AppState.skinMesh.material) return;
 
     const material = AppState.skinMesh.material;
     if (!material) {
-        console.warn("updateCurrentDrawing: skinMesh.material is not ready.");
+        console.warn("SkinMesh.material is not ready.");
         return;
     }
 
@@ -170,6 +188,11 @@ export function updateCurrentDrawing() {
     material.map = currentInstance.texture;
     material.needsUpdate = true;
     currentInstance.texture.needsUpdate = true;
+
+    const pixelMap = currentInstance.bonePixelMap;
+    currentInstance.drawnBoneNames = new Set(
+        Object.keys(pixelMap).filter(bone => pixelMap[bone].size > 0)
+    );
 
     const statusBar = document.getElementById('drawing-status-bar');
     if (statusBar) {
