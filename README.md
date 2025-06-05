@@ -64,6 +64,6 @@ Other Technologies Used:
 - Inter font family (SIL Open Font License) — https://fonts.google.com/specimen/Inter
 
 Questionnaires:
-- Questionnaire content was developed by CANSpine Team.
+- Questionnaire content was developed by CANSpine Team from Western University..
 
 All other code and assets were developed by Jamie Kim, FHS MSK-IF from Western University.
