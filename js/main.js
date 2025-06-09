@@ -22,7 +22,7 @@ modelSummaryView.id = 'model-summary-view';
 // Summary Status Panel
 const summaryStatusPanel = document.createElement('div');
 summaryStatusPanel.id = 'summary-status-panel';
-summaryStatusPanel.innerHTML = '<p style="margin: 5%">You currently don’t have any pain or symptoms logged.</p><p>Select <span style="font-weight: bold;">Add a New Pain or Symptom</span> to start.</p>'
+summaryStatusPanel.innerHTML = '<p style="margin: 5%">You currently don’t have any pain or symptoms logged.</br></br>Select <span style="font-weight: bold;">Add a New Pain or Symptom</span> to start.</p>'
 
 const changeModelButton = document.createElement('button');
 changeModelButton.id = 'change-model-button';
@@ -38,11 +38,16 @@ changeModelButton.addEventListener('click', () => {
   showView('selection');
 })
 
-const addNewInstanceButton = document.createElement('button');
-addNewInstanceButton.textContent = 'Add a New Pain or Symptom';
-addNewInstanceButton.classList.add('button', 'button-primary');
+// Footer for summary view
+const summaryFooter = document.createElement('div');
+summaryFooter.id = 'footer-summary';
+summaryFooter.classList.add('footer');
 
-addNewInstanceButton.addEventListener('click', () => {
+const addNewInstanceButton1 = document.createElement('button');
+addNewInstanceButton1.textContent = 'Add a New Pain or Symptom';
+addNewInstanceButton1.classList.add('button', 'button-primary');
+
+addNewInstanceButton1.addEventListener('click', () => {
   addNewDrawingInstance();
   showView('drawing');
 });
@@ -56,6 +61,9 @@ summaryDoneButton.style.marginRight = '5%';
 summaryDoneButton.addEventListener('click', () => {
   alert('Logging Pain & Symptom Completed!');
 });
+
+summaryFooter.appendChild(addNewInstanceButton1);
+summaryFooter.appendChild(summaryDoneButton);
 
 // Model Selection View - Composed of Model Preview, Model Selector
 const modelSelectionView = document.createElement('div');
@@ -94,6 +102,23 @@ returnSummaryButton.classList.add('button', 'return-button');
 returnSummaryButton.addEventListener('click', () => {
   showView('summary');
 })
+  
+const addNewInstanceButton2 = document.createElement('button');
+addNewInstanceButton2.textContent = 'Add a New Pain or Symptom';
+addNewInstanceButton2.classList.add('button', 'button-primary');
+addNewInstanceButton2.style.marginRight = '5%';
+
+addNewInstanceButton2.addEventListener('click', () => {
+  addNewDrawingInstance();
+  showView('drawing');
+});
+
+// Footer for selection view
+const selectionFooter = document.createElement('div');
+selectionFooter.id = 'footer-selection';
+selectionFooter.classList.add('footer');
+
+selectionFooter.appendChild(addNewInstanceButton2);
 
 modelSelectorPanel.appendChild(returnSummaryButton);
 modelSelectorPanel.appendChild(selectStatusBar);
@@ -138,15 +163,6 @@ models.forEach(model => {
   }
 });
 
-const startDrawingButton = document.createElement('button');
-startDrawingButton.textContent = 'Add a New Pain or Symptom';
-startDrawingButton.classList.add('button', 'button-primary');
-
-startDrawingButton.addEventListener('click', () => {
-  addNewDrawingInstance();
-  showView('drawing');
-});
-
 // Drawing View - Composed of Drawing Controls, Canvas, View Controls
 const drawingView = document.createElement('div');
 drawingView.id = 'drawing-view';
@@ -176,10 +192,17 @@ const statusBar = document.createElement('div');
 statusBar.id = 'drawing-status-bar';
 statusBar.textContent = 'Add Your Main Area of Pain or Symptom #1';
 
+// Footer for Drawing View
+const drawingFooter = document.createElement('div');
+drawingFooter.id = 'footer-drawing';
+drawingFooter.classList.add('footer');
+
 const continueButton = document.createElement('button');
 continueButton.textContent = 'Continue';
 continueButton.classList.add('button', 'button-primary');
 continueButton.style.marginRight = '8%';
+
+drawingFooter.appendChild(continueButton);
 
 // Confirmation Display Modal
 const modal = document.createElement('div');
@@ -282,22 +305,15 @@ canvasWrapper.id = 'canvas-wrapper';
 canvasWrapper.appendChild(changeModelButton);
 canvasWrapper.appendChild(canvasPanel);
 
-const footer = document.createElement('div');
-footer.id = 'footer';
-
 // Append elements based on views
-footer.appendChild(addNewInstanceButton);
-footer.appendChild(summaryDoneButton);
-footer.appendChild(continueButton);
-appContainer.appendChild(footer);
-
 modelSummaryView.appendChild(canvasWrapper);
 modelSummaryView.appendChild(summaryStatusPanel);
+modelSummaryView.appendChild(summaryFooter);
 appContainer.appendChild(modelSummaryView);
 
-modelSelectorPanel.appendChild(startDrawingButton);
 modelSelectionView.appendChild(modelPreviewPanel);
 modelSelectionView.appendChild(modelSelectorPanel);
+modelSelectionView.appendChild(selectionFooter);
 appContainer.appendChild(modelSelectionView);
 
 drawingMainRow.appendChild(drawingControlsPanel);
@@ -305,6 +321,7 @@ drawingMainRow.appendChild(drawingCanvasPanel);
 drawingMainRow.appendChild(viewControlsPanel);
 drawingView.appendChild(statusBar);
 drawingView.appendChild(drawingMainRow);
+drawingView.appendChild(drawingFooter);
 appContainer.appendChild(drawingView);
 
 surveyView.appendChild(surveyPanel);
@@ -320,9 +337,13 @@ function showView(viewName) {
   drawingView.style.display = 'none';
   surveyView.style.display = 'none';
 
-  footer.style.display = 'none';
-  addNewInstanceButton.style.display = 'none';
+  summaryFooter.style.display = 'none';
+  selectionFooter.style.display = 'none';
+  drawingFooter.style.display = 'none';
+
+  addNewInstanceButton1.style.display = 'none';
   summaryDoneButton.style.display = 'none';
+  addNewInstanceButton2.style.display = 'none';
   continueButton.style.display = 'none';
   changeModelButton.style.display = 'none';
 
@@ -335,8 +356,8 @@ function showView(viewName) {
         canvasPanel.style.height = '100vh';
       }
       modelSummaryView.style.display = 'flex';
-      footer.style.display = 'flex';
-      addNewInstanceButton.style.display = 'flex';
+      summaryFooter.style.display = 'flex';
+      addNewInstanceButton1.style.display = 'flex';
       summaryDoneButton.style.display = 'flex';
       
       document.body.classList.add('non-drawing-mode');
@@ -354,12 +375,14 @@ function showView(viewName) {
       modelPreviewPanel.appendChild(canvasWrapper);
       canvasWrapper.style.width = '50vw';
       modelSelectionView.style.display = 'flex';
+      selectionFooter.style.display = 'flex';
+      addNewInstanceButton2.style.display = 'flex';
       break;
     case 'drawing':
       drawingCanvasPanel.appendChild(canvasWrapper);
       canvasWrapper.style.width = '50vw';
       drawingView.style.display = 'flex';
-      footer.style.display = 'flex';
+      drawingFooter.style.display = 'flex';
       continueButton.style.display = 'flex';
 
       document.body.classList.remove('non-drawing-mode');
