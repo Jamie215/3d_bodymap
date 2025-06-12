@@ -1,5 +1,4 @@
-import AppState from './state.js';
-import texturePool from './textureManager.js'
+import AppState from '../app/state.js';
 
 export function createDrawingControls(drawingControlsPanel) {
     // Drawing Controls Container
@@ -126,77 +125,4 @@ export function createDrawingControls(drawingControlsPanel) {
     drawingControlsPanel.appendChild(drawingToolsContainer);
 }
 
-export function addNewDrawingInstance() {
-    const instanceId = `drawing-${AppState.drawingInstances.length + 1}`;
-    const textureBundle = texturePool.getNewTexture(instanceId);
 
-    const newInstance = {
-        id: instanceId,
-        canvas: textureBundle.canvas,
-        context: textureBundle.context,
-        texture: textureBundle.texture,
-        drawnBoneNames: new Set(),
-        bonePixelMap: {},
-        questionnaireData: null,
-        uvDrawingData: null
-    };
-
-    // Store the new instance in AppState
-    AppState.drawingInstances.push(newInstance);
-    AppState.currentDrawingIndex = AppState.drawingInstances.length - 1;
-    updateCurrentDrawing();
-}
-
-export function isCurrentDrawingBlank() {
-    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-    if(!currentInstance || !currentInstance.canvas) return true;
-
-    const ctx = currentInstance.context;
-    const { width, height } = currentInstance.canvas;
-    const imageData = ctx.getImageData(0, 0, width, height).data;
-
-    // Check if all pixels are white (or nearly white)
-    for (let i = 0; i < imageData.length; i += 4) {
-        const r = imageData[i];
-        const g = imageData[i + 1];
-        const b = imageData[i + 2];
-        const a = imageData[i + 3];
-
-        // If anything isn't fully white/transparent
-        if (!(r === 255 && g === 255 && b === 255 && a === 255)) {
-            return false; // Non-blank pixel found
-        }
-    }
-    return true;
-}
-
-export function updateCurrentDrawing() {
-    // Update the current drawing instance
-    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-    if (!currentInstance || !AppState.skinMesh || !AppState.skinMesh.material) return;
-
-    const material = AppState.skinMesh.material;
-    if (!material) {
-        console.warn("SkinMesh.material is not ready.");
-        return;
-    }
-
-    AppState.skinMesh.userData.canvas = currentInstance.canvas;
-    AppState.skinMesh.userData.context = currentInstance.context;
-    AppState.skinMesh.userData.texture = currentInstance.texture;
-
-    material.map = currentInstance.texture;
-    material.needsUpdate = true;
-    currentInstance.texture.needsUpdate = true;
-
-    const pixelMap = currentInstance.bonePixelMap;
-    currentInstance.drawnBoneNames = new Set(
-        Object.keys(pixelMap).filter(bone => pixelMap[bone].size > 0)
-    );
-
-    const statusBar = document.getElementById('drawing-status-bar');
-    if (statusBar) {
-        const current = AppState.currentDrawingIndex + 1;
-        statusBar.textContent = `Add Your Main Area of Pain or Symptom #${current}`;
-    }
-}

@@ -61,7 +61,7 @@ canvas {
 }
 
 .button:hover {
-    background: #e8e8e8;
+    background: #e8e8e8 !important;
 }
 
 .button-primary { 
@@ -140,10 +140,9 @@ canvas {
     background: transparent;
     border-color: transparent;
     position: fixed;
-    display: flex;
+    display: block;
     align-items: center;
-    top: 7%;
-    left: 20%;
+    top: 5%;
     z-index: 9999;
 }
 
@@ -158,7 +157,7 @@ canvas {
     height: 100vh;
 }
 
-#model-selector-panel {
+#model-selection-panel {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -167,7 +166,7 @@ canvas {
     gap: 3rem;
 }
 
-#model-selector-panel .return-button {
+#model-selection-panel .return-button {
     max-width: 30%;
     position: fixed;
     top: 10%;
@@ -219,12 +218,6 @@ canvas {
 #drawing-canvas-panel {
     display: flex;
     flex: 1;
-    height: 100%;
-}
-
-#model-preview-panel {
-    display: flex;
-    flex: 2;
     height: 100%;
 }
 
@@ -315,7 +308,7 @@ h3.control-title {
     height: 100%;
 }
 
-body.non-drawing-mode .cursor-container {
+.non-drawing-mode .cursor-container {
   display: none !important;
 }
 

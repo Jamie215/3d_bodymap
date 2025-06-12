@@ -1,5 +1,5 @@
-import AppState from './state.js';
-import texturePool from './textureManager.js'
+import AppState from '../app/state.js';
+import texturePool from '../utils/textureManager.js'
 
 const loader = new THREE.GLTFLoader();
 

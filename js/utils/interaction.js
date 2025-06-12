@@ -1,5 +1,6 @@
-import AppState from './state.js';
-import eventManager from './eventManager.js';
+import AppState from '../app/state.js';
+import eventManager from '../app/eventManager.js';
+import { drawAtPointer } from '../services/drawingEngine.js';
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -36,7 +37,7 @@ export function enableInteraction(renderer, camera, controls) {
     eventIds.push(eventManager.add(window, 'mousemove', (event) => {
         if (!AppState.isDrawing || !AppState.skinMesh || event.target !== canvas) return;
         updatePointer(event, canvas);
-        drawAtPointer(camera);
+        drawAtPointer(camera, pointer, AppState.isErasing);
     }));
 
     eventIds.push(eventManager.add(canvas, 'dblclick', (event) => {
@@ -63,7 +64,7 @@ export function enableInteraction(renderer, camera, controls) {
         event.preventDefault();
         if(!AppState.isDrawing || !AppState.skinMesh) return;
         updatePointer(event, canvas);
-        drawAtPointer(camera);
+        drawAtPointer(camera, pointer, AppState.isErasing);
     }, {passive: false}));
 
     let lastTapTime = 0;
@@ -263,131 +264,8 @@ function handlePointerDown(camera, controls) {
         AppState.isDrawing = true;
         controls.enabled = false;
 
-        drawAtPointer(camera);
+        drawAtPointer(camera, pointer, AppState.isErasing);
     }
-}
-
-function drawAtPointer(camera) {
-    raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObject(AppState.skinMesh, true);
-    if (intersects.length === 0) return;
-
-    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-    currentInstance.drawnBoneNames = currentInstance.drawnBoneNames || new Set();
-    currentInstance.bonePixelMap = currentInstance.bonePixelMap || {};
-    
-    const { canvas, context, texture } = currentInstance
-    const fillStyle = AppState.isErasing ? '#ffffff' : '#9575CD';
-    context.fillStyle = fillStyle;
-
-    // Get the hit on the skin mesh
-    const currentHit = intersects[0];
-    const currentPoint = currentHit.point;
-
-    // Draw on UV map
-    drawBrushAtUV(currentHit.uv, canvas, context, AppState.brushRadius);
-
-    // Mirror across seam edge at the back for smoothing
-    const seamDistanceThreshold = 0.0075;
-    if (Math.abs(currentPoint.x) < seamDistanceThreshold) {
-        const mirroredOrigin = raycaster.ray.origin.clone();
-        mirroredOrigin.x *= -1;
-
-        const mirroredDir = raycaster.ray.direction.clone();
-        mirroredDir.x *= -1;
-
-        raycaster.set(mirroredOrigin, mirroredDir);
-        const mirroredHits = raycaster.intersectObject(AppState.skinMesh, true);
-
-        if (mirroredHits.length > 0 && mirroredHits[0].uv) {
-            drawBrushAtUV(mirroredHits[0].uv, canvas, context, AppState.brushRadius / 2);
-        }
-    }
-
-    texture.needsUpdate = true;
-
-    // Detect bones from face geometry
-    const faceIndex = currentHit.faceIndex;
-    const geometry = AppState.skinMesh.geometry;
-    const indexAttr = geometry.index;
-    const skinIndex = geometry.attributes.skinIndex;
-    const skinWeight = geometry.attributes.skinWeight;
-
-    const a = indexAttr.getX(faceIndex * 3);
-    const b = indexAttr.getX(faceIndex * 3 + 1);
-    const c = indexAttr.getX(faceIndex * 3 + 2);
-
-    // Get the most influential bone for the vertex
-    function getDominantBone(vertIndex) {
-        const indices = [
-            skinIndex.getX(vertIndex),
-            skinIndex.getY(vertIndex),
-            skinIndex.getZ(vertIndex),
-            skinIndex.getW(vertIndex)
-        ];
-        const weights = [
-            skinWeight.getX(vertIndex),
-            skinWeight.getY(vertIndex),
-            skinWeight.getZ(vertIndex),
-            skinWeight.getW(vertIndex)
-        ];
-        const maxIndex = weights.indexOf(Math.max(...weights));
-        return indices[maxIndex];
-    }
-
-    const bones = [a, b, c].map(getDominantBone);
-    const boneNames = bones
-        .map(i => AppState.skinMesh.skeleton.bones[i]?.name)
-        .filter(Boolean);
-
-    const x = Math.round(currentHit.uv.x * canvas.width);
-    const y = Math.round((1 - currentHit.uv.y) * canvas.height);
-    const key = `${x},${y}`;
-
-    if (!AppState.isErasing) {
-        boneNames.forEach(name => {
-            currentInstance.drawnBoneNames.add(name);
-            if(!currentInstance.bonePixelMap[name]) 
-                currentInstance.bonePixelMap[name] = new Set();
-                currentInstance.bonePixelMap[name].add(key);
-            });
-    } else {
-        // Consider all affected pixels within the drawing radius
-        const radius = AppState.brushRadius;
-        for (let dx=-radius; dx<=radius; dx++) {
-            for (let dy=-radius; dy<=radius; dy++) {
-                if (dx * dx + dy * dy > radius * radius) continue;
-
-                const px = x + dx;
-                const py = y + dy;
-
-                // Bounds check
-                if (px < 0 || py < 0 || px >= canvas.width || py >= canvas.height) continue;
-
-                const eraseKey = `${px},${py}`;
-
-                boneNames.forEach(name => {
-                    const pixelSet = currentInstance.bonePixelMap[name];
-                    if (pixelSet) {
-                        pixelSet.delete(eraseKey);
-                        if (pixelSet.size === 0) {
-                            delete currentInstance.bonePixelMap[name];
-                            currentInstance.drawnBoneNames.delete(name);
-                        }
-                    }
-                });
-            }
-        }
-    }
-}
-
-function drawBrushAtUV(uv, canvas, context, radius) {
-    const x = Math.floor(uv.x * canvas.width);
-    const y = Math.floor((1 - uv.y) * canvas.height);
-
-    context.beginPath();
-    context.arc(x, y, radius, 0, 2 * Math.PI);
-    context.fill();
 }
 
 function handleDoubleTap(event, canvas, camera, controls) {
