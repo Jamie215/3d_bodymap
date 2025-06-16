@@ -3,6 +3,8 @@
 const texturePool = {
     available: [],
     inUse: new Map(),
+    width: 1024,
+    height: 1024,
     
     getTexture(id, width = 1024, height = 1024) {
         // If this ID already has a texture, return it

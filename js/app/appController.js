@@ -1,7 +1,7 @@
 // appController.js
 import { resizeRenderer } from '../utils/scene.js';
 import { loadModel, cleanupAllModels } from '../services/modelLoader.js';
-import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance } from '../services/drawingEngine.js';
+import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance, buildGlobalUVMap } from '../services/drawingEngine.js';
 import texturePool from '../utils/textureManager.js';
 import { generateMergedTextureFromDrawings } from '../utils/textureUtils.js';
 import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement } from '../utils/interaction.js';
@@ -25,6 +25,14 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
           clearInterval(waitUntilSkinMeshReady);
           resizeRenderer(camera, renderer, canvasPanel);
           renderer.render(scene, camera);
+          const { globalUVMap, globalPixelBoneMap, faceBoneMap } = buildGlobalUVMap(
+              AppState.skinMesh.geometry,
+              texturePool.width,
+              texturePool.height
+          );
+          AppState.globalUVMap = globalUVMap;
+          AppState.globalPixelBoneMap = globalPixelBoneMap;
+          AppState.faceBoneMap = faceBoneMap;
         }
       }, 50);
     });
@@ -36,6 +44,14 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
         clearInterval(waitUntilSkinMeshReady);
         resizeRenderer(camera, renderer, canvasPanel);
         renderer.render(scene, camera);
+        const { globalUVMap, globalPixelBoneMap, faceBoneMap } = buildGlobalUVMap(
+            AppState.skinMesh.geometry,
+            texturePool.width,
+            texturePool.height
+        );
+        AppState.globalUVMap = globalUVMap;
+        AppState.globalPixelBoneMap = globalPixelBoneMap;
+        AppState.faceBoneMap = faceBoneMap;
       }
     }, 50);
   });

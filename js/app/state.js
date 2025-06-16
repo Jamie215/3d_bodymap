@@ -7,6 +7,9 @@ const AppState = {
     currentModelName: 'Model 1',
     drawingInstances: [],
     currentDrawingIndex: 0,
+    globalUVMap: null,
+    globalPixelBoneMap: null,
+    faceBoneMap: null
 };
 
 export default AppState;
