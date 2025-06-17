@@ -100,6 +100,7 @@ function pointInTriangle(p, a, b, c) {
 }
 
 export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitBone = null) { 
+    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     const cx = Math.floor(uv.x * canvas.width);
     const cy = Math.floor((1 - uv.y) * canvas.height);
 
@@ -118,7 +119,7 @@ export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitBone
     const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
     const maskPixels = maskData.data;
 
-    context.fillStyle = isErasing ? '#ffffff' : '#9575CD';
+    context.fillStyle = isErasing ? '#ffffff' : currentInstance.colour;
 
     for (let py = 0; py < canvas.height; py++) {
         for (let px = 0; px < canvas.width; px++) {
