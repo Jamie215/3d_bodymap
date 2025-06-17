@@ -104,7 +104,6 @@ export function createDrawingControls(drawingControlsPanel) {
         currentInstance.bonePixelMap = {};
         currentInstance.questionnaireData = null;
         currentInstance.texture.needsUpdate = true;
-        updateCurrentDrawing();
     });
 
     brushSizeSlider.addEventListener('input', (e) => {

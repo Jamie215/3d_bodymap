@@ -5,6 +5,8 @@ import texturePool from '../utils/textureManager.js'
 const raycaster = new THREE.Raycaster();
 const mirroredRaycaster = new THREE.Raycaster();
 
+const colourPalette = d3.schemeObservable10;
+
 export function buildGlobalUVMap(geometry, canvasWidth, canvasHeight) {
     const indexAttr = geometry.index;
     const uvAttr = geometry.attributes.uv;
@@ -242,7 +244,8 @@ export function addNewDrawingInstance() {
         drawnBoneNames: new Set(),
         bonePixelMap: {},
         questionnaireData: null,
-        uvDrawingData: null
+        uvDrawingData: null,
+        colour: colourPalette[AppState.drawingInstances.length % colourPalette.length]
     };
 
     // Store the new instance in AppState

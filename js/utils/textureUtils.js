@@ -25,20 +25,22 @@ export function generateMergedTextureFromDrawings() {
     mergedData[i + 3] = 255;
   }
 
-  // Overlay purple pixels
+  // Overlay per-instance colours
   AppState.drawingInstances.forEach(instance => {
     const ctx = instance.canvas.getContext('2d');
     const srcImageData = ctx.getImageData(0, 0, width, height);
     const srcData = srcImageData.data;
 
+    const assignedColor = hexToRGB(instance.colour);
+
     for (let j = 0; j < srcData.length; j += 4) {
-      const r = srcData[j], g = srcData[j+1], b = srcData[j+2], a = srcData[j+3];
-      const isPurple = r === 149 && g === 117 && b === 205 && a > 0;
-      if (isPurple) {
-        mergedData[j] = r;
-        mergedData[j+1] = g;
-        mergedData[j+2] = b;
-        mergedData[j+3] = 255;
+      const a = srcData[j + 3];
+      const isDrawnPixel = a > 0 && !(srcData[j] === 255 && srcData[j + 1] === 255 && srcData[j + 2] === 255);
+      if (isDrawnPixel) {
+        mergedData[j] = assignedColor.r;
+        mergedData[j + 1] = assignedColor.g;
+        mergedData[j + 2] = assignedColor.b;
+        mergedData[j + 3] = 255;
       }
     }
   });
@@ -49,4 +51,14 @@ export function generateMergedTextureFromDrawings() {
   texture.needsUpdate = true;
 
   return texture;
+}
+
+function hexToRGB(hexColor) {
+  const hex = hexColor.replace('#', '');
+  const bigint = parseInt(hex, 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255
+  };
 }
