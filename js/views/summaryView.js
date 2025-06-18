@@ -43,7 +43,7 @@ export function createSummaryView() {
     const count = AppState.drawingInstances.length;
     summaryStatusPanel.innerHTML = count > 0
       ? `<p>You have <span style="color: var(--primary-color); font-weight: bold;">${count}</span> pain or symptom(s) logged.</p>`
-      : `<p>You currently don’t have any pain or symptoms logged.</br></br>Select <span style="font-weight: bold;">"Add a New Pain or Symptom"</span> to start.</p>`;
+      : `<p>You currently don’t have any pain or symptoms logged.</br></br>You will be prompted to add each area of pain or symptom in turn. Select <span style="font-weight: bold;">"Add a New Pain or Symptom"</span> to start.</p>`;
     summaryDoneButton.disabled = count === 0;
   }
 
