@@ -53,7 +53,7 @@ export function initDrawResetModal(container) {
 
   resetModalText = document.createElement('h2');
   resetModalText.id = 'modal-text';
-  resetModalText.textContent = 'Are you sure you want to erase all of your drawing?';
+  resetModalText.textContent = 'Are you sure you want to erase all of your current drawing?';
 
   const resetButtonGroup = document.createElement('div');
   resetButtonGroup.classList.add('modal-button-group');

@@ -31,15 +31,13 @@ export function generateMergedTextureFromDrawings() {
     const srcImageData = ctx.getImageData(0, 0, width, height);
     const srcData = srcImageData.data;
 
-    const assignedColor = hexToRGB(instance.colour);
-
     for (let j = 0; j < srcData.length; j += 4) {
       const a = srcData[j + 3];
       const isDrawnPixel = a > 0 && !(srcData[j] === 255 && srcData[j + 1] === 255 && srcData[j + 2] === 255);
       if (isDrawnPixel) {
-        mergedData[j] = assignedColor.r;
-        mergedData[j + 1] = assignedColor.g;
-        mergedData[j + 2] = assignedColor.b;
+        mergedData[j] = srcData[j];
+        mergedData[j + 1] = srcData[j+1];
+        mergedData[j + 2] = srcData[j+2];
         mergedData[j + 3] = 255;
       }
     }
@@ -62,3 +60,4 @@ function hexToRGB(hexColor) {
     b: bigint & 255
   };
 }
+

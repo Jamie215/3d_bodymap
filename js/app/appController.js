@@ -161,7 +161,7 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
         }
 
         const mergedTexture = generateMergedTextureFromDrawings();
-        if (AppState.skinMesh?.material && mergedTexture) {
+        if (AppState.skinMesh && mergedTexture) {
           AppState.skinMesh.material.map = mergedTexture;
           AppState.skinMesh.material.needsUpdate = true;
         }
@@ -197,8 +197,33 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
         enableInteraction(renderer, camera, controls);
         setupCursorManagement();
         controls.enableZoom = true;
+
+        if (AppState.skinMesh && AppState.drawingInstances.length > 0) {
+          const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+          const ctx = currentInstance.context;
+
+          // Draw all previous instance canvases onto the current one
+           if (!currentInstance.initialized) {
+            // First time initialization: paint all prior instances as background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, currentInstance.canvas.width, currentInstance.canvas.height);
+
+            AppState.drawingInstances.forEach((instance, idx) => {
+              if (idx !== AppState.currentDrawingIndex) {
+                ctx.drawImage(instance.canvas, 0, 0);
+              }
+            });
+          }
+
+          // Apply this texture to the mesh
+          AppState.skinMesh.material.map = currentInstance.texture;
+          AppState.skinMesh.material.needsUpdate = true;
+          currentInstance.texture.needsUpdate = true;
+        }
         break;
       case 'survey':
+        const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+        currentInstance.initialized = true;
         document.body.classList.add('non-drawing-mode');
         survey.root.style.display = 'flex';
         canvasWrapper.style.width = '40vw';

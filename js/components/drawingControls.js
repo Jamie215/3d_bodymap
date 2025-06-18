@@ -99,7 +99,13 @@ export function createDrawingControls(drawingControlsPanel) {
             getModalElements("reset").resetConfirmButton.addEventListener('click', () => {
                 const { context, canvas, texture } = AppState.skinMesh.userData;
                 context.fillStyle = '#ffffff';
-                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.fillRect(0, 0, currentInstance.canvas.width, currentInstance.canvas.height);
+                currentInstance.initialized = false;
+                AppState.drawingInstances.forEach((instance, idx) => {
+                if (idx !== AppState.currentDrawingIndex) {
+                    context.drawImage(instance.canvas, 0, 0);
+                }
+                });
                 texture.needsUpdate = true;
                 hideDrawResetModal();
             }); 

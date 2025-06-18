@@ -246,8 +246,12 @@ export function addNewDrawingInstance() {
         bonePixelMap: {},
         questionnaireData: null,
         uvDrawingData: null,
+        initialized: false,
         colour: colourPalette[AppState.drawingInstances.length % colourPalette.length]
     };
+
+    newInstance.context.fillStyle = '#ffffff';
+    newInstance.context.fillRect(0, 0, newInstance.canvas.width, newInstance.canvas.height);
 
     // Store the new instance in AppState
     AppState.drawingInstances.push(newInstance);
