@@ -95,8 +95,9 @@ export function createDrawingControls(drawingControlsPanel) {
     resetDrawingButton.addEventListener('click', () => {
         if (AppState.skinMesh?.userData?.context) {
             showDrawResetModal();
-            getModalElements("reset").resetReturnButton.addEventListener('click', () => {hideDrawResetModal()});            
-            getModalElements("reset").resetConfirmButton.addEventListener('click', () => {
+            const { resetReturnButton, resetConfirmButton } = getModalElements("reset");
+            resetReturnButton.addEventListener('click', () => hideDrawResetModal());            
+            resetConfirmButton.addEventListener('click', () => {
                 const { context, canvas, texture } = AppState.skinMesh.userData;
                 context.fillStyle = '#ffffff';
                 context.fillRect(0, 0, currentInstance.canvas.width, currentInstance.canvas.height);
@@ -107,15 +108,14 @@ export function createDrawingControls(drawingControlsPanel) {
                 }
                 });
                 texture.needsUpdate = true;
+                const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+                currentInstance.drawnBoneNames = new Set();
+                currentInstance.bonePixelMap = {};
+                currentInstance.questionnaireData = null;
+                currentInstance.texture.needsUpdate = true;
                 hideDrawResetModal();
             }); 
         }
-
-        const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-        currentInstance.drawnBoneNames = new Set();
-        currentInstance.bonePixelMap = {};
-        currentInstance.questionnaireData = null;
-        currentInstance.texture.needsUpdate = true;
     });
 
     brushSizeSlider.addEventListener('input', (e) => {

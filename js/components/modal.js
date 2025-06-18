@@ -59,12 +59,12 @@ export function initDrawResetModal(container) {
   resetButtonGroup.classList.add('modal-button-group');
 
   resetReturnButton = document.createElement('button');
-  resetReturnButton.id = 'modal-return';
+  resetReturnButton.id = 'modal-return-reset';
   resetReturnButton.classList.add('modal-button');
   resetReturnButton.innerText = 'No, return to my drawing';
 
   resetConfirmButton = document.createElement('button');
-  resetConfirmButton.id = 'modal-reset';
+  resetConfirmButton.id = 'modal-reset-reset';
   resetConfirmButton.classList.add('modal-button');
   resetConfirmButton.innerText = 'Yes, reset my drawing';
 

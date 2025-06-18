@@ -115,6 +115,7 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
           showDrawContinueModal("Does this represent your intended pain/symptom area?", true, dataURL);
         }, 100);
       } else {
+        console.log("No bones found in the drawing");
         showDrawContinueModal("Does this represent your intended pain/symptom area?", false);
       }
     }
