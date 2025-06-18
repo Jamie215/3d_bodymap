@@ -305,6 +305,6 @@ export function updateCurrentDrawing() {
     const statusBar = document.getElementById('drawing-status-bar');
     if (statusBar) {
         const current = AppState.currentDrawingIndex + 1;
-        statusBar.textContent = `Add Your Main Area of Pain or Symptom #${current}`;
+        statusBar.innerHTML = `Add ONE of your main areas of pain or symptom (#${current})`;
     }
 }

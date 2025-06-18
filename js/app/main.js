@@ -1,6 +1,6 @@
 // main.js
 import { initApp } from './appController.js';
-import { initModal } from '../components/modal.js';
+import { initDrawContinueModal, initDrawResetModal } from '../components/modal.js';
 import { createScene } from '../utils/scene.js';
 import { createDrawingViewElements } from '../views/drawingView.js';
 import { createSelectionView } from '../views/selectionView.js';
@@ -41,7 +41,8 @@ appContainer.appendChild(drawing.root);
 appContainer.appendChild(survey.root);
 
 // Create modal component into DOM
-initModal(appContainer);
+initDrawContinueModal(appContainer);
+initDrawResetModal(appContainer);
 
 // Start application logic
 initApp({

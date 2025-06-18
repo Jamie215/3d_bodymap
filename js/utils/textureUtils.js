@@ -10,11 +10,11 @@ export function generateMergedTextureFromDrawings() {
   const mergedCanvas = document.createElement('canvas');
   mergedCanvas.width = width;
   mergedCanvas.height = height;
-  const mergedCtx = mergedCanvas.getContext('2d');
-  mergedCtx.fillStyle = '#ffffff';
-  mergedCtx.fillRect(0, 0, width, height);
+  const mergedContext = mergedCanvas.getContext('2d');
+  mergedContext.fillStyle = '#ffffff';
+  mergedContext.fillRect(0, 0, width, height);
 
-  const mergedImageData = mergedCtx.createImageData(width, height);
+  const mergedImageData = mergedContext.createImageData(width, height);
   const mergedData = mergedImageData.data;
 
   // Set all pixels to white
@@ -45,7 +45,7 @@ export function generateMergedTextureFromDrawings() {
     }
   });
 
-  mergedCtx.putImageData(mergedImageData, 0, 0);
+  mergedContext.putImageData(mergedImageData, 0, 0);
 
   const texture = new THREE.CanvasTexture(mergedCanvas);
   texture.needsUpdate = true;

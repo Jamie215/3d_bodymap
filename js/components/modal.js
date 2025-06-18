@@ -1,7 +1,7 @@
 // modal.js
-let modalEl, modalText, modalContinueButton, modalReturnButton, drawingPreview;
+let modalEl, modalText, modalContinueButton, modalReturnButton, drawingPreview, resetModalEl, resetReturnButton, resetConfirmButton, resetModalText;
 
-export function initModal(container) {
+export function initDrawContinueModal(container) {
   // Create modal container
   modalEl = document.createElement('div');
   modalEl.id = 'confirmation-modal';
@@ -41,14 +41,57 @@ export function initModal(container) {
   container.appendChild(modalEl);
 }
 
-export function getModalElements() {
-  return {
-    modalContinueButton,
-    modalReturnButton
-  };
+export function initDrawResetModal(container) {
+  // Create modal container
+  resetModalEl = document.createElement('div');
+  resetModalEl.id = 'confirmation-modal';
+  resetModalEl.style.display = 'none';
+  resetModalEl.classList.add('modal');
+
+  const resetModalContent = document.createElement('div');
+  resetModalContent.classList.add('modal-content');
+
+  resetModalText = document.createElement('h2');
+  resetModalText.id = 'modal-text';
+  resetModalText.textContent = 'Are you sure you want to erase all of your drawing?';
+
+  const resetButtonGroup = document.createElement('div');
+  resetButtonGroup.classList.add('modal-button-group');
+
+  resetReturnButton = document.createElement('button');
+  resetReturnButton.id = 'modal-return';
+  resetReturnButton.classList.add('modal-button');
+  resetReturnButton.innerText = 'No, return to my drawing';
+
+  resetConfirmButton = document.createElement('button');
+  resetConfirmButton.id = 'modal-reset';
+  resetConfirmButton.classList.add('modal-button');
+  resetConfirmButton.innerText = 'Yes, reset my drawing';
+
+  resetButtonGroup.appendChild(resetReturnButton);
+  resetButtonGroup.appendChild(resetConfirmButton);
+
+  resetModalContent.appendChild(resetModalText);
+  resetModalContent.appendChild(resetButtonGroup);
+  resetModalEl.appendChild(resetModalContent);
+  container.appendChild(resetModalEl);
 }
 
-export function showModal(text, previewVisible, previewDataURL = null) {
+export function getModalElements(modalType) {
+  if (modalType === "continue") {
+    return {
+      modalContinueButton,
+      modalReturnButton
+    };
+  } else {
+    return {
+      resetReturnButton,
+      resetConfirmButton
+    };
+  }
+}
+
+export function showDrawContinueModal(text, previewVisible, previewDataURL = null) {
   modalText.textContent = text;
   modalContinueButton.disabled = !previewVisible;
   modalContinueButton.classList.toggle('disabled', !previewVisible);
@@ -63,6 +106,14 @@ export function showModal(text, previewVisible, previewDataURL = null) {
   modalEl.style.display = 'flex';
 }
 
-export function hideModal() {
+export function hideDrawContinueModal() {
   modalEl.style.display = 'none';
+}
+
+export function showDrawResetModal() {
+  resetModalEl.style.display = 'flex';
+}
+
+export function hideDrawResetModal() {
+  resetModalEl.style.display = 'none';
 }

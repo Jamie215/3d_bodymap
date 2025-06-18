@@ -21,7 +21,7 @@ export function createDrawingViewElements(controls) {
 
   const statusBar = document.createElement('div');
   statusBar.id = 'drawing-status-bar';
-  statusBar.textContent = 'Add Your Main Area of Pain or Symptom #1';
+  statusBar.innerHTML = 'Add ONE of your main areas of pain or symptom';
 
   const drawingFooter = document.createElement('div');
   drawingFooter.id = 'footer-drawing';

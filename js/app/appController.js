@@ -7,14 +7,14 @@ import { generateMergedTextureFromDrawings } from '../utils/textureUtils.js';
 import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement } from '../utils/interaction.js';
 import { applyCustomTheme, customTheme } from '../utils/questionnaires_theme.js';
 import { surveyJson } from '../utils/questionnaires.js';
-import { getModalElements, showModal, hideModal } from '../components/modal.js';
+import { getModalElements, showDrawContinueModal, hideDrawContinueModal } from '../components/modal.js';
 import SurveyKO from "https://cdn.skypack.dev/survey-knockout";
 import AppState from '../app/state.js';
 import eventManager from './eventManager.js';
 
 export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, controls, views, registerModelSelectionHandler }) {
   const { summary, selection, drawing, survey } = views;
-  const { modalContinueButton, modalReturnButton } = getModalElements();
+  const { modalContinueButton, modalReturnButton } = getModalElements("continue");
 
   const initialModel = { name: 'Type 1', file: './assets/female_young_avgheight2.glb' };
 
@@ -90,7 +90,7 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
 
   drawing.continueButton.addEventListener('click', () => {
     if (isDrawingBlank()) {
-      showModal("No drawing has been found!", false);
+      showDrawContinueModal("No drawing has been found!", false);
     } else {
       updateCurrentDrawing();
       const regionBoneList = [...AppState.drawingInstances[AppState.currentDrawingIndex].drawnBoneNames];
@@ -112,23 +112,23 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
           renderer.setSize(originalSize.x, originalSize.y);
           renderer.setPixelRatio(originalPixelRatio);
 
-          showModal("Does this represent your intended pain/symptom area?", true, dataURL);
+          showDrawContinueModal("Does this represent your intended pain/symptom area?", true, dataURL);
         }, 100);
       } else {
-        showModal("Does this represent your intended pain/symptom area?", false);
+        showDrawContinueModal("Does this represent your intended pain/symptom area?", false);
       }
     }
   });
 
   modalContinueButton.addEventListener('click', () => {
-    hideModal();
+    hideDrawContinueModal();
     cleanupInteraction();
     disableCursorManagement();
     showView('survey');
     renderSurvey(survey.surveyInnerContainer);
   });
 
-  modalReturnButton.addEventListener('click', () => hideModal());
+  modalReturnButton.addEventListener('click', () => hideDrawContinueModal());
 
   survey.returnDrawingButton.addEventListener('click', () => showView('drawing'));
 

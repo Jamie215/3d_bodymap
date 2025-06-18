@@ -9,7 +9,7 @@ const AppState = {
     currentDrawingIndex: 0,
     globalUVMap: null,
     globalPixelBoneMap: null,
-    faceBoneMap: null
+    faceBoneMap: null,
 };
 
 export default AppState;

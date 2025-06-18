@@ -1,4 +1,5 @@
 import AppState from '../app/state.js';
+import { showDrawResetModal, hideDrawResetModal, getModalElements } from './modal.js';
 
 export function createDrawingControls(drawingControlsPanel) {
     // Drawing Controls Container
@@ -39,7 +40,7 @@ export function createDrawingControls(drawingControlsPanel) {
             <path d="M1 4v6h6"></path>
             <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
         </svg>
-        <span>Reset Drawing</span>
+        <span>Erase All</span>
     `;
 
     // Divider 
@@ -93,10 +94,15 @@ export function createDrawingControls(drawingControlsPanel) {
 
     resetDrawingButton.addEventListener('click', () => {
         if (AppState.skinMesh?.userData?.context) {
-            const { context, canvas, texture } = AppState.skinMesh.userData;
-            context.fillStyle = '#ffffff';
-            context.fillRect(0, 0, canvas.width, canvas.height);
-            texture.needsUpdate = true;
+            showDrawResetModal();
+            getModalElements("reset").resetReturnButton.addEventListener('click', () => {hideDrawResetModal()});            
+            getModalElements("reset").resetConfirmButton.addEventListener('click', () => {
+                const { context, canvas, texture } = AppState.skinMesh.userData;
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                texture.needsUpdate = true;
+                hideDrawResetModal();
+            }); 
         }
 
         const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
