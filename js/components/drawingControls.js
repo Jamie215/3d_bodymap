@@ -98,17 +98,17 @@ export function createDrawingControls(drawingControlsPanel) {
             const { resetReturnButton, resetConfirmButton } = getModalElements("reset");
             resetReturnButton.addEventListener('click', () => hideDrawResetModal());            
             resetConfirmButton.addEventListener('click', () => {
+                const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
                 const { context, canvas, texture } = AppState.skinMesh.userData;
                 context.fillStyle = '#ffffff';
                 context.fillRect(0, 0, currentInstance.canvas.width, currentInstance.canvas.height);
-                currentInstance.initialized = false;
                 AppState.drawingInstances.forEach((instance, idx) => {
                 if (idx !== AppState.currentDrawingIndex) {
                     context.drawImage(instance.canvas, 0, 0);
                 }
                 });
                 texture.needsUpdate = true;
-                const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+                currentInstance.initialized = false;
                 currentInstance.drawnBoneNames = new Set();
                 currentInstance.bonePixelMap = {};
                 currentInstance.questionnaireData = null;
