@@ -227,7 +227,7 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
         currentInstance.initialized = true;
         document.body.classList.add('non-drawing-mode');
         survey.root.style.display = 'flex';
-        canvasWrapper.style.width = '40vw';
+        canvasWrapper.style.width = '35vw';
 
         survey.root.insertBefore(canvasWrapper, survey.surveyPanel);
         disableCursorManagement();
@@ -267,7 +267,7 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
         minLabel.classList.add('rating-layout-label');
 
         const maxLabel = document.createElement("div");
-        maxLabel.innerHTML = "Worst pain or<br>symptom imaginable";
+        maxLabel.innerHTML = "Worst pain<br>or symptom<br>imaginable";
         maxLabel.classList.add('rating-layout-label');
 
         ratingContent.removeChild(ratingRow);
