@@ -201,6 +201,14 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
             AppState.model = model;
             AppState.currentModelName = name;
 
+            const { canvas: baseCanvas, context: baseCtx, threeTexture: baseTexture } = texturePool.getTexture(`base-texture-${name}`);
+            baseCtx.fillStyle = '#ffffff';
+            baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
+
+            AppState.baseTextureCanvas = baseCanvas;
+            AppState.baseTextureContext = baseCtx;
+            AppState.baseTextureTexture = baseTexture;
+
             console.log(`Loaded model: ${name}`);
             
             // Only call onLoaded if this request wasn't cancelled

@@ -119,7 +119,11 @@ export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitBone
     const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
     const maskPixels = maskData.data;
 
-    context.fillStyle = isErasing ? '#ffffff' : currentInstance.colour;
+    const baseCtx = AppState.baseTextureContext;
+
+    if (!isErasing) {
+        context.fillStyle = currentInstance.colour;
+    }
 
     for (let py = 0; py < canvas.height; py++) {
         for (let px = 0; px < canvas.width; px++) {
@@ -129,7 +133,12 @@ export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitBone
 
             const key = `${px},${py}`;
             if (!AppState.globalUVMap.has(key)) continue;
-            if (hitBone && AppState.globalPixelBoneMap.get(key) !== hitBone) continue; 
+            if (hitBone && AppState.globalPixelBoneMap.get(key) !== hitBone) continue;
+            
+            if (isErasing && baseCtx) {
+                const basePixel = baseCtx.getImageData(px, py, 1, 1).data;
+                context.fillStyle = `rgba(${basePixel[0]},${basePixel[1]},${basePixel[2]},${basePixel[3] / 255})`;
+            }
             context.fillRect(px, py, 1, 1);    // Draw the pixel if it's within the mask and in the correct bone area.
         }
     }
@@ -219,20 +228,6 @@ function eraseFromBoneMap(hit, instance, radius) {
     }
 }
 
-export function clearCurrentDrawing() { 
-    const instance = AppState.drawingInstances[AppState.currentDrawingIndex];
-    if (!instance) return;
-
-    const { context, canvas, texture } = instance;
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    instance.drawnBoneNames.clear();
-    instance.bonePixelMap = {};
-    instance.questionnaireData = null;
-    texture.needsUpdate = true;
-}
-
 export function addNewDrawingInstance() {
     const instanceId = `drawing-${AppState.drawingInstances.length + 1}`;
     const textureBundle = texturePool.getNewTexture(instanceId);
@@ -246,17 +241,23 @@ export function addNewDrawingInstance() {
         bonePixelMap: {},
         questionnaireData: null,
         uvDrawingData: null,
-        initialized: false,
-        colour: colourPalette[AppState.drawingInstances.length % colourPalette.length]
+        colour: colourPalette[AppState.drawingInstances.length % colourPalette.length],
+        initialized: false // boolean for whether or not the drawingView has come from surveyView
     };
 
-    newInstance.context.fillStyle = '#ffffff';
-    newInstance.context.fillRect(0, 0, newInstance.canvas.width, newInstance.canvas.height);
+    // ⬇ Overlay persistent base drawing
+    if (AppState.baseTextureCanvas) {
+        const snapshot = document.createElement('canvas');
+        snapshot.width = AppState.baseTextureCanvas.width;
+        snapshot.height = AppState.baseTextureCanvas.height;
+        snapshot.getContext('2d').drawImage(AppState.baseTextureCanvas, 0, 0);
+        newInstance.context.drawImage(snapshot, 0, 0);
+    }
 
     // Store the new instance in AppState
+    updateCurrentDrawing();
     AppState.drawingInstances.push(newInstance);
     AppState.currentDrawingIndex = AppState.drawingInstances.length - 1;
-    updateCurrentDrawing();
 }
 
 export function isDrawingBlank() {

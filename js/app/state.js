@@ -5,6 +5,9 @@ const AppState = {
     isErasing: false, // boolean for whether or not the drawmode is in erasing or not
     brushRadius: 15,
     currentModelName: 'Model 1',
+    baseTextureCanvas: null,
+    baseTextureContext: null,
+    baseTextureTexture: null,
     drawingInstances: [],
     currentDrawingIndex: 0,
     globalUVMap: null,

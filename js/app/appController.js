@@ -3,7 +3,6 @@ import { resizeRenderer } from '../utils/scene.js';
 import { loadModel, cleanupAllModels } from '../services/modelLoader.js';
 import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance, buildGlobalUVMap } from '../services/drawingEngine.js';
 import texturePool from '../utils/textureManager.js';
-import { generateMergedTextureFromDrawings } from '../utils/textureUtils.js';
 import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement } from '../utils/interaction.js';
 import { applyCustomTheme, customTheme } from '../utils/questionnaires_theme.js';
 import { surveyJson } from '../utils/questionnaires.js';
@@ -30,6 +29,7 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
               texturePool.width,
               texturePool.height
           );
+
           AppState.globalUVMap = globalUVMap;
           AppState.globalPixelBoneMap = globalPixelBoneMap;
           AppState.faceBoneMap = faceBoneMap;
@@ -49,6 +49,7 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
             texturePool.width,
             texturePool.height
         );
+
         AppState.globalUVMap = globalUVMap;
         AppState.globalPixelBoneMap = globalPixelBoneMap;
         AppState.faceBoneMap = faceBoneMap;
@@ -161,9 +162,8 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
           canvasWrapper.appendChild(summary.changeModelButton);
         }
 
-        const mergedTexture = generateMergedTextureFromDrawings();
-        if (AppState.skinMesh && mergedTexture) {
-          AppState.skinMesh.material.map = mergedTexture;
+        if (AppState.skinMesh && AppState.baseTextureTexture) {
+          AppState.skinMesh.material.map = AppState.baseTextureTexture;
           AppState.skinMesh.material.needsUpdate = true;
         }
         renderer.render(scene, camera);
@@ -203,22 +203,19 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
           const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
           const ctx = currentInstance.context;
 
-          // Draw all previous instance canvases onto the current one
-           if (!currentInstance.initialized) {
-            // First time initialization: paint all prior instances as background
+          if (!currentInstance.initialized) {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, currentInstance.canvas.width, currentInstance.canvas.height);
 
-            AppState.drawingInstances.forEach((instance, idx) => {
-              if (idx !== AppState.currentDrawingIndex) {
-                ctx.drawImage(instance.canvas, 0, 0);
-              }
-            });
+            if (AppState.baseTextureCanvas) {
+              ctx.drawImage(AppState.baseTextureCanvas, 0, 0);
+            }
           }
 
           // Apply this texture to the mesh
           AppState.skinMesh.material.map = currentInstance.texture;
           AppState.skinMesh.material.needsUpdate = true;
+          currentInstance.initialized = true;
           currentInstance.texture.needsUpdate = true;
         }
         break;
@@ -284,6 +281,12 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
       const canvas = AppState.drawingInstances[i].canvas;
       AppState.drawingInstances[i].uvDrawingData = canvas.toDataURL('image/png');
       AppState.drawingInstances[i].questionnaireData = sender.data;
+
+      if (AppState.baseTextureContext && AppState.baseTextureTexture) {
+        AppState.baseTextureContext.drawImage(canvas, 0, 0);
+        AppState.baseTextureTexture.needsUpdate = true;
+      }
+      AppState.baseTextureTexture.needsUpdate = true;
       showView('summary');
     });
   }
