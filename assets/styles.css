@@ -70,7 +70,7 @@ canvas {
 }
 
 .button-primary:hover {
-    background: #01578b;
+    background: #01578b !important;
 }
 
 .button-secondary { 

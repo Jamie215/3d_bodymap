@@ -245,7 +245,7 @@ export function addNewDrawingInstance() {
         initialized: false // boolean for whether or not the drawingView has come from surveyView
     };
 
-    // ⬇ Overlay persistent base drawing
+    // Overlay persistent base drawing
     if (AppState.baseTextureCanvas) {
         const snapshot = document.createElement('canvas');
         snapshot.width = AppState.baseTextureCanvas.width;
@@ -255,9 +255,9 @@ export function addNewDrawingInstance() {
     }
 
     // Store the new instance in AppState
-    updateCurrentDrawing();
     AppState.drawingInstances.push(newInstance);
     AppState.currentDrawingIndex = AppState.drawingInstances.length - 1;
+    updateCurrentDrawing();
 }
 
 export function isDrawingBlank() {
@@ -310,6 +310,25 @@ export function updateCurrentDrawing() {
     const statusBar = document.getElementById('drawing-status-bar');
     if (statusBar) {
         const current = AppState.currentDrawingIndex + 1;
-        statusBar.innerHTML = `Add ONE of your main areas of pain or symptom (#${current})`;
+        statusBar.innerHTML = `Add Your ${current}${getOrdinal(current)} Main Area of Pain or Symptom`;
     }
+}
+
+function getOrdinal(n) {
+  let ord = 'th';
+
+  if (n % 10 == 1 && n % 100 != 11)
+  {
+    ord = 'st';
+  }
+  else if (n % 10 == 2 && n % 100 != 12)
+  {
+    ord = 'nd';
+  }
+  else if (n % 10 == 3 && n % 100 != 13)
+  {
+    ord = 'rd';
+  }
+
+  return ord;
 }

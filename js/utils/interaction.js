@@ -7,6 +7,10 @@ const pointer = new THREE.Vector2();
 
 const eventIds = [];
 
+let drawClickTimeout = null;
+let drawSuppressed = false;
+let pointerDown = false;
+
 // Add a cleanup function
 export function cleanupInteraction() {
     // Remove all registered event listeners
@@ -23,25 +27,45 @@ export function enableInteraction(renderer, camera, controls) {
     // Mouse-based interaction
     eventIds.push(eventManager.add(canvas, 'mousedown', (event) => {
         if (!AppState.skinMesh || event.target !== canvas) return;
-        updatePointer(event, canvas);
-        handlePointerDown(camera, controls);
+
+        pointerDown = true;
+        drawSuppressed = true;
+
+        if (drawClickTimeout) clearTimeout(drawClickTimeout);
+
+        drawClickTimeout = setTimeout(() => {
+            drawClickTimeout = null;
+            drawSuppressed = false;
+
+            updatePointer(event, canvas);
+            handlePointerDown(camera, controls);
+        }, 250)
+
     }));
 
     eventIds.push(eventManager.add(window, 'mouseup', () => {
         if (AppState.isDrawing) {
             AppState.isDrawing = false;
             controls.enabled = true;
+            pointerDown = false;
         }
     }));
     
     eventIds.push(eventManager.add(window, 'mousemove', (event) => {
         if (!AppState.isDrawing || !AppState.skinMesh || event.target !== canvas) return;
+        if (!pointerDown || drawSuppressed) return;
         updatePointer(event, canvas);
         drawAtPointer(camera, pointer, AppState.isErasing);
     }));
 
     eventIds.push(eventManager.add(canvas, 'dblclick', (event) => {
         if (!AppState.model) return;
+        if (drawClickTimeout) {
+            clearTimeout(drawClickTimeout);
+            drawClickTimeout = null;
+        }
+        drawSuppressed = false;
+        pointerDown = false;
         handleDoubleTap(event, canvas, camera, controls);
     }));
 

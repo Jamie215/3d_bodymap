@@ -21,16 +21,16 @@ export function createDrawingViewElements(controls) {
 
   const statusBar = document.createElement('div');
   statusBar.id = 'drawing-status-bar';
-  statusBar.innerHTML = 'Add ONE of your main areas of pain or symptom';
+  statusBar.innerHTML = 'Add ONE of your main areas of pain or symptom at a time';
 
   const drawingFooter = document.createElement('div');
   drawingFooter.id = 'footer-drawing';
   drawingFooter.classList.add('footer');
 
   const continueButton = document.createElement('button');
-  continueButton.textContent = 'Continue';
+  continueButton.textContent = 'To Area Questionnaire';
   continueButton.classList.add('button', 'button-primary');
-  continueButton.style.marginRight = '8%';
+  continueButton.style.marginRight = '5%';
   drawingFooter.appendChild(continueButton);
 
   drawingMainRow.appendChild(drawingControlsPanel);
