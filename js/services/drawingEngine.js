@@ -245,6 +245,12 @@ export function addNewDrawingInstance() {
         initialized: false // boolean for whether or not the drawingView has come from surveyView
     };
 
+    // Change the 10th colour from the colourPalette
+    console.log(AppState.drawingInstances.length % colourPalette.length);
+    if (AppState.drawingInstances.length % colourPalette.length === 9) {
+        newInstance.colour = '#333399';
+    }
+
     // Overlay persistent base drawing
     if (AppState.baseTextureCanvas) {
         const snapshot = document.createElement('canvas');
@@ -307,10 +313,13 @@ export function updateCurrentDrawing() {
         Object.keys(pixelMap).filter(bone => pixelMap[bone].size > 0)
     );
 
+    // Update the drawing view instance specific text
     const statusBar = document.getElementById('drawing-status-bar');
+    const continueButton = document.getElementById('continue-drawing');
     if (statusBar) {
         const current = AppState.currentDrawingIndex + 1;
-        statusBar.innerHTML = `Add Your ${current}${getOrdinal(current)} Main Area of Pain or Symptom`;
+        statusBar.innerHTML = `Add Your ${current}${getOrdinal(current)} Area of Pain or Symptom`;
+        continueButton.innerHTML = `Continue to ${current}${getOrdinal(current)} Area Questionnaire`;
     }
 }
 
