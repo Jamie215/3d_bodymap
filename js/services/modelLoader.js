@@ -117,129 +117,109 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
     // Set this as the current request
     currentLoadingRequest = thisRequest;
 
-    // Clean up previous model
-    if (AppState.model) {
-        scene.remove(AppState.model);
-        cleanupModel(AppState.model);
-
-        if (AppState.skinMesh?.userData?.textureId) {
-            texturePool.releaseTexture(AppState.skinMesh.userData.textureId);
-        }
-
-        AppState.model = null;
-        AppState.skinMesh = null;
-    }
-
     // Only show loading spinner if not cancelled
     if (!thisRequest.cancelled) {
         showLoadingSpinner();
     }
 
-    loader.load(path, 
-        // Success callback
-        (gltf) => {
-            // If this request was cancelled, don't proceed
-            if (thisRequest.cancelled) {
-                return;
-            }
-            
-            hideLoadingSpinner();
+    return new Promise((resolve, reject) => {
+        loader.load(
+            path,
+            (gltf) => {
+                if (thisRequest.cancelled) return;
+                hideLoadingSpinner();
 
-            const model = gltf.scene;
-            const bbox = new THREE.Box3().setFromObject(model);
-            const height = bbox.max.y - bbox.min.y;
+                // Clean up previous model
+                if (AppState.model) {
+                    scene.remove(AppState.model);
+                    cleanupModel(AppState.model);
 
-            model.position.y = 1.0 - height / 2;
-            scene.add(model);
+                    if (AppState.skinMesh?.userData?.textureId) {
+                        texturePool.releaseTexture(AppState.skinMesh.userData.textureId);
+                    }
 
-            let skinMesh = null;
-
-            model.traverse((child) => {
-                if (!child.isMesh) return;
-
-                if (child.name === 'Hair') {
-                    child.material = child.material.clone();
-                    child.material.transparent = true;
-                    child.material.opacity = 0.4;
-                    child.material.needsUpdate = true;
+                    AppState.model = null;
+                    AppState.skinMesh = null;
                 }
 
-                if (child.name === 'Human') {
-                    skinMesh = child;
+                // Add new model
+                const model = gltf.scene;
+                const bbox = new THREE.Box3().setFromObject(model);
+                const height = bbox.max.y - bbox.min.y;
 
-                    const textureId = `model-${name}-skin`;
-                    const { canvas, context, threeTexture } = texturePool.getTexture(textureId);
-                    
-                    child.material = child.material.clone();
-                    child.material.map = threeTexture;
-                    child.material.transparent = true;
-                    child.material.opacity = 0.75;
-                    child.material.needsUpdate = true;
+                model.position.y = 1.0 - height / 2;
+                scene.add(model);
 
-                    child.userData = { 
-                        canvas, 
-                        context, 
-                        texture: threeTexture, 
-                        textureId 
-                    };
+                let skinMesh = null;
 
-                    AppState.skinMesh = skinMesh;
-                    AppState.boneVertexMap = buildBoneVertexMap(skinMesh);
-                }
+                model.traverse((child) => {
+                    if (!child.isMesh) return;
 
-                if (['Top', 'Shorts'].includes(child.name)) {
-                    child.material = child.material.clone();
-                    child.material.transparent = true;
-                    child.material.opacity = 0.6;
-                    child.material.needsUpdate = true;
-                }
-            });
+                    if (child.name === 'Hair') {
+                        child.material = child.material.clone();
+                        child.material.transparent = true;
+                        child.material.opacity = 0.4;
+                        child.material.needsUpdate = true;
+                    }
 
-            controls.target.set(model.position.x, model.position.y + height / 2, model.position.z);
-            controls.update();
+                    if (child.name === 'Human') {
+                        skinMesh = child;
 
-            AppState.model = model;
-            AppState.currentModelName = name;
+                        const textureId = `model-${name}-skin`;
+                        const { canvas, context, threeTexture } = texturePool.getTexture(textureId);
+                        
+                        child.material = child.material.clone();
+                        child.material.map = threeTexture;
+                        child.material.transparent = true;
+                        child.material.opacity = 0.75;
+                        child.material.needsUpdate = true;
 
-            const { canvas: baseCanvas, context: baseCtx, threeTexture: baseTexture } = texturePool.getTexture(`base-texture-${name}`);
-            baseCtx.fillStyle = '#ffffff';
-            baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
+                        child.userData = { 
+                            canvas, 
+                            context, 
+                            texture: threeTexture, 
+                            textureId 
+                        };
 
-            AppState.baseTextureCanvas = baseCanvas;
-            AppState.baseTextureContext = baseCtx;
-            AppState.baseTextureTexture = baseTexture;
+                        AppState.skinMesh = skinMesh;
+                        AppState.boneVertexMap = buildBoneVertexMap(skinMesh);
+                    }
 
-            console.log(`Loaded model: ${name}`);
-            
-            // Only call onLoaded if this request wasn't cancelled
-            if (!thisRequest.cancelled) {
-                onLoaded();
+                    if (['Top', 'Shorts'].includes(child.name)) {
+                        child.material = child.material.clone();
+                        child.material.transparent = true;
+                        child.material.opacity = 0.6;
+                        child.material.needsUpdate = true;
+                    }
+                });
+
+                controls.target.set(model.position.x, model.position.y + height / 2, model.position.z);
+                controls.update();
+
+                AppState.model = model;
+                AppState.currentModelName = name;
+
+                const { canvas: baseCanvas, context: baseCtx, threeTexture: baseTexture } = texturePool.getTexture(`base-texture-${name}`);
+                baseCtx.fillStyle = '#ffffff';
+                baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
+
+                AppState.baseTextureCanvas = baseCanvas;
+                AppState.baseTextureContext = baseCtx;
+                AppState.baseTextureTexture = baseTexture;
+
+                console.log(`Loaded model: ${name}`);
+                
+                resolve(skinMesh);
+            },
+            undefined,
+            (err) => {
+                if (thisRequest.cancelled) return;
+                hideLoadingSpinner();
+                console.error("Model loading error: ", err);
+                reject(err);
             }
-        },
-         // Progress callback
-        (xhr) => {
-            if (thisRequest.cancelled) return;            
-            // if (xhr.lengthComputable) {
-            //     const percentComplete = xhr.loaded / xhr.total * 100;
-            //     console.log(`${path}: ${Math.round(percentComplete)}% loaded`);
-            // }
-        },
-        // Error callback
-        (err) => {
-            // If this request was cancelled, don't show the error
-            if (thisRequest.cancelled) {
-                return;
-            }
-            
-            hideLoadingSpinner();
-            console.error("Model loading error:", err);
-        }
-    );
-    
-    // Return a function that can be used to cancel this specific load request
-    return () => {
-        thisRequest.cancelled = true;
-    };
+        );
+    });
 }
 
 function showLoadingSpinner() {

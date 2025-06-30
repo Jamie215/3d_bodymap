@@ -29,7 +29,7 @@ export function createDrawingViewElements(controls) {
 
   const continueButton = document.createElement('button');
   continueButton.id = 'continue-drawing';
-  continueButton.textContent = 'Continue to Area Questionnaire';
+  continueButton.textContent = 'Go to Area Questions';
   continueButton.classList.add('button', 'button-primary');
   continueButton.style.marginRight = '5%';
   drawingFooter.appendChild(continueButton);

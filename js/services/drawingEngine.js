@@ -319,7 +319,7 @@ export function updateCurrentDrawing() {
     if (statusBar) {
         const current = AppState.currentDrawingIndex + 1;
         statusBar.innerHTML = `Add Your ${current}${getOrdinal(current)} Area of Pain or Symptom`;
-        continueButton.innerHTML = `Continue to ${current}${getOrdinal(current)} Area Questionnaire`;
+        continueButton.innerHTML = `Go to ${current}${getOrdinal(current)} Area Questions`;
     }
 }
 

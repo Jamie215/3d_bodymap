@@ -15,47 +15,30 @@ export function initApp({ canvasPanel, canvasWrapper, scene, camera, renderer, c
   const { summary, selection, drawing, survey } = views;
   const { modalContinueButton, modalReturnButton } = getModalElements("continue");
 
+  const handleModelSelection = async(model) => {
+    summary.addNewInstanceButton.disabled   = true;
+    selection.addNewInstanceButton.disabled = true;
+
+    await loadModel(model.file, model.name, scene, controls);
+    resizeRenderer(camera, renderer, canvasPanel);
+    renderer.render(scene, camera);
+    const { globalUVMap, globalPixelBoneMap, faceBoneMap } = buildGlobalUVMap(
+        AppState.skinMesh.geometry,
+        texturePool.width,
+        texturePool.height
+    );
+
+    AppState.globalUVMap = globalUVMap;
+    AppState.globalPixelBoneMap = globalPixelBoneMap;
+    AppState.faceBoneMap = faceBoneMap;
+
+    summary.addNewInstanceButton.disabled = false;
+    selection.addNewInstanceButton.disabled = false;
+  };
+
+  registerModelSelectionHandler(handleModelSelection);
   const initialModel = { name: 'Type 1', file: './assets/female_young_avgheight2.glb' };
-
-  registerModelSelectionHandler((model) => {
-    loadModel(model.file, model.name, scene, controls, () => {
-      const waitUntilSkinMeshReady = setInterval(() => {
-        if (AppState.skinMesh) {
-          clearInterval(waitUntilSkinMeshReady);
-          resizeRenderer(camera, renderer, canvasPanel);
-          renderer.render(scene, camera);
-          const { globalUVMap, globalPixelBoneMap, faceBoneMap } = buildGlobalUVMap(
-              AppState.skinMesh.geometry,
-              texturePool.width,
-              texturePool.height
-          );
-
-          AppState.globalUVMap = globalUVMap;
-          AppState.globalPixelBoneMap = globalPixelBoneMap;
-          AppState.faceBoneMap = faceBoneMap;
-        }
-      }, 50);
-    });
-  });
-
-  loadModel(initialModel.file, initialModel.name, scene, controls, () => {
-    const waitUntilSkinMeshReady = setInterval(() => {
-      if (AppState.skinMesh) {
-        clearInterval(waitUntilSkinMeshReady);
-        resizeRenderer(camera, renderer, canvasPanel);
-        renderer.render(scene, camera);
-        const { globalUVMap, globalPixelBoneMap, faceBoneMap } = buildGlobalUVMap(
-            AppState.skinMesh.geometry,
-            texturePool.width,
-            texturePool.height
-        );
-
-        AppState.globalUVMap = globalUVMap;
-        AppState.globalPixelBoneMap = globalPixelBoneMap;
-        AppState.faceBoneMap = faceBoneMap;
-      }
-    }, 50);
-  });
+  handleModelSelection(initialModel);
 
   function animate() {
     requestAnimationFrame(animate);

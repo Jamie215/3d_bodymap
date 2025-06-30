@@ -44,10 +44,11 @@ export function enableInteraction(renderer, camera, controls) {
     }));
 
     eventIds.push(eventManager.add(window, 'mouseup', () => {
+        pointerDown = false;
+
         if (AppState.isDrawing) {
             AppState.isDrawing = false;
             controls.enabled = true;
-            pointerDown = false;
         }
     }));
     
