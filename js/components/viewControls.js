@@ -20,11 +20,11 @@ export function createViewControls(controls, viewControlsPanel) {
     const scrollInstruction = document.createElement('div');
     scrollInstruction.classList.add('instruction');
     scrollInstruction.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+        <span><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
             <path fill-rule="evenodd" d="M3.646 9.146a.5.5 0 0 1 .708 0L8 12.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708m0-2.292a.5.5 0 0 0 .708 0L8 3.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708"/>
-        </svg>
-        <span>Zoom in or out: Use your mouse scroll wheel or pinch with two fingers on a touchpad</span>
+        </svg>Zoom in or out by:<br><ul><li>Scroll mouse wheel</li><li>Pinch with two fingers on a touchpad</li><li>Click on a specific body part multiple times</li></ul></span>
     `;
+
 
     // Divider 
     const divider = document.createElement('hr');
@@ -92,7 +92,7 @@ export function createViewControls(controls, viewControlsPanel) {
 
     // Assemble panel
     viewToolsContainer.appendChild(title);
-    viewToolsContainer.appendChild(doubleClickInstruction);
+    // viewToolsContainer.appendChild(doubleClickInstruction);
     viewToolsContainer.appendChild(scrollInstruction);
     viewToolsContainer.appendChild(divider);
     viewToolsContainer.appendChild(directionHeader);

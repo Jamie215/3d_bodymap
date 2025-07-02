@@ -44,6 +44,14 @@ appContainer.appendChild(survey.root);
 initDrawContinueModal(appContainer);
 initDrawResetModal(appContainer);
 
+window.addEventListener('resize', () => {
+  const { width, height } = canvasPanel.getBoundingClientRect();
+  renderer.setSize(width, height);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+});
+
 // Start application logic
 initApp({
   canvasPanel,

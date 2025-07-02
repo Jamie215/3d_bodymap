@@ -12,7 +12,7 @@ export function createDrawingControls(drawingControlsPanel) {
 
     // Draw Button
     const drawButton = document.createElement('button');
-    drawButton.classList.add('button', 'button-primary');
+    drawButton.classList.add('button', 'button-primary', 'button-draw-control');
     drawButton.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"></path>
@@ -22,7 +22,7 @@ export function createDrawingControls(drawingControlsPanel) {
 
     // Erase Button
     const eraseButton = document.createElement('button');
-    eraseButton.classList.add('button', 'button-secondary');
+    eraseButton.classList.add('button', 'button-secondary', 'button-draw-control');
     eraseButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
@@ -34,7 +34,7 @@ export function createDrawingControls(drawingControlsPanel) {
 
     // Reset Drawing Button
     const resetDrawingButton = document.createElement('button');
-    resetDrawingButton.classList.add('button', 'button-secondary');
+    resetDrawingButton.classList.add('button', 'button-secondary', 'button-draw-control');
     resetDrawingButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M1 4v6h6"></path>

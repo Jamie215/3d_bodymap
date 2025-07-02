@@ -8,6 +8,15 @@
     --border-radius: 8px;
     --padding: 16px;
     --min-font-size: 22px;
+    --title-font-size: 32px;
+    --h2-font-size: 1.5rem;
+    --h2-line-height: 1.2;
+}
+
+h2 {
+  font-size: var(--h2-font-size);
+  line-height: var(--h2-line-height);
+  text-align: center;
 }
 
 body, html {
@@ -16,7 +25,7 @@ body, html {
     font-family: 'Inter', sans-serif;
     background:  #f0f0f0;
     color: #333;
-    overflow: hidden;
+    overflow: auto;
 }
 
 canvas {
@@ -25,6 +34,7 @@ canvas {
 
 #app-container {
     display: flex;
+    flex-wrap: wrap;
     width: 100vw;
     height: 100vh;
     box-sizing: border-box;
@@ -38,7 +48,7 @@ canvas {
 }
 
 .button {
-    min-width: 200px;
+    /* min-width: 200px; */
     padding: 12px 20px 12px 20px;
     display: flex;
     flex-direction: column;
@@ -47,7 +57,7 @@ canvas {
     border: none;
     border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: 22px;
+    font-size: var(--min-font-size);
     font-weight: 500;
     transition: var(--background-color) 0.2s;
 }
@@ -93,6 +103,10 @@ canvas {
     margin-bottom: 8px;
 }
 
+.button-draw-control {
+    width: clamp(120px, 10vw, 200px) !important;
+}
+
 .return-button {
     margin: 0;
     padding: 0;
@@ -112,6 +126,7 @@ canvas {
   gap: 1rem;
   align-items: center;
   justify-content: flex-end;
+  z-index: 9999;
 }
 
 /* Model Summary View Related */
@@ -134,7 +149,7 @@ canvas {
 }
 
 #change-model-button {
-    max-width: 25%;
+    /* max-width: 25%; */
     margin: auto;
     font-weight: bold;
     background: transparent;
@@ -162,7 +177,7 @@ canvas {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    width: 50vw;
+    width: clamp(300px, 50vw, 900px);
     gap: 3rem;
 }
 
@@ -195,6 +210,14 @@ canvas {
     gap: 0.5rem;
 }
 
+.model-selection-button img {
+    width: clamp(100px, 20vw, 300px);
+    height: clamp(150px, 25vw, 350px);
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
+
 .model-selection-button:hover {
     background-color: #f5f5f5;
 }
@@ -212,18 +235,17 @@ canvas {
 
 #drawing-main-row {
     display: flex;
-    flex: 1;
+    overflow-x: visible;
 }
 
 #drawing-canvas-panel {
     display: flex;
-    flex: 1;
+    flex: 1 1 clamp(180px, 30px, 300px);
     height: 100%;
 }
 
 #drawing-control-panel {
-    width: 20vw;
-    flex-shrink: 0;
+    flex: 1 1 clamp(50px, 20vw, 200px);
     padding: var(--padding);
     box-sizing: border-box;
     background: transparent;
@@ -232,8 +254,8 @@ canvas {
 }
 
 #view-control-panel {
-    width: 30vw;
-    flex-shrink: 0;
+    flex: 1 1 clamp(200px, 30vw, 300px);
+    flex-wrap: 1;
     padding: var(--padding);
     box-sizing: border-box;
     background: transparent;
@@ -243,7 +265,9 @@ canvas {
 }
 
 #canvas-panel {
-    width: 50vw;
+    width: auto;
+    padding: 1rem;
+    flex: 2 1 auto;
     flex-shrink: 0;
     box-sizing: border-box;
     display: flex;
@@ -253,8 +277,9 @@ canvas {
 }
 
 #canvas-wrapper {
-    width: 100%;
+    width: auto;
     height: 100%;
+    padding: 0;
     display: flex;
     flex-direction: column;
     align-items: center;;
@@ -315,8 +340,8 @@ h3.control-title {
 .instruction {
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin: 10px;
+    justify-content: space-around;
+    /* margin: 10px; */
     font-size: var(--min-font-size);
     color: #555;
 }
@@ -327,6 +352,7 @@ h3.control-title {
 }
 
 .brush-size-display {
+    height:1.5rem;
     font-weight: normal;
     font-size: var(--min-font-size);
     color: var(--primary-color);
@@ -422,7 +448,7 @@ input[type="range"]::-webkit-slider-thumb {
 .orientation-button-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+    gap: clamp(0.1rem, 0.2vw, 1rem);
     color: #555;
 }
 
@@ -489,7 +515,7 @@ input[type="range"]::-webkit-slider-thumb {
   background: transparent;
   color: black;
   font-weight: bold;
-  font-size: 32px;
+  font-size: var(--title-font-size);
   text-align: center;
   padding: 20px;
 }
@@ -580,7 +606,7 @@ input[type="range"]::-webkit-slider-thumb {
 #survey-panel {
     display: flex;
     flex-direction: column;
-    width: 65vw;
+    width: clamp(500px, 65vw, 1100px);
     padding: var(--padding);
     margin: auto;
     box-sizing: border-box;
@@ -590,7 +616,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 #survey-panel .return-button {
-    max-width: 25%;
+    max-width: 30%;
 }
 
 #survey-inner {
@@ -638,4 +664,46 @@ input[type="range"]::-webkit-slider-thumb {
 .sd-navigation__prev-btn:hover {
   background-color: #e0f4ff !important;
   color: #269DE0 !important;
+}
+
+/* Tablet landscape and below */
+@media (max-width: 1024px) {
+  :root {
+    --min-font-size: 18px;
+    --title-font-size: 24px;
+    --h2-font-size: 1.1rem;
+    --h2-line-height: 1;
+  }
+  #drawing-control-panel {
+    order: 1;
+    width: 100%;
+    padding: 1rem;
+    gap: 0.25rem;
+  }
+  #drawing-canvas-panel {
+    order: 2;
+    width: 100%;
+  }
+  #view-control-panel {
+    order: 3;
+    width: 100%;
+    padding: 1.1rem;
+    gap: 0.25rem;
+  }
+}
+
+/* Tablet portrait and phones */
+@media (max-width: 768px) {
+  #footer-drawing {
+    flex-direction: column;      /* buttons stack */
+    gap: 0.5rem;
+  }
+  .button {
+    font-size: 18px;             /* slightly smaller */
+    min-width: auto;             /* let them shrink */
+  }
+  #drawing-status-bar {
+    font-size: 24px;
+    padding: 0.5rem;
+  }
 }

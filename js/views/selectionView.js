@@ -42,9 +42,6 @@ export function createSelectionView(onModelSelected) {
     const img = document.createElement('img');
     img.src = `./assets/preview_svg/${model.name}.svg`;
     img.alt = model.name;
-    img.style.width = '300px';
-    img.style.height = '350px';
-    img.style.objectFit = 'contain';
 
     const label = document.createElement('div');
     label.classList.add('label');

@@ -71,14 +71,84 @@ export function enableInteraction(renderer, camera, controls) {
     }));
 
     // Touch-based Interaction
+    let lastTouchTime = 0;
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+    let drawClickTimeout = null;
+    let pinchActive = false;
+    let initPinchDistance= 0;
+
+    const doubleTapThreshold = 250;
+    const doubleTapDistance = 30;
+
+    function resetDrawSuppression() {
+        drawSuppressed = false;
+    }
+
+    function getDistance(a, b) {
+        const dx = a.clientX - b.clientX;
+        const dy = a.clientY - b.clientY;
+        return Math.hypot(dx, dy);
+    }
+
     eventIds.push(eventManager.add(canvas, 'touchstart', (event) => {
         event.preventDefault();
-        if (!AppState.model) return;
-        updatePointer(event, canvas);
-        handlePointerDown(camera, controls);
-    }, {passive: false}));
 
-    eventIds.push(eventManager.add(canvas, 'touchend', () => {
+        if (event.touches.length > 1) {
+            pinchActive = true;
+            initPinchDistance = getDistance(event.touches[0], event.touches[1]);
+            return;
+        }
+        if (!AppState.skinMesh) return;
+
+        const now = Date.now();
+        const touch = event.touches[0];
+        const dx = Math.abs(touch.clientX - lastTouchX);
+        const dy = Math.abs(touch.clientY - lastTouchY);
+        const dt = now - lastTouchTime;
+
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+        lastTouchTime = now;
+
+        if (drawClickTimeout) {
+            clearTimeout(drawClickTimeout);
+            drawClickTimeout = null;
+        }
+
+        const isDoubleTap = (dt < doubleTapThreshold) && (dx < doubleTapDistance) && (dy < doubleTapDistance);
+
+        if (isDoubleTap) {
+            drawSuppressed = true;
+            pointerDown = false;
+
+            // Suppress for a brief moment to block accidental drawing
+            handleDoubleTap(event, canvas, camera, controls);
+            setTimeout(resetDrawSuppression, doubleTapThreshold);
+            return;
+        }
+
+        pointerDown = true;
+        drawSuppressed = true;
+
+        drawClickTimeout = setTimeout(() => {
+            drawSuppressed = false;
+            drawClickTimeout = null;
+            updatePointer(event, canvas);
+            handlePointerDown(camera, controls);
+        }, doubleTapThreshold);
+    }));
+
+    eventIds.push(eventManager.add(canvas, 'touchend', (event) => {
+        event.preventDefault();
+
+        // Exit pinch mode when fingers lift
+        if (pinchActive && event.touches.length < 2) {
+            pinchActive       = false;
+            controls.enableZoom = false;
+        }
+
+        pointerDown = false;
         if (AppState.isDrawing) {
             AppState.isDrawing = false;
             controls.enabled = true;
@@ -87,21 +157,23 @@ export function enableInteraction(renderer, camera, controls) {
     
     eventIds.push(eventManager.add(canvas, 'touchmove', (event) => {
         event.preventDefault();
+
+        if (pinchActive && event.touches.length > 1) {
+            const newDist = getDistance(event.touches[0], event.touches[1]);
+            const scale   = newDist / initPinchDistance;
+
+            // e.g. using Three.js OrbitControls:
+            controls.enableZoom = true;
+            controls.zoomSpeed  = scale;
+            controls.update();
+
+            return;
+        }
+
         if(!AppState.isDrawing || !AppState.skinMesh) return;
         updatePointer(event, canvas);
         drawAtPointer(camera, pointer, AppState.isErasing);
     }, {passive: false}));
-
-    let lastTapTime = 0;
-
-    eventIds.push(eventManager.add(canvas, 'touchend', (event) => {
-        const currentTime = new Date().getTime();
-        const tapLength = currentTime - lastTapTime;
-        if (tapLength < 300 && tapLength > 0) {
-            handleDoubleTap(event, canvas, camera, controls);
-        }
-        lastTapTime = currentTime;
-    }));
 }
 
 export function setupCursorManagement() {
