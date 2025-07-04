@@ -28,6 +28,7 @@ export function createScene(canvasContainer) {
     controls.maxDistance = 10;
     controls.target.set(0, 1.5, 0);
     controls.enableRotate = false;
+    controls.enablePan = false;
     controls.mouseButtons = {
         LEFT: null,
         MIDDLE: THREE.MOUSE.DOLLY,

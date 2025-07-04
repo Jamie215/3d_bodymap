@@ -23,7 +23,7 @@ export function enableInteraction(renderer, camera, controls) {
 
     // Prevent default touch actions on canvas
     canvas.style.touchAction = 'none';
-    
+
     // Mouse-based interaction
     eventIds.push(eventManager.add(canvas, 'mousedown', (event) => {
         if (!AppState.skinMesh || event.target !== canvas) return;
@@ -51,7 +51,7 @@ export function enableInteraction(renderer, camera, controls) {
             controls.enabled = true;
         }
     }));
-    
+
     eventIds.push(eventManager.add(window, 'mousemove', (event) => {
         if (!AppState.isDrawing || !AppState.skinMesh || event.target !== canvas) return;
         if (!pointerDown || drawSuppressed) return;
@@ -92,13 +92,14 @@ export function enableInteraction(renderer, camera, controls) {
     }
 
     eventIds.push(eventManager.add(canvas, 'touchstart', (event) => {
-        event.preventDefault();
 
         if (event.touches.length > 1) {
             pinchActive = true;
             initPinchDistance = getDistance(event.touches[0], event.touches[1]);
             return;
         }
+        event.preventDefault();
+
         if (!AppState.skinMesh) return;
 
         const now = Date.now();
@@ -137,15 +138,14 @@ export function enableInteraction(renderer, camera, controls) {
             updatePointer(event, canvas);
             handlePointerDown(camera, controls);
         }, doubleTapThreshold);
-    }));
+    }, {passive: false}));
 
     eventIds.push(eventManager.add(canvas, 'touchend', (event) => {
         event.preventDefault();
 
         // Exit pinch mode when fingers lift
         if (pinchActive && event.touches.length < 2) {
-            pinchActive       = false;
-            controls.enableZoom = false;
+            pinchActive = false;
         }
 
         pointerDown = false;
@@ -154,17 +154,16 @@ export function enableInteraction(renderer, camera, controls) {
             controls.enabled = true;
         }
     }));
-    
+
     eventIds.push(eventManager.add(canvas, 'touchmove', (event) => {
         event.preventDefault();
 
         if (pinchActive && event.touches.length > 1) {
             const newDist = getDistance(event.touches[0], event.touches[1]);
-            const scale   = newDist / initPinchDistance;
+            const scale = newDist / initPinchDistance;
 
-            // e.g. using Three.js OrbitControls:
             controls.enableZoom = true;
-            controls.zoomSpeed  = scale;
+            controls.zoomSpeed = scale;
             controls.update();
 
             return;
@@ -178,9 +177,9 @@ export function enableInteraction(renderer, camera, controls) {
 
 export function setupCursorManagement() {
     const canvasPanel = document.getElementById('canvas-panel');
-    
+
     if (!canvasPanel) return;
-    
+
     // Create container for cursor elements
     const cursorContainer = document.createElement('div');
     cursorContainer.classList.add('cursor-container');
@@ -192,7 +191,7 @@ export function setupCursorManagement() {
     cursorContainer.style.width = '40px';
     cursorContainer.style.height = '40px';
     document.body.appendChild(cursorContainer);
-    
+
     // Create size indicator circle
     const sizeCircle = document.createElement('div');
     sizeCircle.classList.add('cursor-size');
@@ -203,7 +202,7 @@ export function setupCursorManagement() {
     sizeCircle.style.left = '50%';
     sizeCircle.style.transform = 'translate(-50%, -50%)';
     cursorContainer.appendChild(sizeCircle);
-    
+
     // Create tool icon element
     const toolIcon = document.createElement('div');
     toolIcon.classList.add('cursor-icon');
@@ -218,17 +217,17 @@ export function setupCursorManagement() {
     toolIcon.style.alignItems = 'center';
     toolIcon.style.justifyContent = 'center'
     cursorContainer.appendChild(toolIcon);
-    
+
     // Hide default cursor over canvas
     canvasPanel.style.cursor = 'none';
-    
+
     // Create SVG icons as data URLs
     const getDrawIconSvg = (color) => `
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"></path>
         </svg>
     `;
-    
+
     const getEraseIconSvg = (color) => `
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
@@ -243,16 +242,16 @@ export function setupCursorManagement() {
 
     const drawColor = '#0277BD';
     const eraseColor = '#FF5252';
-    
+
     // Update cursor position and appearance
     canvasPanel.addEventListener('mousemove', (e) => {
         // Show cursor container
         cursorContainer.style.display = 'block';
-        
+
         // Update position
         cursorContainer.style.left = `${e.clientX}px`;
         cursorContainer.style.top = `${e.clientY}px`;
-        
+
         // Update size based on brush radius
         const size = AppState.brushRadius * 2;
         sizeCircle.style.width = `${size}px`;
@@ -260,12 +259,12 @@ export function setupCursorManagement() {
 
         const iconOffset = { x: 0, y: -15 }; // Customize these values to your preference
         toolIcon.style.transform = `translate(${iconOffset.x}px, ${iconOffset.y}px)`;
-        
+
         // Update color and icon based on mode
         if (AppState.isErasing) {
             sizeCircle.style.border = `2px solid ${eraseColor}`;
             sizeCircle.style.backgroundColor = `rgba(255, 82, 82, 0.1)`;
-            
+
             // Only update the icon if it's changed to avoid DOM manipulation on every move
             if (!toolIcon.dataset.currentTool || toolIcon.dataset.currentTool !== 'erase') {
             updateToolIcon(getEraseIconSvg(eraseColor));
@@ -274,7 +273,7 @@ export function setupCursorManagement() {
         } else {
             sizeCircle.style.border = `2px solid ${drawColor}`;
             sizeCircle.style.backgroundColor = `rgba(2, 119, 189, 0.1)`;
-            
+
             if (!toolIcon.dataset.currentTool || toolIcon.dataset.currentTool !== 'draw') {
             updateToolIcon(getDrawIconSvg(drawColor));
             toolIcon.dataset.currentTool = 'draw';
@@ -300,7 +299,7 @@ export function setupCursorManagement() {
     // Update cursor when switching tools
     const drawButton = document.querySelector('.button-primary');
     const eraseButton = document.querySelector('.button-secondary');
-    
+
     if (drawButton) {
         drawButton.addEventListener('click', () => {
             updateToolIcon(getDrawIconSvg(drawColor));
@@ -309,7 +308,7 @@ export function setupCursorManagement() {
             sizeCircle.style.backgroundColor = `rgba(2, 119, 189, 0.1)`;
         });
     }
-    
+
     if (eraseButton) {
         eraseButton.addEventListener('click', () => {
             updateToolIcon(getEraseIconSvg(eraseColor));
@@ -324,7 +323,7 @@ export function setupCursorManagement() {
           sizeCircle.style.opacity = '0.8';
         }
     });
-      
+
     window.addEventListener('mouseup', () => {
         sizeCircle.style.opacity = '0.4';
     });
@@ -348,7 +347,7 @@ function updatePointer(event, canvas) {
     // Handle both mouse and touch events
     const clientX = event.touches ? event.touches[0].clientX : event.clientX;
     const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-    
+
     pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 }
@@ -372,7 +371,7 @@ function handleDoubleTap(event, canvas, camera, controls) {
     const rect = canvas.getBoundingClientRect();
 
     let clientX, clientY;
-    
+
     // Check if it's a touch event with changedTouches
     if (event.changedTouches && event.changedTouches.length > 0) {
         // For touchend, use changedTouches
