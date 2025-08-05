@@ -7,7 +7,7 @@ const pointer = new THREE.Vector2();
 
 const eventIds = [];
 
-let drawSuppressed = false;
+// Drawing state
 let pointerDown = false;
 
 // Cursor management
@@ -25,7 +25,6 @@ const cursorHandlers = {
     mouseup: null
 };
 
-// Add a cleanup function
 export function cleanupInteraction() {
     // Remove all registered event listeners
     eventIds.forEach(id => eventManager.remove(id));
@@ -38,155 +37,35 @@ export function enableInteraction(renderer, camera, controls) {
     // Prevent default touch actions on canvas
     canvas.style.touchAction = 'none';
 
-    // Mouse-based interaction
-    eventIds.push(eventManager.add(canvas, 'mousedown', (event) => {
+    // Pointer down: begin drawing
+    eventIds.push(eventManager.add(canvas, 'pointerdown', (event) => {
         if (!AppState.skinMesh || event.target !== canvas) return;
 
         pointerDown = true;
-        drawSuppressed = true;
 
-        if (drawClickTimeout) clearTimeout(drawClickTimeout);
-
-        drawClickTimeout = setTimeout(() => {
-            drawClickTimeout = null;
-            drawSuppressed = false;
-
-            updatePointer(event, canvas);
-            handlePointerDown(camera, controls);
-        }, 250)
-
-    }));
-
-    eventIds.push(eventManager.add(window, 'mouseup', () => {
-        pointerDown = false;
-
-        if (AppState.isDrawing) {
-            AppState.isDrawing = false;
-            controls.enabled = true;
-        }
-    }));
-
-    eventIds.push(eventManager.add(window, 'mousemove', (event) => {
-        if (!AppState.isDrawing || !AppState.skinMesh || event.target !== canvas) return;
-        if (!pointerDown || drawSuppressed) return;
         updatePointer(event, canvas);
+        handlePointerDown(camera, controls);
+    }));
+
+    eventIds.push(eventManager.add(window, 'pointermove', (e) => {
+        if (!AppState.isDrawing || !AppState.skinMesh) return;
+        if (!pointerDown) return;
+        if (e.pointerType === 'mouse' && e.buttons === 0) return;
+
+        updatePointer(e, canvas);
         drawAtPointer(camera, pointer, AppState.isErasing);
     }));
 
-    eventIds.push(eventManager.add(canvas, 'dblclick', (event) => {
-        if (!AppState.model) return;
-        if (drawClickTimeout) {
-            clearTimeout(drawClickTimeout);
-            drawClickTimeout = null;
-        }
-        drawSuppressed = false;
-        pointerDown = false;
-        handleDoubleTap(event, canvas, camera, controls);
-    }));
-
-    // Touch-based Interaction
-    let lastTouchTime = 0;
-    let lastTouchX = 0;
-    let lastTouchY = 0;
-    let drawClickTimeout = null;
-    let pinchActive = false;
-    let initPinchDistance= 0;
-
-    const doubleTapThreshold = 250;
-    const doubleTapDistance = 30;
-
-    function resetDrawSuppression() {
-        drawSuppressed = false;
-    }
-
-    function getDistance(a, b) {
-        const dx = a.clientX - b.clientX;
-        const dy = a.clientY - b.clientY;
-        return Math.hypot(dx, dy);
-    }
-
-    eventIds.push(eventManager.add(canvas, 'touchstart', (event) => {
-
-        if (event.touches.length > 1) {
-            pinchActive = true;
-            initPinchDistance = getDistance(event.touches[0], event.touches[1]);
-            return;
-        }
-        event.preventDefault();
-
-        if (!AppState.skinMesh) return;
-
-        const now = Date.now();
-        const touch = event.touches[0];
-        const dx = Math.abs(touch.clientX - lastTouchX);
-        const dy = Math.abs(touch.clientY - lastTouchY);
-        const dt = now - lastTouchTime;
-
-        lastTouchX = touch.clientX;
-        lastTouchY = touch.clientY;
-        lastTouchTime = now;
-
-        if (drawClickTimeout) {
-            clearTimeout(drawClickTimeout);
-            drawClickTimeout = null;
-        }
-
-        const isDoubleTap = (dt < doubleTapThreshold) && (dx < doubleTapDistance) && (dy < doubleTapDistance);
-
-        if (isDoubleTap) {
-            drawSuppressed = true;
-            pointerDown = false;
-
-            // Suppress for a brief moment to block accidental drawing
-            handleDoubleTap(event, canvas, camera, controls);
-            setTimeout(resetDrawSuppression, doubleTapThreshold);
-            return;
-        }
-
-        pointerDown = true;
-        drawSuppressed = true;
-
-        drawClickTimeout = setTimeout(() => {
-            drawSuppressed = false;
-            drawClickTimeout = null;
-            updatePointer(event, canvas);
-            handlePointerDown(camera, controls);
-        }, doubleTapThreshold);
-    }, {passive: false}));
-
-    eventIds.push(eventManager.add(canvas, 'touchend', (event) => {
-        event.preventDefault();
-
-        // Exit pinch mode when fingers lift
-        if (pinchActive && event.touches.length < 2) {
-            pinchActive = false;
-        }
-
+    const endDrawing = () => {
         pointerDown = false;
         if (AppState.isDrawing) {
             AppState.isDrawing = false;
             controls.enabled = true;
         }
-    }));
+    };
 
-    eventIds.push(eventManager.add(canvas, 'touchmove', (event) => {
-        event.preventDefault();
-
-        if (pinchActive && event.touches.length > 1) {
-            const newDist = getDistance(event.touches[0], event.touches[1]);
-            const scale = newDist / initPinchDistance;
-
-            controls.enableZoom = true;
-            controls.zoomSpeed = scale;
-            controls.update();
-
-            return;
-        }
-
-        if(!AppState.isDrawing || !AppState.skinMesh) return;
-        updatePointer(event, canvas);
-        drawAtPointer(camera, pointer, AppState.isErasing);
-    }, {passive: false}));
+    eventIds.push(eventManager.add(window, 'pointerup', endDrawing));
+    eventIds.push(eventManager.add(window, 'pointercancel', endDrawing));
 }
 
 export function setupCursorManagement() {
