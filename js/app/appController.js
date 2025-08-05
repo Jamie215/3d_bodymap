@@ -10,7 +10,7 @@ import SurveyKO from "https://cdn.skypack.dev/survey-knockout";
 import AppState from '../app/state.js';
 import eventManager from './eventManager.js';
 
-export function initApp({ canvasPanel, scene, camera, renderer, controls, views, registerModelSelectionHandler, setStage }) {
+export function initApp({ scene, camera, renderer, controls, views, registerModelSelectionHandler, setStage }) {
   const { summary, selection, drawing, survey } = views;
   const { modalContinueButton, modalReturnButton } = getModalElements("continue");
 

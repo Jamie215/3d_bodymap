@@ -7,15 +7,13 @@ import { createSelectionView } from '../views/selectionView.js';
 import { createSummaryView } from '../views/summaryView.js';
 import { createSurveyViewElements } from '../views/surveyView.js';
 
-
 // Grab predefined slots from index.html
 const slotLeft = document.querySelector('.slot-left');
 const slotRight = document.querySelector('.slot-right');
-const slotCenter = document.querySelector('.slot-center');
+const slotCanvas = document.querySelector('.slot-canvas');
 const slotFooter = document.querySelector('.slot-footer');
 
-const canvasPanel = slotCenter.querySelector('#canvas-panel');
-
+const canvasPanel = slotCanvas.querySelector('#canvas-panel');
 const { scene, camera, renderer, controls } = createScene(canvasPanel);
 
 // Create views
@@ -42,15 +40,23 @@ const ro = new ResizeObserver(entries => {
 });
 ro.observe(canvasPanel);
 
+(() => {
+  const rect = canvasPanel.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    renderer.setSize(rect.width, rect.height, false);
+    camera.aspect = rect.width / rect.height;
+    camera.updateProjectionMatrix();
+    renderer.render(scene, camera);
+  }
+})();
+
 // Start application logic
 initApp({
-  canvasPanel,
   scene, 
   camera, 
   renderer, 
   controls,
   views: {summary, selection, drawing, survey},
-
   setStage(stage) {
     document.documentElement.setAttribute('data-stage', stage);
 
@@ -71,8 +77,8 @@ initApp({
         slotFooter.appendChild(selection.addNewInstanceButton);
         break;
       case 'drawing':
-        slotLeft.appendChild(drawing.drawingControlPanel);
-        slotRight.appendChild(drawing.drawingCanvasPanel);
+        slotLeft.appendChild(drawing.drawingControlsPanel);
+        slotRight.appendChild(drawing.viewControlsPanel);
         slotFooter.appendChild(drawing.continueButton);
         break;
       case 'survey':
@@ -80,7 +86,7 @@ initApp({
         break;
     }
   },
-  
+
   registerModelSelectionHandler: handler => {
     selectionViewModelHandler = handler;
   }
