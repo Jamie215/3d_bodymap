@@ -7,21 +7,16 @@ import { createSelectionView } from '../views/selectionView.js';
 import { createSummaryView } from '../views/summaryView.js';
 import { createSurveyViewElements } from '../views/surveyView.js';
 
-// Create app container
-const appContainer = document.createElement('div');
-appContainer.id = 'app-container';
-document.body.appendChild(appContainer);
 
-// Build the shared canvas components
-const canvasPanel = document.createElement('div');
-canvasPanel.id = 'canvas-panel';
-const canvasWrapper = document.createElement('div');
-canvasWrapper.id = 'canvas-wrapper';
-canvasWrapper.appendChild(canvasPanel);
-appContainer.appendChild(canvasWrapper);
+// Grab predefined slots from index.html
+const slotLeft = document.querySelector('.slot-left');
+const slotRight = document.querySelector('.slot-right');
+const slotCenter = document.querySelector('.slot-center');
+const slotFooter = document.querySelector('.slot-footer');
 
-// Build the 3D scene
-const { scene, camera, renderer, controls} = createScene(canvasPanel);
+const canvasPanel = slotCenter.querySelector('#canvas-panel');
+
+const { scene, camera, renderer, controls } = createScene(canvasPanel);
 
 // Create views
 let selectionViewModelHandler = null;
@@ -34,34 +29,58 @@ const selection = createSelectionView(model => {
 const drawing = createDrawingViewElements(controls);
 const survey = createSurveyViewElements();
 
-// Attach views into app container
-appContainer.appendChild(summary.root);
-appContainer.appendChild(selection.root);
-appContainer.appendChild(drawing.root);
-appContainer.appendChild(survey.root);
+// Initialize modals
+initDrawContinueModal(document.body);
+initDrawResetModal(document.body);
 
-// Create modal component into DOM
-initDrawContinueModal(appContainer);
-initDrawResetModal(appContainer);
-
-window.addEventListener('resize', () => {
-  const { width, height } = canvasPanel.getBoundingClientRect();
-  renderer.setSize(width, height);
-  camera.aspect = width / height;
+const ro = new ResizeObserver(entries => {
+  const { width, height } = entries[0].contentRect;
+  renderer.setSize(width, height, false);
+  camera.aspect = width / Math.max(1, height);
   camera.updateProjectionMatrix();
   renderer.render(scene, camera);
 });
+ro.observe(canvasPanel);
 
 // Start application logic
 initApp({
   canvasPanel,
-  canvasWrapper,
   scene, 
   camera, 
   renderer, 
   controls,
   views: {summary, selection, drawing, survey},
 
+  setStage(stage) {
+    document.documentElement.setAttribute('data-stage', stage);
+
+    // Clear slots
+    slotLeft.innerHTML = '';
+    slotRight.innerHTML = '';
+    slotFooter.innerHTML = '';
+
+    switch (stage) {
+      case 'summary':
+        slotLeft.innerHTML = '';
+        slotRight.innerHTML = '';
+        slotFooter.appendChild(summary.addNewInstanceButton);
+        slotFooter.appendChild(summary.summaryDoneButton);
+        break;
+      case 'selection':
+        slotLeft.appendChild(selection.modelSelectionPanel);
+        slotFooter.appendChild(selection.addNewInstanceButton);
+        break;
+      case 'drawing':
+        slotLeft.appendChild(drawing.drawingControlPanel);
+        slotRight.appendChild(drawing.drawingCanvasPanel);
+        slotFooter.appendChild(drawing.continueButton);
+        break;
+      case 'survey':
+        slotRight.appendChild(survey.surveyPanel);
+        break;
+    }
+  },
+  
   registerModelSelectionHandler: handler => {
     selectionViewModelHandler = handler;
   }
