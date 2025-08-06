@@ -7,8 +7,10 @@ const pointer = new THREE.Vector2();
 
 const eventIds = [];
 
-// Drawing state
+// State
 let pointerDown = false;
+let pinchActive = false;
+const activePointers = new Map();
 
 // Cursor management
 let cursorContainer = null;
@@ -25,10 +27,13 @@ const cursorHandlers = {
     mouseup: null
 };
 
+// Remove all registered event listeners
 export function cleanupInteraction() {
-    // Remove all registered event listeners
     eventIds.forEach(id => eventManager.remove(id));
-    eventIds.length = 0; // Clear the array
+    eventIds.length = 0;
+    pointerDown = false;
+    pinchActive = false;
+    activePointers.clear();
 }
 
 export function enableInteraction(renderer, camera, controls) {
@@ -39,33 +44,59 @@ export function enableInteraction(renderer, camera, controls) {
 
     // Pointer down: begin drawing
     eventIds.push(eventManager.add(canvas, 'pointerdown', (event) => {
-        if (!AppState.skinMesh || event.target !== canvas) return;
+        // Register pointer
+        activePointers.set(event.pointerId, {x: event.clientX, y: event.clientY })
 
-        pointerDown = true;
+        if (activePointers.size >= 2) {
+            pinchActive = true;
+            
+            AppState.isDrawing = false;
+            pointerDown = false;
+            controls.enabled = true;
+            return;
+        }
+
+        if (!AppState.skinMesh || event.target !== canvas) return;
 
         updatePointer(event, canvas);
         handlePointerDown(camera, controls);
     }));
 
-    eventIds.push(eventManager.add(window, 'pointermove', (e) => {
-        if (!AppState.isDrawing || !AppState.skinMesh) return;
-        if (!pointerDown) return;
-        if (e.pointerType === 'mouse' && e.buttons === 0) return;
+    eventIds.push(eventManager.add(window, 'pointermove', (event) => {
+        if (!AppState.isDrawing || !AppState.skinMesh || !pointerDown) return;
+        if (event.pointerType === 'mouse' && event.buttons === 0) return;
 
-        updatePointer(e, canvas);
+        if (activePointers.has(event.pointerId)) {
+            activePointers.set(event.pointerId, {x: event.clientX, y: event.clientY });
+        }
+
+        if (pinchActive) {
+            controls.enabled = true;
+            return;
+        }
+
+        updatePointer(event, canvas);
         drawAtPointer(camera, pointer, AppState.isErasing);
     }));
 
-    const endDrawing = () => {
-        pointerDown = false;
-        if (AppState.isDrawing) {
+    const endPointer = (event) => {
+        activePointers.delete(event.pointerId);
+
+        if (activePointers.size < 2) {
+            pinchActive = false;
+        }
+
+        if (activePointers.size === 0) {
+            pointerDown = false;
             AppState.isDrawing = false;
             controls.enabled = true;
+        } else {
+
         }
     };
 
-    eventIds.push(eventManager.add(window, 'pointerup', endDrawing));
-    eventIds.push(eventManager.add(window, 'pointercancel', endDrawing));
+    eventIds.push(eventManager.add(window, 'pointerup', endPointer));
+    eventIds.push(eventManager.add(window, 'pointercancel', endPointer));
 }
 
 export function setupCursorManagement() {
@@ -207,10 +238,8 @@ export function disableCursorManagement() {
 
 function updatePointer(event, canvas) {
     const rect = canvas.getBoundingClientRect();
-
-    // Handle both mouse and touch events
-    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    const clientX = event.clientX;
+    const clientY = event.clientY;
 
     pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -222,6 +251,7 @@ function handlePointerDown(camera, controls) {
 
     if (intersects.length > 0) {
         AppState.isDrawing = true;
+        pointerDown = true;
         controls.enabled = false;
 
         drawAtPointer(camera, pointer, AppState.isErasing);
