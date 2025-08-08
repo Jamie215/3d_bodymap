@@ -65,21 +65,26 @@ initApp({
     slotRight.innerHTML = '';
     slotFooter.innerHTML = '';
 
+    // If changeModelButton exists on canvas, remove it first
+    const changeModelButton = document.getElementById('change-model-button');
+    if (changeModelButton) {
+      slotCanvas.removeChild(summary.changeModelButton);
+    }
+
     switch (stage) {
       case 'summary':
-        slotLeft.innerHTML = '';
-        slotRight.innerHTML = '';
-        slotFooter.appendChild(summary.addNewInstanceButton);
-        slotFooter.appendChild(summary.summaryDoneButton);
+        slotCanvas.appendChild(summary.changeModelButton);
+        slotRight.appendChild(summary.summaryStatusPanel);
+        slotFooter.appendChild(summary.summaryFooter);
         break;
-      case 'selection':
-        slotLeft.appendChild(selection.modelSelectionPanel);
-        slotFooter.appendChild(selection.addNewInstanceButton);
+      case 'selection':        
+        slotRight.appendChild(selection.modelSelectionPanel);
+        slotFooter.appendChild(selection.selectionFooter);
         break;
       case 'drawing':
         slotLeft.appendChild(drawing.drawingControlsPanel);
         slotRight.appendChild(drawing.viewControlsPanel);
-        slotFooter.appendChild(drawing.continueButton);
+        slotFooter.appendChild(drawing.drawingFooter);
         break;
       case 'survey':
         slotRight.appendChild(survey.surveyPanel);

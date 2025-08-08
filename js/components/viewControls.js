@@ -6,25 +6,14 @@ export function createViewControls(controls, viewControlsPanel) {
     const title = document.createElement('h2');
     title.textContent = 'Adjust My Body View';
 
-    // Double-click instruction
-    const doubleClickInstruction = document.createElement('div');
-    doubleClickInstruction.classList.add('instruction');
-    doubleClickInstruction.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M3 5.188C3 2.341 5.22 0 8 0s5 2.342 5 5.188v5.625C13 13.658 10.78 16 8 16s-5-2.342-5-5.188V5.189zm4.5-4.155C5.541 1.289 4 3.035 4 5.188V5.5h3.5zm1 0V5.5H12v-.313c0-2.152-1.541-3.898-3.5-4.154M12 6.5H4v4.313C4 13.145 5.81 15 8 15s4-1.855 4-4.188z"/>
-        </svg>
-        <span>Click on specific body part multiple times for a closer look</span>
-    `;
-
     // Scroll instruction
     const scrollInstruction = document.createElement('div');
     scrollInstruction.classList.add('instruction');
     scrollInstruction.innerHTML = `
         <span><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
             <path fill-rule="evenodd" d="M3.646 9.146a.5.5 0 0 1 .708 0L8 12.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708m0-2.292a.5.5 0 0 0 .708 0L8 3.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708"/>
-        </svg>Zoom in or out by:<br><ul><li>Scroll mouse wheel</li><li>Pinch with two fingers on a touchpad</li><li>Click on a specific body part multiple times</li></ul></span>
+        </svg>Zoom in or out by:<br><ul><li>Scroll mouse wheel</li><li>Pinch with two fingers on a touchpad or touchscreen</li></ul></span>
     `;
-
 
     // Divider 
     const divider = document.createElement('hr');
@@ -92,7 +81,6 @@ export function createViewControls(controls, viewControlsPanel) {
 
     // Assemble panel
     viewToolsContainer.appendChild(title);
-    // viewToolsContainer.appendChild(doubleClickInstruction);
     viewToolsContainer.appendChild(scrollInstruction);
     viewToolsContainer.appendChild(divider);
     viewToolsContainer.appendChild(directionHeader);

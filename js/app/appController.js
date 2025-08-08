@@ -126,34 +126,55 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     }
 
     updateCurrentDrawing();
-    const regionBoneList = [...AppState.drawingInstances[AppState.currentDrawingIndex].drawnBoneNames];
+
+    setTimeout(() => {
+      // generate preview without permanently changing the renderer sizing
+      const previewWidth = 400;
+      const previewHeight = 350;
+      const originalSize = renderer.getSize(new THREE.Vector2());
+      const originalPixelRatio = renderer.getPixelRatio();
+
+      renderer.setSize(previewWidth, previewHeight, false);
+      renderer.setPixelRatio(1);
+      renderer.render(scene, camera);
+      const dataURL = renderer.domElement.toDataURL('image/png');
+
+      // restore
+      renderer.setSize(originalSize.x, originalSize.y, false);
+      renderer.setPixelRatio(originalPixelRatio);
+      renderer.render(scene, camera);
+
+      showDrawContinueModal("Does this represent your intended pain/symptom area?", true, dataURL);
+    }, 100);
+
+    // const regionBoneList = [...AppState.drawingInstances[AppState.currentDrawingIndex].drawnBoneNames];
     
-    if (regionBoneList.length > 0) {
-      AppState.drawingInstances[AppState.currentDrawingIndex].boneNames = regionBoneList;
-      focusCameraOnBones(regionBoneList);
+    // if (regionBoneList.length > 0) {
+    //   AppState.drawingInstances[AppState.currentDrawingIndex].boneNames = regionBoneList;
+    //   focusCameraOnBones(regionBoneList);
 
-      setTimeout(() => {
-        // generate preview without permanently changing the renderer sizing
-        const previewWidth = 400;
-        const previewHeight = 350;
-        const originalSize = renderer.getSize(new THREE.Vector2());
-        const originalPixelRatio = renderer.getPixelRatio();
+    //   setTimeout(() => {
+    //     // generate preview without permanently changing the renderer sizing
+    //     const previewWidth = 400;
+    //     const previewHeight = 350;
+    //     const originalSize = renderer.getSize(new THREE.Vector2());
+    //     const originalPixelRatio = renderer.getPixelRatio();
 
-        renderer.setSize(previewWidth, previewHeight, false);
-        renderer.setPixelRatio(1);
-        renderer.render(scene, camera);
-        const dataURL = renderer.domElement.toDataURL('image/png');
+    //     renderer.setSize(previewWidth, previewHeight, false);
+    //     renderer.setPixelRatio(1);
+    //     renderer.render(scene, camera);
+    //     const dataURL = renderer.domElement.toDataURL('image/png');
 
-        // restore
-        renderer.setSize(originalSize.x, originalSize.y, false);
-        renderer.setPixelRatio(originalPixelRatio);
-        renderer.render(scene, camera);
+    //     // restore
+    //     renderer.setSize(originalSize.x, originalSize.y, false);
+    //     renderer.setPixelRatio(originalPixelRatio);
+    //     renderer.render(scene, camera);
 
-        showDrawContinueModal("Does this represent your intended pain/symptom area?", true, dataURL);
-      }, 100);
-    } else {
-      showDrawContinueModal("Does this represent your intended pain/symptom area?", false);
-    }
+    //     showDrawContinueModal("Does this represent your intended pain/symptom area?", true, dataURL);
+    //   }, 100);
+    // } else {
+    //   showDrawContinueModal("Does this represent your intended pain/symptom area?", false);
+    // }
   });
 
   modalContinueButton.addEventListener('click', () => {

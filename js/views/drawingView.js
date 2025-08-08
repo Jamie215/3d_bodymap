@@ -31,7 +31,6 @@ export function createDrawingViewElements(controls) {
   continueButton.id = 'continue-drawing';
   continueButton.textContent = 'Go to Area Questions';
   continueButton.classList.add('button', 'button-primary');
-  continueButton.style.marginRight = '5%';
   drawingFooter.appendChild(continueButton);
 
   drawingMainRow.appendChild(drawingControlsPanel);
