@@ -69,6 +69,10 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
           AppState.skinMesh.material.needsUpdate = true;
         }
 
+        if (AppState.drawingInstances.length > 0) {
+          summary.changeModelButton.style.display = 'none';
+        }
+
         summary.updateStatus();
         renderer.render(scene, camera);
         break;

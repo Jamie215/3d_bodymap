@@ -66,18 +66,19 @@ initApp({
     slotFooter.innerHTML = '';
 
     // If changeModelButton exists on canvas, remove it first
-    const changeModelButton = document.getElementById('change-model-button');
+    const canvasOverlay = canvasPanel.querySelector('#canvas-overlay');
+    const changeModelButton = canvasOverlay.querySelector('#change-model-button');
     if (changeModelButton) {
-      slotCanvas.removeChild(summary.changeModelButton);
+      canvasOverlay.removeChild(changeModelButton);
     }
 
     switch (stage) {
       case 'summary':
-        slotCanvas.appendChild(summary.changeModelButton);
+        canvasOverlay.appendChild(summary.changeModelButton);
         slotRight.appendChild(summary.summaryStatusPanel);
         slotFooter.appendChild(summary.summaryFooter);
         break;
-      case 'selection':        
+      case 'selection':
         slotRight.appendChild(selection.modelSelectionPanel);
         slotFooter.appendChild(selection.selectionFooter);
         break;
