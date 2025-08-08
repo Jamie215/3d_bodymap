@@ -50,7 +50,7 @@ canvas {
   grid-template-areas:
     "left center right"
     "footer footer footer";
-  grid-template-columns: 22rem 1fr 25rem;   /* desktop side widths */
+  grid-template-columns: 20rem 1fr 25rem;   /* desktop side widths */
   grid-template-rows: 1fr auto;
   height: 100dvh;                           /* better on mobile than 100vh */
   min-width: 0;
@@ -108,7 +108,7 @@ canvas {
 :root[data-stage="survey"] .slot-left  { display: none; } .slot-canvas { display: flex; } .slot-right { display: flex; } .slot-footer { display: none; }
 :root[data-stage="survey"] .app-shell  { 
   grid-template-areas: "center right";
-  grid-template-columns: 1fr 65rem; 
+  grid-template-columns: 1fr 60rem; 
 }
 
 /* =========================
@@ -210,7 +210,7 @@ h3.control-title { margin-bottom: 20px; }
 input[type="range"] {
   -webkit-appearance: none;
   width: 100%;
-  height: 6px;
+  height: 0.5rem;
   background: #e0e0e0;
   border-radius: 10px;
   outline: none;
@@ -308,6 +308,7 @@ input[type="range"]::-webkit-slider-thumb,
   cursor: pointer;
   font-size: var(--min-font-size); font-weight: bold;
   transition: background-color 0.2s;
+  pointer-events: auto;
 }
 .button:hover { background: #e8e8e8 !important; }
 .button:disabled, .button.disabled {
@@ -323,7 +324,7 @@ input[type="range"]::-webkit-slider-thumb,
 .button-danger    { background: #d32f2f; color: #fff; }
 .button-success   { background: var(--primary-color); color: #fff; }
 .button-draw-control { width: clamp(120px, 10vw, 200px) !important; }
-.return-button { padding-left: 0; font-weight: bold; background: transparent; color: var(--primary-color)}
+.return-button { padding-left: 0; font-weight: bold; background: transparent; color: var(--primary-color); border-color: transparent;}
 
 #canvas-overlay {
   position: absolute;
@@ -350,7 +351,10 @@ input[type="range"]::-webkit-slider-thumb,
   background: transparent;
   padding: var(--padding);
   font-size: var(--min-font-size);
-  align-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 #summary-status-panel p { margin: 0; text-align: left; }
 
@@ -401,18 +405,28 @@ input[type="range"]::-webkit-slider-thumb,
   border-color: var(--primary-color) !important;
 }
 
+#drawing-control-panel, #view-control-panel {
+  width: 100%;
+  padding: var(--padding);
+  gap: 1rem; 
+}
+
+#survey-panel {
+  width: 100%;
+  padding: var(--padding);
+}
+
 /* Footer: fixed only on desktop */
 .footer {
-  padding: var(--padding) 2rem var(--padding) var(--padding);
+  padding: var(--padding) 5rem var(--padding) var(--padding);
   display: flex; gap: 1rem; align-items: center; justify-content: flex-end;
   box-sizing: border-box;
   z-index: 9999;
+  pointer-events: none;
 }
 @media (min-width: 1025px) {
   .footer {
     position: fixed; bottom: 0; width: 100%;
-    background-color: rgba(255,255,255,0.5);
-    box-shadow: 0 -1px 4px rgba(0,0,0,0.1);
   }
 }
 
