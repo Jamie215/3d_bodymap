@@ -11,7 +11,7 @@ export function renderSurvey(container, onComplete) {
     container.innerHTML = "";
     survey.css = { ...survey.css, root: "sv-root-modern sv-root-plain"};
     survey.render(container);
-    survey.onAfterRenderQuestion.add(formatQuestionLayout);
+    // survey.onAfterRenderQuestion.add(formatQuestionLayout);
     survey.onComplete.add(sender => {
         const canvas = AppState.drawingInstance[i].canvas;
         AppState.drawingInstances[i].uvDrawingData = canvas.toDataURL('image/png');
