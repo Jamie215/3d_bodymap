@@ -285,10 +285,28 @@ input[type="range"]::-webkit-slider-thumb,
 .button-draw-control { width: 75% !important; }
 .return-button { padding-left: 0; font-weight: bold; background: transparent; color: var(--primary-color); border-color: transparent; max-width: 15rem; }
 
+.fab {
+  position: absolute;
+  transform: translateY(-50%);
+  z-index: 5;
+  pointer-events: auto;
+  border-radius: 9999px;
+  padding: 0.75rem 1rem;
+  font-size: var(--min-font-size);
+  font-weight: 600;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+.fab.left  { left: 0.75rem; }
+.fab.right { right: 0.75rem; }
+.fab:hover { background: #f5f5f5; }
+
 /* Canvas overlay (e.g., Change Model) */
 #canvas-overlay {
   position: absolute;
-  top: 0;
+  top: 1.25rem;
   width: 100%;
   display: flex; align-items: center; justify-content: center;
   padding-top: 2rem;
@@ -391,6 +409,11 @@ input[type="range"]::-webkit-slider-thumb,
 }
 @media (min-width: 1025px) {
   .footer { position: fixed; bottom: 0; width: 100%; }
+  .fab,
+  .drawer,
+  .drawer-scrim {
+    display: none !important
+  }
 }
 
 /* =========================
@@ -465,6 +488,38 @@ input[type="range"]::-webkit-slider-thumb,
     align-items: center;
     justify-content: space-around;
     flex-wrap: wrap;
+  }
+
+  :root[data-stage="drawing"] .slot-left,
+  :root[data-stage="drawing"] .slot-right { display: none !important; }
+
+  .drawer {
+    position: fixed;
+    top: 0; bottom: 0;
+    width: clamp(22rem, 80vw, 30rem);
+    background: var(--panel-background);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    z-index: 10000;
+    overflow: auto;
+    padding: var(--padding);
+    transition: transform 0.25s ease;
+  }
+  .drawer.left { left: 0; transform: translateX(-100%); }
+  .drawer.right { right: 0; transform: translateX(100%); }
+  .drawer.open { transform: translateX(0); }
+
+  .drawer-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .drawer-scrim.is-visible {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 
