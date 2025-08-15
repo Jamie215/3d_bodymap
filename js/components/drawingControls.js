@@ -50,7 +50,6 @@ export function createDrawingControls(drawingControlsPanel) {
     // Brush Size Controls
     const brushSizeLabel = document.createElement('h2');
     brushSizeLabel.textContent = 'Brush Size';
-    brushSizeLabel.style.alignSelf = 'flex-start';
 
     // Container for the vertical slider
     const sliderContainer = document.createElement('div');

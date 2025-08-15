@@ -7,15 +7,33 @@ const pointer = new THREE.Vector2();
 
 const eventIds = [];
 
-let drawClickTimeout = null;
-let drawSuppressed = false;
+// State
 let pointerDown = false;
+let pinchActive = false;
+const activePointers = new Map();
 
-// Add a cleanup function
+// Cursor management
+let cursorContainer = null;
+let cursorSizeEl = null;
+let cursorIconEl = null;
+
+const cursorHandlers = {
+    mousemove: null,
+    mouseleave: null,
+    brushInput: null,
+    drawBtnClick: null,
+    eraseBtnClick: null,
+    mousedown: null,
+    mouseup: null
+};
+
+// Remove all registered event listeners
 export function cleanupInteraction() {
-    // Remove all registered event listeners
     eventIds.forEach(id => eventManager.remove(id));
-    eventIds.length = 0; // Clear the array
+    eventIds.length = 0;
+    pointerDown = false;
+    pinchActive = false;
+    activePointers.clear();
 }
 
 export function enableInteraction(renderer, camera, controls) {
@@ -24,329 +42,204 @@ export function enableInteraction(renderer, camera, controls) {
     // Prevent default touch actions on canvas
     canvas.style.touchAction = 'none';
 
-    // Mouse-based interaction
-    eventIds.push(eventManager.add(canvas, 'mousedown', (event) => {
+    // Pointer down: begin drawing
+    eventIds.push(eventManager.add(canvas, 'pointerdown', (event) => {
+        // Register pointer
+        activePointers.set(event.pointerId, {x: event.clientX, y: event.clientY })
+
+        if (activePointers.size >= 2) {
+            pinchActive = true;
+            
+            AppState.isDrawing = false;
+            pointerDown = false;
+            controls.enabled = true;
+            return;
+        }
+
         if (!AppState.skinMesh || event.target !== canvas) return;
 
-        pointerDown = true;
-        drawSuppressed = true;
-
-        if (drawClickTimeout) clearTimeout(drawClickTimeout);
-
-        drawClickTimeout = setTimeout(() => {
-            drawClickTimeout = null;
-            drawSuppressed = false;
-
-            updatePointer(event, canvas);
-            handlePointerDown(camera, controls);
-        }, 250)
-
+        updatePointer(event, canvas);
+        handlePointerDown(camera, controls);
     }));
 
-    eventIds.push(eventManager.add(window, 'mouseup', () => {
-        pointerDown = false;
+    eventIds.push(eventManager.add(window, 'pointermove', (event) => {
+        if (!AppState.isDrawing || !AppState.skinMesh || !pointerDown) return;
+        if (event.pointerType === 'mouse' && event.buttons === 0) return;
 
-        if (AppState.isDrawing) {
-            AppState.isDrawing = false;
-            controls.enabled = true;
+        if (activePointers.has(event.pointerId)) {
+            activePointers.set(event.pointerId, {x: event.clientX, y: event.clientY });
         }
-    }));
 
-    eventIds.push(eventManager.add(window, 'mousemove', (event) => {
-        if (!AppState.isDrawing || !AppState.skinMesh || event.target !== canvas) return;
-        if (!pointerDown || drawSuppressed) return;
+        if (pinchActive) {
+            controls.enabled = true;
+            return;
+        }
+
         updatePointer(event, canvas);
         drawAtPointer(camera, pointer, AppState.isErasing);
     }));
 
-    eventIds.push(eventManager.add(canvas, 'dblclick', (event) => {
-        if (!AppState.model) return;
-        if (drawClickTimeout) {
-            clearTimeout(drawClickTimeout);
-            drawClickTimeout = null;
-        }
-        drawSuppressed = false;
-        pointerDown = false;
-        handleDoubleTap(event, canvas, camera, controls);
-    }));
+    const endPointer = (event) => {
+        activePointers.delete(event.pointerId);
 
-    // Touch-based Interaction
-    let lastTouchTime = 0;
-    let lastTouchX = 0;
-    let lastTouchY = 0;
-    let drawClickTimeout = null;
-    let pinchActive = false;
-    let initPinchDistance= 0;
-
-    const doubleTapThreshold = 250;
-    const doubleTapDistance = 30;
-
-    function resetDrawSuppression() {
-        drawSuppressed = false;
-    }
-
-    function getDistance(a, b) {
-        const dx = a.clientX - b.clientX;
-        const dy = a.clientY - b.clientY;
-        return Math.hypot(dx, dy);
-    }
-
-    eventIds.push(eventManager.add(canvas, 'touchstart', (event) => {
-
-        if (event.touches.length > 1) {
-            pinchActive = true;
-            initPinchDistance = getDistance(event.touches[0], event.touches[1]);
-            return;
-        }
-        event.preventDefault();
-
-        if (!AppState.skinMesh) return;
-
-        const now = Date.now();
-        const touch = event.touches[0];
-        const dx = Math.abs(touch.clientX - lastTouchX);
-        const dy = Math.abs(touch.clientY - lastTouchY);
-        const dt = now - lastTouchTime;
-
-        lastTouchX = touch.clientX;
-        lastTouchY = touch.clientY;
-        lastTouchTime = now;
-
-        if (drawClickTimeout) {
-            clearTimeout(drawClickTimeout);
-            drawClickTimeout = null;
-        }
-
-        const isDoubleTap = (dt < doubleTapThreshold) && (dx < doubleTapDistance) && (dy < doubleTapDistance);
-
-        if (isDoubleTap) {
-            drawSuppressed = true;
-            pointerDown = false;
-
-            // Suppress for a brief moment to block accidental drawing
-            handleDoubleTap(event, canvas, camera, controls);
-            setTimeout(resetDrawSuppression, doubleTapThreshold);
-            return;
-        }
-
-        pointerDown = true;
-        drawSuppressed = true;
-
-        drawClickTimeout = setTimeout(() => {
-            drawSuppressed = false;
-            drawClickTimeout = null;
-            updatePointer(event, canvas);
-            handlePointerDown(camera, controls);
-        }, doubleTapThreshold);
-    }, {passive: false}));
-
-    eventIds.push(eventManager.add(canvas, 'touchend', (event) => {
-        event.preventDefault();
-
-        // Exit pinch mode when fingers lift
-        if (pinchActive && event.touches.length < 2) {
+        if (activePointers.size < 2) {
             pinchActive = false;
         }
 
-        pointerDown = false;
-        if (AppState.isDrawing) {
+        if (activePointers.size === 0) {
+            pointerDown = false;
             AppState.isDrawing = false;
             controls.enabled = true;
+        } else {
+
         }
-    }));
+    };
 
-    eventIds.push(eventManager.add(canvas, 'touchmove', (event) => {
-        event.preventDefault();
-
-        if (pinchActive && event.touches.length > 1) {
-            const newDist = getDistance(event.touches[0], event.touches[1]);
-            const scale = newDist / initPinchDistance;
-
-            controls.enableZoom = true;
-            controls.zoomSpeed = scale;
-            controls.update();
-
-            return;
-        }
-
-        if(!AppState.isDrawing || !AppState.skinMesh) return;
-        updatePointer(event, canvas);
-        drawAtPointer(camera, pointer, AppState.isErasing);
-    }, {passive: false}));
+    eventIds.push(eventManager.add(window, 'pointerup', endPointer));
+    eventIds.push(eventManager.add(window, 'pointercancel', endPointer));
 }
 
 export function setupCursorManagement() {
     const canvasPanel = document.getElementById('canvas-panel');
-
     if (!canvasPanel) return;
 
     // Create container for cursor elements
-    const cursorContainer = document.createElement('div');
-    cursorContainer.classList.add('cursor-container');
-    cursorContainer.style.position = 'absolute';
-    cursorContainer.style.pointerEvents = 'none';
-    cursorContainer.style.zIndex = '9999';
-    cursorContainer.style.transform = 'translate(-50%, -50%)';
-    cursorContainer.style.display = 'none';
-    cursorContainer.style.width = '40px';
-    cursorContainer.style.height = '40px';
-    document.body.appendChild(cursorContainer);
+    if (!cursorContainer || !document.body.contains(cursorContainer)) {
+        cursorContainer = document.createElement('div');
+        cursorContainer.classList.add('cursor-container');
+        cursorContainer.style.position = 'absolute';
+        cursorContainer.style.pointerEvents = 'none';
+        cursorContainer.style.zIndex = '9999';
+        cursorContainer.style.transform = 'translate(-50%, -50%)';
+        cursorContainer.style.display = 'none';
+        cursorContainer.style.width = '40px';
+        cursorContainer.style.height = '40px';
+        document.body.appendChild(cursorContainer);
 
-    // Create size indicator circle
-    const sizeCircle = document.createElement('div');
-    sizeCircle.classList.add('cursor-size');
-    sizeCircle.style.position = 'absolute';
-    sizeCircle.style.borderRadius = '50%';
-    sizeCircle.style.transition = 'width 0.2s, height 0.2s, background-color 0.2s';
-    sizeCircle.style.top = '50%';
-    sizeCircle.style.left = '50%';
-    sizeCircle.style.transform = 'translate(-50%, -50%)';
-    cursorContainer.appendChild(sizeCircle);
+        cursorSizeEl = document.createElement('div');
+        cursorSizeEl.className = 'cursor-size';
+        cursorSizeEl.style.position = 'absolute';
+        cursorSizeEl.style.borderRadius = '50%';
+        cursorSizeEl.style.transition = 'width 0.2s, height 0.2s, background-color 0.2s';
+        cursorSizeEl.style.top = '50%';
+        cursorSizeEl.style.left = '50%';
+        cursorSizeEl.style.transform = 'translate(-50%, -50%)';
+        cursorContainer.appendChild(cursorSizeEl);
 
-    // Create tool icon element
-    const toolIcon = document.createElement('div');
-    toolIcon.classList.add('cursor-icon');
-    toolIcon.style.position = 'absolute';
-    toolIcon.style.top = '50%';
-    toolIcon.style.left = '50%';
-    toolIcon.style.transform = 'translate(-50%, -50%)';
-    toolIcon.style.width = '18px';
-    toolIcon.style.height = '18px';
-    toolIcon.style.overflow = 'visible';
-    toolIcon.style.display = 'flex';
-    toolIcon.style.alignItems = 'center';
-    toolIcon.style.justifyContent = 'center'
-    cursorContainer.appendChild(toolIcon);
-
-    // Hide default cursor over canvas
+        cursorIconEl = document.createElement('div');
+        cursorIconEl.className = 'cursor-icon';
+        cursorIconEl.style.position = 'absolute';
+        cursorIconEl.style.top = '50%';
+        cursorIconEl.style.left = '50%';
+        cursorIconEl.style.transform = 'translate(-50%, -50%)';
+        cursorIconEl.style.width = '18px';
+        cursorIconEl.style.height = '18px';
+        cursorIconEl.style.overflow = 'visible';
+        cursorIconEl.style.display = 'flex';
+        cursorIconEl.style.alignItems = 'center';
+        cursorIconEl.style.justifyContent = 'center';
+        cursorContainer.appendChild(cursorIconEl);
+    }
+    
+    cursorContainer.style.display = '';
     canvasPanel.style.cursor = 'none';
-
-    // Create SVG icons as data URLs
-    const getDrawIconSvg = (color) => `
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"></path>
-        </svg>
-    `;
-
-    const getEraseIconSvg = (color) => `
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
-            <path d="M22 21H7"></path>
-            <path d="m5 11 9 9"></path>
-        </svg>
-    `;
-
-    const updateToolIcon = (svg) => {
-        toolIcon.innerHTML = svg;
-    };
 
     const drawColor = '#0277BD';
     const eraseColor = '#FF5252';
+    const getDrawIconSvg  = (c) => `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/></svg>`;
+    const getEraseIconSvg = (c) => `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>`;
 
-    // Update cursor position and appearance
-    canvasPanel.addEventListener('mousemove', (e) => {
-        // Show cursor container
-        cursorContainer.style.display = 'block';
-
-        // Update position
-        cursorContainer.style.left = `${e.clientX}px`;
-        cursorContainer.style.top = `${e.clientY}px`;
-
-        // Update size based on brush radius
-        const size = AppState.brushRadius * 2;
-        sizeCircle.style.width = `${size}px`;
-        sizeCircle.style.height = `${size}px`;
-
-        const iconOffset = { x: 0, y: -15 }; // Customize these values to your preference
-        toolIcon.style.transform = `translate(${iconOffset.x}px, ${iconOffset.y}px)`;
-
-        // Update color and icon based on mode
-        if (AppState.isErasing) {
-            sizeCircle.style.border = `2px solid ${eraseColor}`;
-            sizeCircle.style.backgroundColor = `rgba(255, 82, 82, 0.1)`;
-
-            // Only update the icon if it's changed to avoid DOM manipulation on every move
-            if (!toolIcon.dataset.currentTool || toolIcon.dataset.currentTool !== 'erase') {
-            updateToolIcon(getEraseIconSvg(eraseColor));
-            toolIcon.dataset.currentTool = 'erase';
-            }
+    const updateIcon = () => {
+       if (AppState.isErasing) {
+            cursorSizeEl.style.border = `2px solid ${eraseColor}`;
+            cursorSizeEl.style.backgroundColor = `rgba(255, 82, 82, 0.1)`;
+            cursorIconEl.innerHTML = getEraseIconSvg(eraseColor);
         } else {
-            sizeCircle.style.border = `2px solid ${drawColor}`;
-            sizeCircle.style.backgroundColor = `rgba(2, 119, 189, 0.1)`;
-
-            if (!toolIcon.dataset.currentTool || toolIcon.dataset.currentTool !== 'draw') {
-            updateToolIcon(getDrawIconSvg(drawColor));
-            toolIcon.dataset.currentTool = 'draw';
-            }
-        }
-    });
-
-    // Hide cursor when leaving canvas
-    canvasPanel.addEventListener('mouseleave', () => {
-        cursorContainer.style.display = 'none';
-    });
-
-    // Update cursor size when brush size changes
-    const brushSizeSlider = document.querySelector('.vertical-slider');
-    if (brushSizeSlider) {
-        brushSizeSlider.addEventListener('input', () => {
-        const size = AppState.brushRadius * 2;
-            sizeCircle.style.width = `${size}px`;
-            sizeCircle.style.height = `${size}px`;
-        });
+            cursorSizeEl.style.border = `2px solid ${drawColor}`;
+            cursorSizeEl.style.backgroundColor = `rgba(2, 119, 189, 0.1)`;
+            cursorIconEl.innerHTML = getDrawIconSvg(drawColor);
+        } 
     }
 
-    // Update cursor when switching tools
-    const drawButton = document.querySelector('.button-primary');
-    const eraseButton = document.querySelector('.button-secondary');
+    disableCursorManagement();
 
-    if (drawButton) {
-        drawButton.addEventListener('click', () => {
-            updateToolIcon(getDrawIconSvg(drawColor));
-            toolIcon.dataset.currentTool = 'draw';
-            sizeCircle.style.border = `2px solid ${drawColor}`;
-            sizeCircle.style.backgroundColor = `rgba(2, 119, 189, 0.1)`;
-        });
-    }
+    // Handlers
+    cursorHandlers.mousemove = (e) => {
+    cursorContainer.style.display = 'block';
+    cursorContainer.style.left = `${e.clientX}px`;
+    cursorContainer.style.top  = `${e.clientY}px`;
+    const size = AppState.brushRadius * 2;
+    cursorSizeEl.style.width = `${size}px`;
+    cursorSizeEl.style.height = `${size}px`;
+    updateIcon();
+  };
+  cursorHandlers.mouseleave = () => { cursorContainer.style.display = 'none'; };
+  cursorHandlers.brushInput = () => {
+    const size = AppState.brushRadius * 2;
+    cursorSizeEl.style.width = `${size}px`;
+    cursorSizeEl.style.height = `${size}px`;
+  };
+  cursorHandlers.mousedown = () => { cursorSizeEl.style.opacity = '0.8'; };
+  cursorHandlers.mouseup   = ()   => { cursorSizeEl.style.opacity = '0.4'; };
 
-    if (eraseButton) {
-        eraseButton.addEventListener('click', () => {
-            updateToolIcon(getEraseIconSvg(eraseColor));
-            toolIcon.dataset.currentTool = 'erase';
-            sizeCircle.style.border = `2px solid ${eraseColor}`;
-            sizeCircle.style.backgroundColor = `rgba(255, 82, 82, 0.1)`;
-        });
-    }
+  const brushSlider = document.querySelector('.vertical-slider');
+  const drawBtn     = document.querySelector('.button-primary');
+  const eraseBtn    = document.querySelector('.button-secondary');
 
-    canvasPanel.addEventListener('mousedown', () => {
-        if (AppState.isDrawing) {
-          sizeCircle.style.opacity = '0.8';
-        }
-    });
+  // Attach listeners
+  canvasPanel.addEventListener('mousemove',  cursorHandlers.mousemove,  { passive: true });
+  canvasPanel.addEventListener('mouseleave', cursorHandlers.mouseleave, { passive: true });
+  canvasPanel.addEventListener('mousedown',  cursorHandlers.mousedown,  { passive: true });
+  window.addEventListener('mouseup',         cursorHandlers.mouseup,    { passive: true });
 
-    window.addEventListener('mouseup', () => {
-        sizeCircle.style.opacity = '0.4';
-    });
+  if (brushSlider) brushSlider.addEventListener('input', cursorHandlers.brushInput, { passive: true });
+  if (drawBtn) {
+    cursorHandlers.drawBtnClick = () => { AppState.isErasing = false; updateIcon(); };
+    drawBtn.addEventListener('click', cursorHandlers.drawBtnClick);
+  }
+  if (eraseBtn) {
+    cursorHandlers.eraseBtnClick = () => { AppState.isErasing = true; updateIcon(); };
+    eraseBtn.addEventListener('click', cursorHandlers.eraseBtnClick);
+  }
+
+  // Initial paint
+  updateIcon();
 }
 
 export function disableCursorManagement() {
     const canvasPanel = document.getElementById('canvas-panel');
-    const cursorContainer = document.querySelector('.cursor-container');
+    if (!canvasPanel) return;
 
-    if (canvasPanel && cursorContainer) {
-        canvasPanel.style.cursor = 'default';
-        cursorContainer.style.display = 'none';
+    // Remove listeners if present
+    if (cursorHandlers.mousemove)  { canvasPanel.removeEventListener('mousemove', cursorHandlers.mousemove); cursorHandlers.mousemove  = null; }
+    if (cursorHandlers.mouseleave) { canvasPanel.removeEventListener('mouseleave', cursorHandlers.mouseleave); cursorHandlers.mouseleave = null; }
+    if (cursorHandlers.mousedown)  { canvasPanel.removeEventListener('mousedown', cursorHandlers.mousedown); cursorHandlers.mousedown = null; }
+    if (cursorHandlers.mouseup)    { window.removeEventListener('mouseup', cursorHandlers.mouseup); cursorHandlers.mouseup = null; }
 
-        canvasPanel.onmousemove = null;
+    const brushSlider = document.querySelector('.vertical-slider');
+    if (brushSlider && cursorHandlers.brushInput) {
+        brushSlider.removeEventListener('input', cursorHandlers.brushInput);
+        cursorHandlers.brushInput = null;
     }
+    const drawBtn = document.querySelector('.button-primary');
+    const eraseBtn = document.querySelector('.button-secondary');
+    if (drawBtn && cursorHandlers.drawBtnClick) {
+        drawBtn.removeEventListener('click', cursorHandlers.drawBtnClick);
+        cursorHandlers.drawBtnClick = null;
+    }
+    if (eraseBtn && cursorHandlers.eraseBtnClick) {
+        eraseBtn.removeEventListener('click', cursorHandlers.eraseBtnClick);
+        cursorHandlers.eraseBtnClick = null;
+    }
+
+    if (cursorContainer) cursorContainer.style.display = 'none';
+    canvasPanel.style.cursor = 'default';
 }
 
 function updatePointer(event, canvas) {
     const rect = canvas.getBoundingClientRect();
-
-    // Handle both mouse and touch events
-    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    const clientX = event.clientX;
+    const clientY = event.clientY;
 
     pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -358,6 +251,7 @@ function handlePointerDown(camera, controls) {
 
     if (intersects.length > 0) {
         AppState.isDrawing = true;
+        pointerDown = true;
         controls.enabled = false;
 
         drawAtPointer(camera, pointer, AppState.isErasing);

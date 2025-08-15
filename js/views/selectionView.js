@@ -21,7 +21,6 @@ export function createSelectionView(onModelSelected) {
   addNewInstanceButton.id = 'add-new-instance-selection';
   addNewInstanceButton.textContent = 'Add a New Pain or Symptom';
   addNewInstanceButton.classList.add('button', 'button-primary');
-  addNewInstanceButton.style.marginRight = '5%';
 
   const selectionFooter = document.createElement('div');
   selectionFooter.id = 'footer-selection';

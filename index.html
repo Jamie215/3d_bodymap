@@ -2,12 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0,a user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>3D Body Map</title>
     <link rel="stylesheet" href="./assets/styles.css">
     <link href="https://unpkg.com/survey-knockout/defaultV2.min.css" rel="stylesheet" />
 </head>
 <body>
+    <div class="app-shell">
+        <aside class="slot-left"></aside>
+        <main class="slot-canvas">
+            <div id="canvas-panel">
+              <div id="canvas-overlay">
+              </div>
+            </div>
+        </main>
+        <aside class="slot-right"></aside>
+        <footer class="slot-footer"></footer>
+      </div>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js"></script>

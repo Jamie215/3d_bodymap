@@ -31,7 +31,6 @@ export function createSummaryView() {
   summaryDoneButton.textContent = 'Done';
   summaryDoneButton.classList.add('button', 'button-secondary');
   summaryDoneButton.disabled = true;
-  summaryDoneButton.style.marginRight = '5%';
 
   summaryFooter.appendChild(addNewInstanceButton);
   summaryFooter.appendChild(summaryDoneButton);
@@ -51,6 +50,7 @@ export function createSummaryView() {
     root: modelSummaryView,
     updateStatus: updateSummaryStatus,
     summaryStatusPanel,
+    summaryFooter,
     changeModelButton,
     addNewInstanceButton,
     summaryDoneButton
