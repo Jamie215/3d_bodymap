@@ -97,7 +97,48 @@ function ensureDrawers() {
     document.body.appendChild(rightDrawer);
   }
 
-  return { scrim, leftDrawer, rightDrawer }
+  const ensureHeaderAndContent = (drawer) => {
+    let header = drawer.querySelector('.drawer-header');
+    let content = drawer.querySelector('.drawer-content');
+    let closeBtn;
+
+    if (!header) {
+      header = document.createElement('div');
+      header.className = 'drawer-header';
+
+      closeBtn = document.createElement('button');
+      closeBtn.className = 'drawer-close';
+      closeBtn.type = 'button';
+      closeBtn.setAttribute('aria-label', 'Close');
+      closeBtn.innerHTML = '&times;';
+
+      header.appendChild(closeBtn);
+      drawer.appendChild(header);
+    } else {
+      closeBtn = header.querySelector('.drawer-close');
+    }
+
+    if (!content) {
+      content = document.createElement('div');
+      content.className = 'drawer-content';
+      drawer.appendChild(content);
+    }
+
+    return { header, content, closeBtn };
+  };
+
+  const left = ensureHeaderAndContent(leftDrawer);
+  const right = ensureHeaderAndContent(rightDrawer);
+
+  return { 
+    scrim, 
+    leftDrawer, 
+    rightDrawer,
+    leftContent: left.content,
+    rightContent: right.content,
+    leftCloseBtn: left.closeBtn,
+    rightCloseBtn: right.closeBtn
+  };
 }
 
 function closeDrawers(state) {
@@ -136,12 +177,14 @@ function setStage(stage) {
         const { leftFab, rightFab } = ensureFooterFabs(slotFooter);
         const drawers = ensureDrawers();
 
-        drawers.leftDrawer.innerHTML = '';
-        drawers.rightDrawer.innerHTML = '';
-        drawers.leftDrawer.appendChild(drawing.drawingControlsPanel);
-        drawers.rightDrawer.appendChild(drawing.viewControlsPanel);
+        drawers.leftContent.replaceChildren(drawing.drawingControlsPanel);
+        drawers.rightContent.replaceChildren(drawing.viewControlsPanel);
         
         slotFooter.appendChild(drawing.drawingFooter);
+
+        drawers.leftCloseBtn.onclick = () => closeDrawers(drawers);
+        drawers.rightCloseBtn.onclick = () => closeDrawers(drawers);
+        drawers.scrim.onclick = () => closeDrawers(drawers);
 
         leftFab.onclick = () => {
           const wasOpen = drawers.leftDrawer.classList.contains('open');
@@ -149,6 +192,8 @@ function setStage(stage) {
           if (!wasOpen) {
             drawers.leftDrawer.classList.add('open');
             drawers.scrim.classList.add('is-visible');
+            drawers.leftDrawer.setAttribute('tabindex', '-1');
+            drawers.leftDrawer.focus();
           }
         };
 
@@ -158,16 +203,16 @@ function setStage(stage) {
           if (!wasOpen) {
             drawers.rightDrawer.classList.add('open');
             drawers.scrim.classList.add('is-visible');
+            drawers.rightDrawer.setAttribute('tabindex', '-1');
+            drawers.rightDrawer.focus();
           }
         };
 
-        drawers.scrim.onclick = () => closeDrawers(drawers);
       } else {
         slotLeft.appendChild(drawing.drawingControlsPanel);
         slotRight.appendChild(drawing.viewControlsPanel);
         slotFooter.appendChild(drawing.drawingFooter);
 
-        const overlay = canvasPanel.querySelector('#canvas-overlay');
         const scrim = document.body.querySelector('.drawer-scrim');
         const l = document.body.querySelector('.drawer.left');
         const r = document.body.querySelector('.drawer.right');
