@@ -66,7 +66,7 @@ export const surveyJson = {
         {
           type: "rating",
           name: "intensityScale",
-          title: "Please mark on the 0-10 scale how much pain or symptom you have had in this area, on average, over the past week",
+          title: "Please mark on the 0 (No pain or symptom) - 10 (Worst pain or symptom imaginable) scale how much pain or symptom you have had in this area, on average, over the past week",
           minRateDescription: "No pain or symptom",
           maxRateDescription: "Worst pain or symptom imaginable",
           displayMode: "dropdown",
