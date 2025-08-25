@@ -29,27 +29,13 @@ export function createScene(canvasContainer) {
     controls.target.set(0, 1.5, 0);
     controls.enableRotate = false;
     controls.enablePan = false;
+    controls.screenSpacePanning = true;
     controls.mouseButtons = {
         LEFT: null,
         MIDDLE: THREE.MOUSE.DOLLY,
         RIGHT: null
     };
     controls.update();
-    controls.addEventListener('change', () => {
-        const cameraDirection = new THREE.Vector3();
-        camera.getWorldDirection(cameraDirection);
-
-        const modelForward = new THREE.Vector3(0,0,1);
-        const alignment = cameraDirection.dot(modelForward);
-
-        const safeAlignment = Math.abs(alignment) < 0.1 ? 0 : alignment;
-
-        if (safeAlignment === 0) {
-            controls.minDistance = 0.5;
-        } else {
-            controls.minDistance = 0.25;
-        }
-    })
 
     return { scene, camera, renderer, controls };
 }
