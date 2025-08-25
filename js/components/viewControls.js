@@ -6,13 +6,40 @@ export function createViewControls(controls, viewControlsPanel) {
     const title = document.createElement('h2');
     title.textContent = 'Adjust My Body View';
 
-    // Scroll instruction
-    const scrollInstruction = document.createElement('div');
-    scrollInstruction.classList.add('instruction');
-    scrollInstruction.innerHTML = `
-        <span><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-            <path fill-rule="evenodd" d="M3.646 9.146a.5.5 0 0 1 .708 0L8 12.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708m0-2.292a.5.5 0 0 0 .708 0L8 3.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708"/>
-        </svg>Zoom in or out by:<br><ul><li>Scroll mouse wheel</li><li>Pinch with two fingers on a touchpad or touchscreen</li></ul></span>
+    // Zoom instruction
+    const zoomInstruction = document.createElement('div');
+    zoomInstruction.classList.add('instruction');
+    zoomInstruction.innerHTML = `
+        <span><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+            viewBox="0 0 16 16" fill="none" stroke="currentColor"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+            aria-hidden="true" style="vertical-align:-3px;">
+            <circle cx="6.5" cy="6.5" r="4.75"/>
+            <!-- vertical double-headed arrow -->
+            <line x1="6.5" y1="4.5" x2="6.5" y2="8.5"/>
+            <polyline points="5.5 5.5 6.5 4.5 7.5 5.5"/>
+            <polyline points="5.5 7.5 6.5 8.5 7.5 7.5"/>
+            <line x1="10.5" y1="10.5" x2="14" y2="14"/>  <!-- handle -->
+        </svg>
+        Zoom in or out by:<br><ul><li>Scroll mouse wheel</li><li>Pinch with two fingers on a touchpad or touchscreen</li></ul></span>
+    `;
+
+    // Pan instruction
+    const panInstruction = document.createElement('div');
+    panInstruction.classList.add('instruction');
+    panInstruction.innerHTML = `
+        <span><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <!-- Up -->
+            <polygon points="8,1 11,4 5,4"/>
+            <!-- Down -->
+            <polygon points="8,15 5,12 11,12"/>
+            <!-- Left -->
+            <polygon points="1,8 4,5 4,11"/>
+            <!-- Right -->
+            <polygon points="15,8 12,11 12,5"/>
+            <!-- Center dot -->
+            <circle cx="8" cy="8" r="1.3"/>
+        </svg>Move my body using the on-screen arrows</span>
     `;
 
     // Divider 
@@ -72,7 +99,7 @@ export function createViewControls(controls, viewControlsPanel) {
     // Reset View Button
     const resetViewButton = document.createElement('button');
     resetViewButton.classList.add('reset-view-button');
-    resetViewButton.textContent = 'Reset Where My Body is Facing';
+    resetViewButton.textContent = 'Reset My Body View';
     resetViewButton.addEventListener('click', () => {
         controls.target.set(0, 1.0, 0);
         controls.object.position.set(0, 1.0, 1.5);
@@ -81,7 +108,8 @@ export function createViewControls(controls, viewControlsPanel) {
 
     // Assemble panel
     viewToolsContainer.appendChild(title);
-    viewToolsContainer.appendChild(scrollInstruction);
+    viewToolsContainer.appendChild(zoomInstruction);
+    viewToolsContainer.appendChild(panInstruction);
     viewToolsContainer.appendChild(divider);
     viewToolsContainer.appendChild(directionHeader);
     viewToolsContainer.appendChild(orientationContainer);
@@ -93,20 +121,21 @@ export function createViewControls(controls, viewControlsPanel) {
 function reorientCamera(direction, controls) {
     const target = controls.target.clone();
     const distance = controls.object.position.distanceTo(target);
+    const safe = Math.max(distance, controls.minDistance);
     const offset = new THREE.Vector3();
 
     switch (direction) {
         case 'Front':
-            offset.set(0, 0, distance);
+            offset.set(0, 0, safe);
             break;
         case 'Back':
-            offset.set(0, 0, -distance);
+            offset.set(0, 0, -safe);
             break;
         case 'Left':
-            offset.set(distance, 0, 0);
+            offset.set(safe, 0, 0);
             break;
         case 'Right':
-            offset.set(-distance, 0, 0);
+            offset.set(-safe, 0, 0);
             break;
     }
 

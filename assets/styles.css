@@ -249,8 +249,8 @@ input[type="range"]::-webkit-slider-thumb,
 
 /* Inline instruction */
 .instruction {
-  display: flex; align-items: center; justify-content: space-around;
-  margin: 0.5rem;
+  display: flex; align-items: center;
+  margin: 0.5rem 1rem;
   font-size: var(--min-font-size);
   color: #555;
 }
@@ -284,6 +284,28 @@ input[type="range"]::-webkit-slider-thumb,
 .button-success   { background: var(--primary-color); color: #fff; }
 .button-draw-control { width: 75% !important; }
 .return-button { padding-left: 0; font-weight: bold; background: transparent; color: var(--primary-color); border-color: transparent; max-width: 15rem; }
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: block;
+  z-index: 10;
+  pointer-events: none;
+  user-select: none;
+  touch-action: none;
+}
+
+.button-pan {
+  position: absolute;
+  pointer-events: auto;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--border-radius);
+  background: var(--panel-background);
+  display: grid;
+  place-items: center;
+  color: var(--secondary-color);
+}
 
 .fab {
   position: absolute;

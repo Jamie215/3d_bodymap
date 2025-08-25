@@ -7,6 +7,9 @@ const pointer = new THREE.Vector2();
 
 const eventIds = [];
 
+// Arrow-pan overlay
+let panUIHandle = null;
+
 // State
 let pointerDown = false;
 let pinchActive = false;
@@ -34,6 +37,8 @@ export function cleanupInteraction() {
     pointerDown = false;
     pinchActive = false;
     activePointers.clear();
+
+    if (panUIHandle) { panUIHandle.destroy(); panUIHandle = null; }
 }
 
 export function enableInteraction(renderer, camera, controls) {
@@ -41,6 +46,19 @@ export function enableInteraction(renderer, camera, controls) {
 
     // Prevent default touch actions on canvas
     canvas.style.touchAction = 'none';
+
+    // Install overlay arrows on top of canvas-panel
+    const canvasPanel = document.getElementById('canvas-panel');
+    if (!panUIHandle && canvasPanel) {
+        panUIHandle = installPanArrows({ panelEl: canvasPanel, camera, controls, renderer, radiusFactor: 0.45 });
+
+        if (AppState.model) panUIHandle.updateRoot(AppState.model);
+        else if (AppState.skinMesh) panUIHandle.updateRoot(AppState.skinMesh);
+
+        document.addEventListener('manikin:ready', (e) => {
+            if (e?.detail?.root) panUIHandle.updateRoot(e.detail.root);
+        });
+    }
 
     // Pointer down: begin drawing
     eventIds.push(eventManager.add(canvas, 'pointerdown', (event) => {
@@ -97,6 +115,188 @@ export function enableInteraction(renderer, camera, controls) {
 
     eventIds.push(eventManager.add(window, 'pointerup', endPointer));
     eventIds.push(eventManager.add(window, 'pointercancel', endPointer));
+}
+
+export function installPanArrows({ panelEl, camera, controls, renderer, radiusFactor = 0.45 }) {
+    const overlay = document.createElement('div');
+    overlay.classList.add('overlay');
+
+    if (getComputedStyle(panelEl).position === 'static') panelEl.style.position = 'relative';
+
+    panelEl.appendChild(overlay);
+
+    const mkBtn = (aria, direction) => {
+        const b = document.createElement('button');
+        b.setAttribute('aria-label', aria);
+        b.className = 'button-pan';
+        b.style.transform = 'translate(-50%, -50%)';
+
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('width', '22');
+        svg.setAttribute('height', '22');
+
+        const chevron = document.createElementNS(svgNS, 'polyline');
+        chevron.setAttribute('fill', 'none');
+        chevron.setAttribute('stroke', 'currentColor');
+        chevron.setAttribute('stroke-width', '2.5');
+        chevron.setAttribute('stroke-linecap', 'round');
+        chevron.setAttribute('stroke-linejoin', 'round');
+
+        const pointsMap = {
+            up:    '18 15 12 9 6 15',
+            down:  '6 9 12 15 18 9',
+            left:  '15 6 9 12 15 18',
+            right: '9 6 15 12 9 18',
+        };
+        chevron.setAttribute('points', pointsMap[direction]);
+        svg.appendChild(chevron);
+        b.appendChild(svg);
+
+        return b;
+    };
+
+    const btnUp = mkBtn('Pan up', 'up');
+    const btnLeft = mkBtn('Pan left', 'left');
+    const btnRight = mkBtn('Pan right', 'right');
+    const btnDown = mkBtn('Pan down', 'down');
+
+    overlay.append(btnUp, btnDown, btnLeft, btnRight);
+
+    function setFixedPositions() {
+        const panelRect  = panelEl.getBoundingClientRect();
+        const canvasRect = renderer.domElement.getBoundingClientRect();
+
+        const ox = canvasRect.left - panelRect.left;   // canvas offset within panel
+        const oy = canvasRect.top  - panelRect.top;
+        const cx = ox + canvasRect.width  / 2;
+        const cy = oy + canvasRect.height / 2;
+        const m  = 36; // margin from canvas edge (px).
+
+        // top center (above head region)
+        btnUp.style.left  = `${cx}px`;
+        btnUp.style.top   = `${oy + m}px`;
+
+        // bottom center (near feet)
+        btnDown.style.left = `${cx}px`;
+        btnDown.style.top  = `${oy + canvasRect.height - m}px`;
+
+        // left middle (near left hand)
+        btnLeft.style.left = `${ox + m}px`;
+        btnLeft.style.top  = `${cy}px`;
+
+        // right middle (near right hand)
+        btnRight.style.left = `${ox + canvasRect.width - m}px`;
+        btnRight.style.top  = `${cy}px`;
+    }
+
+    // Recompute only when layout changes
+    const roPanel  = new ResizeObserver(setFixedPositions);
+    const roCanvas = new ResizeObserver(setFixedPositions);
+    roPanel.observe(panelEl);
+    roCanvas.observe(renderer.domElement);
+
+    // Call once now and again whenever you swap models
+    setFixedPositions();
+    
+    // Pan Bounds (anchor + radius) 
+    const bbox = new THREE.Box3();
+    const sphere = new THREE.Sphere();
+    const anchor = new THREE.Vector3();
+    const offset = new THREE.Vector3();
+    let maxPanRadius = 1;
+    let rootObj = null;
+
+    function updateRoot(root) {
+        if (!root) return;
+        rootObj = root;
+        bbox.setFromObject(rootObj);
+        bbox.getBoundingSphere(sphere);
+        anchor.copy(sphere.center);
+        maxPanRadius = Math.max(1e-6, radiusFactor * sphere.radius);
+
+        // Sensible zoom limits for this model scale
+        controls.minDistance = 0.6 * sphere.radius;
+        controls.maxDistance = 2.5 * sphere.radius;
+
+        camera.near = Math.min(0.02 * sphere.radius, 0.05);
+        camera.updateProjectionMatrix();
+
+        clampTarget();
+        controls.update();
+    }
+
+    function clampTarget() {
+        offset.copy(camera.position).sub(controls.target);
+        const v = controls.target.clone().sub(anchor);
+        const len = v.length();
+        if (len > maxPanRadius) {
+        v.setLength(maxPanRadius);
+        controls.target.copy(anchor).add(v);
+        camera.position.copy(controls.target).add(offset);
+        }
+    }
+
+    // Pan in screen space by N “pixels”
+    const tmp = new THREE.Vector3();
+    function panByPixels(deltaX, deltaY) {
+        if (AppState.isDrawing) return; // don’t pan while drawing
+
+        const element = renderer.domElement;
+
+        tmp.copy(camera.position).sub(controls.target);
+        let targetDistance = tmp.length();
+        targetDistance *= Math.tan((camera.fov * Math.PI / 180) / 2);
+
+        const moveX = (2 * targetDistance * deltaX) / element.clientHeight;
+        const moveY = (2 * targetDistance * deltaY) / element.clientHeight;
+
+        const viewDir = tmp.normalize(); // from target -> camera
+        const camRight = new THREE.Vector3().crossVectors(camera.up, viewDir).normalize();
+        const camUp = new THREE.Vector3().copy(camera.up).normalize();
+
+        const pan = new THREE.Vector3()
+        .addScaledVector(camRight, moveX)
+        .addScaledVector(camUp, moveY);
+
+        controls.target.add(pan);
+        camera.position.add(pan);
+
+        clampTarget();
+        controls.update();
+    }
+
+    // Hold-to-pan
+    function attachHold(btn, dx, dy) {
+        let raf = 0;
+        const stepPx = 24;
+        const tick = () => { panByPixels(dx * stepPx, dy * stepPx); raf = requestAnimationFrame(tick); };
+        const start = (e) => { e.preventDefault(); if (!raf) tick(); };
+        const stop  = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
+
+        btn.addEventListener('pointerdown', start);
+        window.addEventListener('pointerup', stop);
+        btn.addEventListener('pointerleave', stop);
+        btn.addEventListener('pointercancel', stop);
+
+        // Single nudge
+        btn.addEventListener('click', (e) => { e.preventDefault(); panByPixels(dx * stepPx, dy * stepPx); });
+    }
+
+    attachHold(btnUp, 0, -1);
+    attachHold(btnDown, 0, 1);
+    attachHold(btnLeft, -1, 0);
+    attachHold(btnRight, 1, 0);
+
+    return {
+        updateRoot,
+        destroy() {
+            roPanel.disconnect();
+            roCanvas.disconnect();
+            overlay.remove();
+        }
+    };
 }
 
 export function setupCursorManagement() {
@@ -236,6 +436,8 @@ export function disableCursorManagement() {
     canvasPanel.style.cursor = 'default';
 }
 
+
+
 function updatePointer(event, canvas) {
     const rect = canvas.getBoundingClientRect();
     const clientX = event.clientX;
@@ -255,51 +457,5 @@ function handlePointerDown(camera, controls) {
         controls.enabled = false;
 
         drawAtPointer(camera, pointer, AppState.isErasing);
-    }
-}
-
-function handleDoubleTap(event, canvas, camera, controls) {
-    if (!AppState.model) return;
-
-    // Get pointer coordinates
-    const rect = canvas.getBoundingClientRect();
-
-    let clientX, clientY;
-
-    // Check if it's a touch event with changedTouches
-    if (event.changedTouches && event.changedTouches.length > 0) {
-        // For touchend, use changedTouches
-        clientX = event.changedTouches[0].clientX;
-        clientY = event.changedTouches[0].clientY;
-    } else if (event.touches && event.touches.length > 0) {
-        // For touchstart/touchmove, use touches
-        clientX = event.touches[0].clientX;
-        clientY = event.touches[0].clientY;
-    } else if (event.clientX !== undefined && event.clientY !== undefined) {
-        // For mouse events
-        clientX = event.clientX;
-        clientY = event.clientY;
-    } else {
-        // If we can't determine coordinates, exit
-        return;
-    }
-
-    const mouseX = ((clientX - rect.left) / rect.width) * 2 - 1;
-    const mouseY = -((clientY - rect.top) / rect.height) * 2 + 1;
-    const mouseVec = new THREE.Vector2(mouseX, mouseY);
-
-    const localRay = new THREE.Raycaster();
-    localRay.setFromCamera(mouseVec, camera);
-    const intersects = localRay.intersectObject(AppState.skinMesh, true);
-
-    if (intersects.length > 0) {
-        const point = intersects[0].point;
-        const direction = new THREE.Vector3().subVectors(point, camera.position).normalize();
-        const distance = camera.position.distanceTo(point);
-        const zoomFactor = 0.4;
-
-        camera.position.addScaledVector(direction, distance * zoomFactor);
-        controls.target.copy(point);
-        controls.update();
     }
 }
