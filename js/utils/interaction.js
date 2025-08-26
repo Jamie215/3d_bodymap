@@ -250,7 +250,7 @@ export function installPanArrows({ panelEl, camera, controls, renderer, radiusFa
         targetDistance *= Math.tan((camera.fov * Math.PI / 180) / 2);
 
         const moveX = (2 * targetDistance * deltaX) / element.clientHeight;
-        const moveY = (2 * targetDistance * deltaY) / element.clientHeight;
+        const moveY = -(2 * targetDistance * deltaY) / element.clientHeight;
 
         const viewDir = tmp.normalize(); // from target -> camera
         const camRight = new THREE.Vector3().crossVectors(camera.up, viewDir).normalize();
