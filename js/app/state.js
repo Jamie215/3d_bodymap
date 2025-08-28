@@ -13,6 +13,9 @@ const AppState = {
     globalUVMap: null,
     globalPixelBoneMap: null,
     faceBoneMap: null,
+    viewPivot: null,
+    viewRadius: null,
+    modelRoot: null
 };
 
 export default AppState;

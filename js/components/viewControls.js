@@ -1,3 +1,5 @@
+import AppState from "../app/state.js";
+
 export function createViewControls(controls, viewControlsPanel) {    
     const viewToolsContainer = document.createElement('div');
     viewToolsContainer.classList.add('view-tools-container');
@@ -101,8 +103,15 @@ export function createViewControls(controls, viewControlsPanel) {
     resetViewButton.classList.add('reset-view-button');
     resetViewButton.textContent = 'Reset My Body View';
     resetViewButton.addEventListener('click', () => {
-        controls.target.set(0, 1.0, 0);
-        controls.object.position.set(0, 1.0, 1.5);
+        const pivot  = (AppState.viewPivot && AppState.viewPivot.clone()) || new THREE.Vector3(0, 1, 0);
+        const radius = AppState.viewRadius || 1.0;
+        controls.target.copy(pivot);
+        // Put camera “front” at a comfortable distance
+        const camera = controls.object;
+        const dist = Math.max(controls.minDistance || 0, radius * 1.5);
+        camera.position.copy(pivot).add(new THREE.Vector3(0, 0, dist));
+        camera.lookAt(pivot);
+        camera.updateProjectionMatrix();
         controls.update();
     });
 
@@ -119,27 +128,44 @@ export function createViewControls(controls, viewControlsPanel) {
 
 // Camera reorientation logic
 function reorientCamera(direction, controls) {
-    const target = controls.target.clone();
-    const distance = controls.object.position.distanceTo(target);
-    const safe = Math.max(distance, controls.minDistance);
-    const offset = new THREE.Vector3();
+    const camera = controls.object;
 
-    switch (direction) {
-        case 'Front':
-            offset.set(0, 0, safe);
-            break;
-        case 'Back':
-            offset.set(0, 0, -safe);
-            break;
-        case 'Left':
-            offset.set(safe, 0, 0);
-            break;
-        case 'Right':
-            offset.set(-safe, 0, 0);
-            break;
+    // Use the centralized pivot & radius
+    const pivot  = (AppState.viewPivot && AppState.viewPivot.clone()) || controls.target.clone();
+    const radius = AppState.viewRadius || 1.0;
+
+    // Reset orbit axis to stop cutting through the mesh
+    controls.target.copy(pivot);
+
+    // Safe distance: not less than current zoom, minDistance, or ~1.2× radius
+    const currDist = camera.position.distanceTo(pivot);
+    const safeDist = Math.max(currDist, controls.minDistance || 0, radius * 1.2);
+
+    // Pick a direction, relative to model's world rotation if available
+    const root = AppState.modelRoot || AppState.model || AppState.skinMesh || null;
+    const qWorld = new THREE.Quaternion();
+    if (root) root.getWorldQuaternion(qWorld);
+
+    const dirMap = {
+        Front: new THREE.Vector3( 0, 0,  1),
+        Back:  new THREE.Vector3( 0, 0, -1),
+        Left:  new THREE.Vector3( 1, 0,  0),
+        Right: new THREE.Vector3(-1, 0,  0),
+    };
+    const dir = dirMap[direction].clone().applyQuaternion(qWorld).normalize();
+
+    // Move camera & look at pivot
+    camera.position.copy(pivot).addScaledVector(dir, safeDist);
+    camera.lookAt(pivot);
+
+    // Keep near/far reasonable to avoid near-plane slicing
+    const suggestedNear = Math.max(0.01, radius / 200);
+    const suggestedFar  = Math.max(safeDist + radius * 4, camera.far);
+    if (camera.near !== suggestedNear || camera.far !== suggestedFar) {
+        camera.near = suggestedNear;
+        camera.far  = suggestedFar;
+        camera.updateProjectionMatrix();
     }
 
-    controls.object.position.copy(target.clone().add(offset));
-    controls.object.lookAt(target);
     controls.update();
 }

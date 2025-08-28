@@ -50,7 +50,7 @@ export function enableInteraction(renderer, camera, controls) {
     // Install overlay arrows on top of canvas-panel
     const canvasPanel = document.getElementById('canvas-panel');
     if (!panUIHandle && canvasPanel) {
-        panUIHandle = installPanArrows({ panelEl: canvasPanel, camera, controls, renderer, radiusFactor: 0.45 });
+        panUIHandle = installPanArrows({ panelEl: canvasPanel, camera, controls, renderer, radiusFactor: 0.7 });
 
         if (AppState.model) panUIHandle.updateRoot(AppState.model);
         else if (AppState.skinMesh) panUIHandle.updateRoot(AppState.skinMesh);
@@ -117,7 +117,7 @@ export function enableInteraction(renderer, camera, controls) {
     eventIds.push(eventManager.add(window, 'pointercancel', endPointer));
 }
 
-export function installPanArrows({ panelEl, camera, controls, renderer, radiusFactor = 0.45 }) {
+export function installPanArrows({ panelEl, camera, controls, renderer, radiusFactor = 0.7 }) {
     const overlay = document.createElement('div');
     overlay.classList.add('overlay');
 
@@ -163,6 +163,29 @@ export function installPanArrows({ panelEl, camera, controls, renderer, radiusFa
     const btnDown = mkBtn('Pan down', 'down');
 
     overlay.append(btnUp, btnDown, btnLeft, btnRight);
+
+    function ensureCameraClearance() {
+        // Safety margin: either a fraction of model size or a multiple of near
+        const safety = Math.max(0.03 * sphere.radius, camera.near * 1.25);
+
+        // Current camera distance from the model’s center
+        const toCam = camera.position.clone().sub(anchor);
+        const dist  = toCam.length();
+        const minDist = sphere.radius + safety;
+
+        if (dist >= minDist) return;
+
+        const n = toCam.lengthSq() ? toCam.normalize() : new THREE.Vector3(0,0,1);
+        const overshoot = (minDist - dist) + (0.002 * sphere.radius); // tiny cushion
+        const k = 0.05;
+        const maxStep = 0.015 * sphere.radius;
+        const step = Math.min(overshoot * k, maxStep);
+
+        camera.position.addScaledVector(n, step);
+        controls.target.addScaledVector(n, step);
+        
+        controls.update();
+    }
 
     function setFixedPositions() {
         const panelRect  = panelEl.getBoundingClientRect();
@@ -214,10 +237,15 @@ export function installPanArrows({ panelEl, camera, controls, renderer, radiusFa
         bbox.setFromObject(rootObj);
         bbox.getBoundingSphere(sphere);
         anchor.copy(sphere.center);
+
+        AppState.viewPivot = anchor.clone();
+        AppState.viewRadius = sphere.radius;
+        AppState.modelRoot = rootObj;
+
         maxPanRadius = Math.max(1e-6, radiusFactor * sphere.radius);
 
         // Sensible zoom limits for this model scale
-        controls.minDistance = 0.6 * sphere.radius;
+        controls.minDistance = 0.19 * sphere.radius;
         controls.maxDistance = 2.5 * sphere.radius;
 
         camera.near = Math.min(0.02 * sphere.radius, 0.05);
@@ -232,11 +260,13 @@ export function installPanArrows({ panelEl, camera, controls, renderer, radiusFa
         const v = controls.target.clone().sub(anchor);
         const len = v.length();
         if (len > maxPanRadius) {
-        v.setLength(maxPanRadius);
-        controls.target.copy(anchor).add(v);
-        camera.position.copy(controls.target).add(offset);
+            v.setLength(maxPanRadius);
+            controls.target.copy(anchor).add(v);
+            camera.position.copy(controls.target).add(offset);
         }
     }
+
+    ensureCameraClearance();
 
     // Pan in screen space by N “pixels”
     const tmp = new THREE.Vector3();
@@ -264,6 +294,7 @@ export function installPanArrows({ panelEl, camera, controls, renderer, radiusFa
         camera.position.add(pan);
 
         clampTarget();
+        ensureCameraClearance();
         controls.update();
     }
 
