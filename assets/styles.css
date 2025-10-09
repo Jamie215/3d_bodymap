@@ -265,7 +265,7 @@ canvas {
 
 .size-indicator {
   position: absolute;
-  top: -0.5rem;
+  top: -0.25rem;
   left: 50%;
   transform: translateX(-50%);
   font-weight: 700;
@@ -708,10 +708,9 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: clamp(0.95rem, 1.25vw, 1.05rem);
   font-weight: 500;
   color: var(--primary-color);
-  background-color: rgba(200, 200, 200, 0.5);
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  /* margin-top: 0.75rem; */
+  background-color: rgba(2, 119, 189, 0.075);
+  padding: 0.5rem 2rem;
+  border-radius: 5rem;
 }
 
 /* =========================
@@ -1227,7 +1226,7 @@ input[type="range"]::-webkit-slider-thumb {
 @media (max-height: 900px) {
   .size-indicator {
     font-size: 1.1rem; /* Reduced from 1.25rem */
-    top: -1.5rem;
+    top: -1.25rem;
   }
   
   .vertical-slider-container {
