@@ -7,17 +7,73 @@ const mirroredRaycaster = new THREE.Raycaster();
 
 const colourPalette = d3.schemeObservable10;
 
+let idToRegionMap = null;
+let regionToIdMap = null;
+
+export async function initializeRegionMappings() {
+    try {
+        const response = await fetch('../../assets/region_id_mapping.json');
+        const mappingData = await response.json();
+
+        idToRegionMap = {};
+        for (const [id, region] of Object.entries(mappingData.id_to_region)) {
+            idToRegionMap[parseInt(id)] = region;
+        }
+        
+        regionToIdMap = mappingData.region_to_id;
+
+        AppState.regionToIdMap = regionToIdMap;
+        AppState.idToRegionMap = idToRegionMap;
+        
+    } catch (error) {
+        console.error("Failed to load vertex group mappings", error);
+        idToRegionMap = { 0 : "unassigned" };
+        regionToIdMap = {};
+    }
+}
+
+function getVertexRegion(regionIDAttr, vertexIndex) {
+    // Get the regionID for this vertex
+    const regionID = regionIDAttr.getX(vertexIndex);
+
+    return idToRegionMap[regionID] || null;
+}
+
+function getDominantRegionForFace(regionIDAttr, vertexA, vertexB, vertexC) {
+    const regionA = getVertexRegion(regionIDAttr, vertexA);
+    const regionB = getVertexRegion(regionIDAttr, vertexB);
+    const regionC = getVertexRegion(regionIDAttr, vertexC);
+
+    // Filter out null/unassigned
+    const regions = [regionA, regionB, regionC].filter(r => r && r !== "unassigned");
+    
+    if (regions.length === 0) return null;
+    
+    // Count occurrences
+    const counts = {};
+    regions.forEach(region => {
+        counts[region] = (counts[region] || 0) + 1;
+    });
+    
+    // Return most common
+    return Object.keys(counts).reduce((a, b) => 
+        counts[a] > counts[b] ? a : b
+    );
+}
+
 export function buildGlobalUVMap(geometry, canvasWidth, canvasHeight) {
     const indexAttr = geometry.index;
     const uvAttr = geometry.attributes.uv;
-    const skinIndex = geometry.attributes.skinIndex;
-    const skinWeight = geometry.attributes.skinWeight;
-    const bones = AppState.skinMesh.skeleton.bones;
-    const faceCount = indexAttr.count / 3;
+    const regionIDAttr = geometry.attributes._regionid;
 
-    const globalUVMap = new Map();
-    const globalPixelBoneMap = new Map();
-    const faceBoneMap = new Map();
+    if (!regionIDAttr) {
+        console.error("No regionID attribute available to identify location");
+    }
+
+    const faceCount = indexAttr.count / 3;
+    const globalUVMap = new Map(); // track which pixels can be drawn on
+    const globalPixelRegionMap = new Map(); // tracks which body part each UV pixel belongs
+    const faceRegionMap = new Map(); // tracks the dominant anatomical region for each 3D face of the mesh
 
     for (let faceIdx = 0; faceIdx < faceCount; faceIdx++) {
         const a = indexAttr.getX(faceIdx * 3);
@@ -28,33 +84,14 @@ export function buildGlobalUVMap(geometry, canvasWidth, canvasHeight) {
         const uvB = uvToPixel(uvAttr, b, canvasWidth, canvasHeight);
         const uvC = uvToPixel(uvAttr, c, canvasWidth, canvasHeight);
 
-        // Determine the dominant bone for this face
-        const dominantBone = getDominantBoneForVertex(a, skinIndex, skinWeight, bones);
-        faceBoneMap.set(faceIdx, dominantBone);
-
-        rasterizeTriangle(uvA, uvB, uvC, canvasWidth, canvasHeight, globalUVMap, globalPixelBoneMap, dominantBone);
+        // Determine the dominant region for this face
+        const dominantRegion = getDominantRegionForFace(regionIDAttr, a, b, c);
+        faceRegionMap.set(faceIdx, dominantRegion);
+        rasterizeTriangle(uvA, uvB, uvC, canvasWidth, canvasHeight, globalUVMap, globalPixelRegionMap, dominantRegion);
     }
 
-    return {globalUVMap, globalPixelBoneMap, faceBoneMap};
+    return {globalUVMap, globalPixelRegionMap, faceRegionMap};
 }
-
-function getDominantBoneForVertex(vertexIndex, skinIndex, skinWeight, bones) {
-    const boneIndices = [
-        skinIndex.getX(vertexIndex),
-        skinIndex.getY(vertexIndex),
-        skinIndex.getZ(vertexIndex),
-        skinIndex.getW(vertexIndex)
-    ];
-    const weights = [
-        skinWeight.getX(vertexIndex),
-        skinWeight.getY(vertexIndex),
-        skinWeight.getZ(vertexIndex),
-        skinWeight.getW(vertexIndex)
-    ];
-    const maxIndex = weights.indexOf(Math.max(...weights));
-    return bones[boneIndices[maxIndex]].name;
-}
-
 
 function uvToPixel(uvAttr, vertexIndex, canvasWidth, canvasHeight) {
     const u = uvAttr.getX(vertexIndex);
@@ -64,7 +101,8 @@ function uvToPixel(uvAttr, vertexIndex, canvasWidth, canvasHeight) {
     return { x, y };
 }
 
-function rasterizeTriangle(p0, p1, p2, canvasWidth, canvasHeight, globalUVMap, globalPixelBoneMap, dominantBone) {
+function rasterizeTriangle(p0, p1, p2, canvasWidth, canvasHeight, globalUVMap, globalPixelRegionMap, dominantRegion) {
+    // Paint-fill in the region of interest
     const minX = Math.max(0, Math.min(p0.x, p1.x, p2.x));
     const maxX = Math.min(canvasWidth - 1, Math.max(p0.x, p1.x, p2.x));
     const minY = Math.max(0, Math.min(p0.y, p1.y, p2.y));
@@ -83,7 +121,7 @@ function rasterizeTriangle(p0, p1, p2, canvasWidth, canvasHeight, globalUVMap, g
                         if (px < 0 || py < 0 || px >= canvasWidth || py >= canvasHeight) continue;
                         const key = `${px},${py}`;
                         globalUVMap.set(key, true);
-                        globalPixelBoneMap.set(key, dominantBone);
+                        globalPixelRegionMap.set(key, dominantRegion);
                     }
                 }
             }
@@ -99,7 +137,7 @@ function pointInTriangle(p, a, b, c) {
     return s >= 0 && t >= 0 && u >= 0;
 }
 
-export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitBone = null) { 
+export function drawAtUV(uv, canvas, context, radius, isErasing=false, hitRegion=null) { 
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     const cx = Math.floor(uv.x * canvas.width);
     const cy = Math.floor((1 - uv.y) * canvas.height);
@@ -125,6 +163,16 @@ export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitBone
         context.fillStyle = currentInstance.colour;
     }
 
+    // Check if the center pixel exists
+    for (let dx = -10; dx <= 10; dx++) {
+        for (let dy = -10; dy <= 10; dy++) {
+            const testKey = `${cx + dx},${cy + dy}`;
+            if (AppState.globalUVMap.has(testKey)) {
+                break;
+            }
+        }
+    }
+
     for (let py = 0; py < canvas.height; py++) {
         for (let px = 0; px < canvas.width; px++) {
             const offset = (py * canvas.width + px) * 4;
@@ -132,25 +180,45 @@ export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitBone
             if (alpha === 0) continue;
 
             const key = `${px},${py}`;
-            if (!AppState.globalUVMap.has(key)) continue;
-            if (hitBone && AppState.globalPixelBoneMap.get(key) !== hitBone) continue;
-            
+            if (!AppState.globalUVMap.has(key)) {
+                console.warn("Not within globalUVMap");
+                continue;
+            }
             if (isErasing && baseCtx) {
                 const basePixel = baseCtx.getImageData(px, py, 1, 1).data;
                 context.fillStyle = `rgba(${basePixel[0]},${basePixel[1]},${basePixel[2]},${basePixel[3] / 255})`;
             }
-            context.fillRect(px, py, 1, 1);    // Draw the pixel if it's within the mask and in the correct bone area.
+            context.fillRect(px, py, 1, 1);    // Draw the pixel if it's within the mask and in the correct area.
         }
     }
  }
 
 export function drawAtPointer(camera, pointer, isErasing = false) { 
-    if (!AppState.skinMesh) return;
+    if (!AppState.skinMesh) {
+        console.warn("Doesn't have a skinmesh");
+        return;
+    }
 
+    AppState.skinMesh.updateMatrixWorld(true);
+    
+    // Update raycaster with current camera parameters
     raycaster.setFromCamera(pointer, camera);
+    raycaster.near = camera.near;
+    raycaster.far = camera.far;
+
+    console.log('Camera near/far:', camera.near, camera.far);
+    console.log('Camera position:', camera.position);
+    console.log('Pointer:', pointer);
+
     const intersects = raycaster.intersectObject(AppState.skinMesh, true);
+    console.log('Intersects found:', intersects.length);
+
     if (intersects.length > 0) {
         const hit = intersects[0];
+        console.log('Hit point:', hit.point);
+        console.log('Hit UV:', hit.uv);
+        console.log('Hit faceIndex:', hit.faceIndex);
+        console.log('Hit region:', AppState.faceRegionMap?.get(hit.faceIndex));
         processHit(hit, isErasing);
 
         const distanceFromCenter = Math.abs(hit.point.x);
@@ -161,6 +229,9 @@ export function drawAtPointer(camera, pointer, isErasing = false) {
             const mirroredDir = raycaster.ray.direction.clone().multiply(new THREE.Vector3(-1, 1, 1));
 
             mirroredRaycaster.set(mirroredOrigin, mirroredDir);
+            mirroredRaycaster.near = camera.near;
+            mirroredRaycaster.far = camera.far;
+
             const mirroredHits = mirroredRaycaster.intersectObject(AppState.skinMesh, true);
             if (mirroredHits.length > 0) {
                 processHit(mirroredHits[0], isErasing);
@@ -173,35 +244,39 @@ function processHit(hit, isErasing) {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     const { canvas, context, texture } = currentInstance;
 
-    // Determine the dominant bone for this hit
-    const hitBone = AppState.faceBoneMap.get(hit.faceIndex);
+    // Determine the dominant vertex group for this hit
+    const hitRegion = AppState.faceRegionMap?.get(hit.faceIndex) || null;
+    // console.log(`Hit face ${hit.faceIndex} → region: ${hitRegion}`);
 
-    drawAtUV(hit.uv, canvas, context, AppState.brushRadius, isErasing, hitBone);
+    drawAtUV(hit.uv, canvas, context, AppState.brushRadius, isErasing, hitRegion);
 
     if (!isErasing) {
-        updateBoneMapFromHit(hit, currentInstance);
+        updateRegionMapFromHit(hit, currentInstance, hitRegion);
     } else {
-        eraseFromBoneMap(hit, currentInstance, AppState.brushRadius);
+        eraseFromRegionMap(hit, currentInstance, AppState.brushRadius, hitRegion);
     }
 
     texture.needsUpdate = true;
 }
 
-function updateBoneMapFromHit(hit, instance) {
-    const boneNames = [AppState.faceBoneMap.get(hit.faceIndex)];
+function updateRegionMapFromHit(hit, instance, regionName) {
     const x = Math.round(hit.uv.x * instance.canvas.width);
     const y = Math.round((1 - hit.uv.y) * instance.canvas.height);
     const key = `${x},${y}`;
 
-    for (const name of boneNames) {
-        instance.drawnBoneNames.add(name);
-        if (!instance.bonePixelMap[name]) instance.bonePixelMap[name] = new Set();
-        instance.bonePixelMap[name].add(key);
+    // Track drawn regions
+    instance.drawnRegionNames = instance.drawnRegionNames || new Set();
+    instance.drawnRegionNames.add(regionName);
+
+    // Track pixels per region
+    if(!instance.regionPixelMap) instance.regionPixelMap = {};
+    if (!instance.regionPixelMap[regionName]) {
+        instance.regionPixelMap[regionName] = new Set();
     }
+    instance.regionPixelMap[regionName].add(key);
 }
 
-function eraseFromBoneMap(hit, instance, radius) {
-    const boneNames = [AppState.faceBoneMap.get(hit.faceIndex)];
+function eraseFromRegionMap(hit, instance, radius, regionName) {
     const x = Math.round(hit.uv.x * instance.canvas.width);
     const y = Math.round((1 - hit.uv.y) * instance.canvas.height);
 
@@ -214,14 +289,12 @@ function eraseFromBoneMap(hit, instance, radius) {
             if (px < 0 || py < 0 || px >= instance.canvas.width || py >= instance.canvas.height) continue;
 
             const eraseKey = `${px},${py}`;
-            for (const name of boneNames) {
-                const pixelSet = instance.bonePixelMap[name];
-                if (pixelSet) {
-                    pixelSet.delete(eraseKey);
-                    if (pixelSet.size === 0) {
-                        delete instance.bonePixelMap[name];
-                        instance.drawnBoneNames.delete(name);
-                    }
+            const pixelSet = instance.regionPixelMap?.[regionName];
+            if (pixelSet) {
+                pixelSet.delete(eraseKey);
+                if (pixelSet.size === 0) {
+                    delete instance.regionPixelMap[regionName];
+                    instance.drawnRegionNames.delete(regionName);
                 }
             }
         }
@@ -237,8 +310,8 @@ export function addNewDrawingInstance() {
         canvas: textureBundle.canvas,
         context: textureBundle.context,
         texture: textureBundle.texture,
-        drawnBoneNames: new Set(),
-        bonePixelMap: {},
+        drawnRegionNames: new Set(),
+        regionPixelMap: {},
         questionnaireData: null,
         uvDrawingData: null,
         colour: colourPalette[AppState.drawingInstances.length % colourPalette.length],
@@ -246,7 +319,6 @@ export function addNewDrawingInstance() {
     };
 
     // Change the 10th colour from the colourPalette
-    console.log(AppState.drawingInstances.length % colourPalette.length);
     if (AppState.drawingInstances.length % colourPalette.length === 9) {
         newInstance.colour = '#333399';
     }
@@ -308,19 +380,10 @@ export function updateCurrentDrawing() {
     material.needsUpdate = true;
     currentInstance.texture.needsUpdate = true;
 
-    const pixelMap = currentInstance.bonePixelMap;
-    currentInstance.drawnBoneNames = new Set(
-        Object.keys(pixelMap).filter(bone => pixelMap[bone].size > 0)
+    const pixelMap = currentInstance.regionPixelMap;
+    currentInstance.drawnRegionNames = new Set(
+        Object.keys(pixelMap).filter(group => pixelMap[group].size > 0)
     );
-
-    // Update the drawing view instance specific text
-    const statusBar = document.getElementById('drawing-status-bar');
-    const continueButton = document.getElementById('continue-drawing');
-    if (statusBar) {
-        const current = AppState.currentDrawingIndex + 1;
-        statusBar.innerHTML = `Add Your ${current}${getOrdinal(current)} Area of Pain or Symptom`;
-        continueButton.innerHTML = `Go to ${current}${getOrdinal(current)} Area Questions`;
-    }
 }
 
 function getOrdinal(n) {

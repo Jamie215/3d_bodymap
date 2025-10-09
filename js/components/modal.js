@@ -91,7 +91,7 @@ export function getModalElements(modalType) {
   }
 }
 
-export function showDrawContinueModal(text, previewVisible, previewDataURL = null) {
+export function showMoveToSurveyModal(text, previewVisible, previewDataURL = null) {
   modalText.textContent = text;
   modalContinueButton.disabled = !previewVisible;
   modalContinueButton.classList.toggle('disabled', !previewVisible);

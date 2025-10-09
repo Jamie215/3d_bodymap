@@ -1,18 +1,20 @@
 // appController.js
 import { loadModel, cleanupAllModels } from '../services/modelLoader.js';
-import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance, buildGlobalUVMap } from '../services/drawingEngine.js';
+import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance, buildGlobalUVMap, initializeRegionMappings } from '../services/drawingEngine.js';
 import texturePool from '../utils/textureManager.js';
 import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement } from '../utils/interaction.js';
 import { applyCustomTheme, customTheme } from '../utils/questionnaires_theme.js';
 import { surveyJson } from '../utils/questionnaires.js';
-import { getModalElements, showDrawContinueModal, hideDrawContinueModal } from '../components/modal.js';
+import { getModalElements, showMoveToSurveyModal, hideDrawContinueModal } from '../components/modal.js';
 import SurveyKO from "https://cdn.skypack.dev/survey-knockout";
-import AppState from '../app/state.js';
+import AppState from './state.js';
 import eventManager from './eventManager.js';
+import CameraUtils from '../utils/cameraUtils.js';
 
 export function initApp({ scene, camera, renderer, controls, views, registerModelSelectionHandler, setStage }) {
   const { summary, selection, drawing, survey } = views;
   const { modalContinueButton, modalReturnButton } = getModalElements("continue");
+  let cameraUtils = null;
 
   const handleModelSelection = async(model) => {
     summary.addNewInstanceButton.disabled = true;
@@ -20,14 +22,22 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     await loadModel(model.file, model.name, scene, controls);
 
-    const { globalUVMap, globalPixelBoneMap, faceBoneMap } = buildGlobalUVMap(
+    // Initialize CameraUtils after model loads
+    if (AppState.skinMesh && !cameraUtils) {
+      cameraUtils = new CameraUtils(camera, controls, AppState.skinMesh);
+      AppState.cameraUtils = cameraUtils;
+    }
+    
+    await initializeRegionMappings();
+
+    const { globalUVMap, globalPixelRegionMap, faceRegionMap } = buildGlobalUVMap(
         AppState.skinMesh.geometry,
         texturePool.width,
         texturePool.height
     );
     AppState.globalUVMap = globalUVMap;
-    AppState.globalPixelBoneMap = globalPixelBoneMap;
-    AppState.faceBoneMap = faceBoneMap;
+    AppState.globalPixelRegionMap = globalPixelRegionMap;
+    AppState.faceRegionMap = faceRegionMap;
 
     summary.addNewInstanceButton.disabled = false;
     selection.addNewInstanceButton.disabled = false;
@@ -35,7 +45,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   };
 
   registerModelSelectionHandler(handleModelSelection);
-  const initialModel = { name: 'Type 1', file: './assets/female_young_avgheight2.glb' };
+  const initialModel = { name: 'Type 2', file: './assets/male_young_avgheight.glb' };
   handleModelSelection(initialModel);
 
   function animate() {
@@ -45,9 +55,20 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   }
   animate();
 
+  let regionDropdownListener = null;
+
   // Stage routing
   function goTo(stage) {
     setStage(stage);
+
+     // Clean up dropdown listener when leaving drawing view
+    if (stage !== 'drawing' && regionDropdownListener) {
+      const dropdown = document.querySelector('.region-dropdown');
+      if (dropdown) {
+        dropdown.removeEventListener('change', regionDropdownListener);
+        regionDropdownListener = null;
+      }
+    }
 
     if (stage !== 'drawing') {
       cleanupInteraction();
@@ -59,9 +80,9 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     switch (stage) {
       case 'summary': {
-        //Reset view
+        // Reset view
         controls.target.set(0, 1.0, 0);
-        controls.object.position.set(0, 1.0, 1.5);
+        controls.object.position.set(0, 1.0, 1.75);
         controls.update();
 
         if (AppState.skinMesh && AppState.baseTextureTexture) {
@@ -98,6 +119,20 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
           currentInstance.initialized = true;
           currentInstance.texture.needsUpdate = true;
         }
+        
+        updateDrawingNavigationButtons();
+        views.drawing.updateStatusBar();
+
+        setTimeout(() => {
+          const regionDropdown = document.querySelector('.region-dropdown');
+          if (regionDropdown && !regionDropdownListener) {
+            regionDropdownListener = (e) => {
+              if (cameraUtils) cameraUtils.focusOnRegion(e.target.value);
+            };
+            regionDropdown.addEventListener('change', regionDropdownListener);
+          }
+        }, 100);
+
         break;
       }
 
@@ -123,16 +158,130 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     goTo('drawing');
   })
 
+  function navigateToDrawing(index) {
+    if(index < 0 || index >= AppState.drawingInstances.length) return;
+
+    // Save current drawing before switching
+    AppState.currentDrawingIndex = index;
+    updateCurrentDrawing();
+    updateDrawingNavigationButtons();
+    drawing.updateStatusBar();
+
+    // Update the texture on the model
+    const currentInstance = AppState.drawingInstances[index];
+    if (AppState.skinMesh && currentInstance) {
+      AppState.skinMesh.material.map = currentInstance.texture;
+      AppState.skinMesh.material.needsUpdate = true;
+      currentInstance.texture.needsUpdate = true;
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  // Updated button visibility logic
+  function updateDrawingNavigationButtons() {
+    const current = AppState.currentDrawingIndex;
+    const total = AppState.drawingInstances.length;
+
+    // Disable previous button for first drawing
+    drawing.prevAreaButton.disabled = current === 0;
+    
+    // Update next button based on position
+    if (current < total - 1) {
+        // In the middle - show "Next Area"
+        drawing.nextAreaButton.textContent = 'Next Area →';
+        drawing.nextAreaButton.style.display = 'inline-block';
+    } else {
+        // On the last drawing - show "Add Next Area"
+        drawing.nextAreaButton.textContent = '+ Add Next Area';
+        drawing.nextAreaButton.style.display = 'inline-block';
+    }
+  }
+
+  drawing.prevAreaButton.addEventListener('click', () => {
+    // Show previous drawing
+    navigateToDrawing(AppState.currentDrawingIndex - 1);
+  })
+  drawing.nextAreaButton.addEventListener('click', () => {
+    const current = AppState.currentDrawingIndex;
+    const total = AppState.drawingInstances.length;
+
+    if (current === total - 1) {
+      // On last drawing - check if it's blank before adding new
+      if (isDrawingBlank()) {
+        showMoveToSurveyModal("Please draw on the current area before adding a new one.", false);
+        return;
+      }
+      // Add new drawing instance
+      addNewDrawingInstance();
+      navigateToDrawing(AppState.drawingInstances.length - 1);
+    } else {
+      // Navigate to existing next drawing
+      navigateToDrawing(current + 1);
+    }
+  })
+  
   drawing.continueButton.addEventListener('click', () => {
-    if (isDrawingBlank()) {
-      showDrawContinueModal("No drawing has been found!", false);
+    // Check if any drawings exist
+    let originalIndex = AppState.currentDrawingIndex;
+    const hasDrawings = AppState.drawingInstances.some((instance, idx) => {
+      AppState.currentDrawingIndex = idx;
+      return !isDrawingBlank();
+    });
+
+    AppState.currentDrawingIndex = originalIndex;
+
+    if (!hasDrawings) {
+      showMoveToSurveyModal("Please draw at least one area before continuing.", false);
       return;
     }
 
     updateCurrentDrawing();
 
+    // Generate preview showing all drawing combined
     setTimeout(() => {
-      // generate preview without permanently changing the renderer sizing
+      const combinedCanvas = document.createElement('canvas');
+      combinedCanvas.width = texturePool.width;
+      combinedCanvas.height = texturePool.height;
+      const ctx = combinedCanvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
+
+      AppState.drawingInstances.forEach(instance => {
+        // Create a temporary canvas to extract just the drawing
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = instance.canvas.width;
+        tempCanvas.height = instance.canvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        // Copy the instance canvas
+        tempCtx.drawImage(instance.canvas, 0, 0);
+        
+        // Get pixel data
+        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+        const pixels = imageData.data;
+        
+        // Make white pixels transparent
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i] === 255 && pixels[i+1] === 255 && pixels[i+2] === 255) {
+            pixels[i+3] = 0; // Make white pixels transparent
+          }
+        }
+    
+        // Put modified image back
+        tempCtx.putImageData(imageData, 0, 0);
+        ctx.drawImage(tempCanvas, 0, 0);
+      });
+
+      const tempTexture = new THREE.CanvasTexture(combinedCanvas);
+      tempTexture.needsUpdate = true;
+
+      if (AppState.skinMesh) {
+        AppState.skinMesh.material.map = tempTexture;
+        AppState.skinMesh.material.needsUpdate = true;
+      }
+
       const previewWidth = 400;
       const previewHeight = 350;
       const originalSize = renderer.getSize(new THREE.Vector2());
@@ -143,43 +292,23 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       renderer.render(scene, camera);
       const dataURL = renderer.domElement.toDataURL('image/png');
 
-      // restore
+      // Restore original texture and size
       renderer.setSize(originalSize.x, originalSize.y, false);
       renderer.setPixelRatio(originalPixelRatio);
+
+      if (AppState.skinMesh) {
+        const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+        AppState.skinMesh.material.map = currentInstance.texture;
+        AppState.skinMesh.material.needsUpdate = true;
+      }
+
       renderer.render(scene, camera);
 
-      showDrawContinueModal("Does this represent your intended pain/symptom area?", true, dataURL);
+      const totalAreas = AppState.drawingInstances.length;
+      showMoveToSurveyModal(`You have drawn ${totalAreas} area${totalAreas > 1? 's':''}.\nDoes this represent your intended pain/symptom area?`, true, dataURL);
     }, 100);
-
-    // const regionBoneList = [...AppState.drawingInstances[AppState.currentDrawingIndex].drawnBoneNames];
-    
-    // if (regionBoneList.length > 0) {
-    //   AppState.drawingInstances[AppState.currentDrawingIndex].boneNames = regionBoneList;
-    //   focusCameraOnBones(regionBoneList);
-
-    //   setTimeout(() => {
-    //     // generate preview without permanently changing the renderer sizing
-    //     const previewWidth = 400;
-    //     const previewHeight = 350;
-    //     const originalSize = renderer.getSize(new THREE.Vector2());
-    //     const originalPixelRatio = renderer.getPixelRatio();
-
-    //     renderer.setSize(previewWidth, previewHeight, false);
-    //     renderer.setPixelRatio(1);
-    //     renderer.render(scene, camera);
-    //     const dataURL = renderer.domElement.toDataURL('image/png');
-
-    //     // restore
-    //     renderer.setSize(originalSize.x, originalSize.y, false);
-    //     renderer.setPixelRatio(originalPixelRatio);
-    //     renderer.render(scene, camera);
-
-    //     showDrawContinueModal("Does this represent your intended pain/symptom area?", true, dataURL);
-    //   }, 100);
-    // } else {
-    //   showDrawContinueModal("Does this represent your intended pain/symptom area?", false);
-    // }
   });
+
 
   modalContinueButton.addEventListener('click', () => {
     hideDrawContinueModal();
@@ -189,7 +318,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   });
   modalReturnButton.addEventListener('click', () => hideDrawContinueModal());
 
-  survey.returnDrawingButton.addEventListener('click', () => goTo('drawing'));
+  survey.prevButton.addEventListener('click', () => goTo('drawing'));
 
   // Set initial view
   goTo('summary');
@@ -245,32 +374,9 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     });
   }
 
-  function focusCameraOnBones(boneNames) {
-    const mesh = AppState.skinMesh;
-    if(!mesh || !mesh.skeleton) return;
-
-    const boneList = mesh.skeleton.bones.filter(b => boneNames.includes(b.name));
-    if (boneList.length === 0) return;
-
-    const center = new THREE.Vector3();
-    boneList.forEach(bone => {
-      const pos = new THREE.Vector3();
-      bone.getWorldPosition(pos);
-      center.add(pos);
-    });
-    center.divideScalar(boneList.length);
-
-    const distance = camera.position.distanceTo(controls.target);
-    const direction = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
-    const newPosition = center.clone().addScaledVector(direction, distance * 0.7);
-
-    camera.position.copy(newPosition);
-    controls.target.copy(center);
-    controls.update();
-  }
-
   // Cleanup
   window.cleanupApplication = () => {
+    if (cameraUtils) cameraUtils.dispose();
     cleanupInteraction();
     cleanupAllModels();
     if (renderer) renderer.dispose();

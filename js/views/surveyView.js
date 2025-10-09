@@ -1,4 +1,6 @@
 // surveyView.js
+import AppState from '../app/state.js';
+
 export function createSurveyViewElements() {
   const surveyView = document.createElement('div');
   surveyView.id = 'survey-view';
@@ -9,11 +11,23 @@ export function createSurveyViewElements() {
   const surveyInnerContainer = document.createElement('div');
   surveyInnerContainer.id = 'survey-inner';
 
-  const returnDrawingButton = document.createElement('button');
-  returnDrawingButton.innerHTML = '← Return to Drawing';
-  returnDrawingButton.classList.add('button', 'button-secondary', 'return-button');
+  const prevButton = document.createElement('button');
+  prevButton.textContent = '← Previously Drawn Area';
+  prevButton.classList.add('button', 'button-secondary', 'return-button');
 
-  surveyPanel.appendChild(returnDrawingButton);
+  const statusBar = document.createElement('div');
+  statusBar.id = 'survey-status-bar';
+
+  function updateStatusBar() {
+    const current = AppState.currentDrawingIndex + 1;
+    const total = AppState.drawingInstances.length;
+    statusBar.innerHTML = `
+      <span style="font-size: var(--min-font-size);color: var(--primary-color)"> Area ${current} of ${total}</span>
+      `;
+  }
+
+  surveyPanel.appendChild(statusBar);
+  surveyPanel.appendChild(prevButton);
   surveyPanel.appendChild(surveyInnerContainer);
   surveyView.appendChild(surveyPanel);
 
@@ -21,6 +35,8 @@ export function createSurveyViewElements() {
     root: surveyView,
     surveyPanel,
     surveyInnerContainer,
-    returnDrawingButton
+    prevButton,
+    statusBar,
+    updateStatusBar
   };
 }

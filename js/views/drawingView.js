@@ -1,6 +1,7 @@
 // drawingView.js
 import { createDrawingControls } from '../components/drawingControls.js';
 import { createViewControls } from '../components/viewControls.js';
+import AppState from '../app/state.js';
 
 export function createDrawingViewElements(controls) {
   const drawingView = document.createElement('div');
@@ -21,23 +22,48 @@ export function createDrawingViewElements(controls) {
 
   const statusBar = document.createElement('div');
   statusBar.id = 'drawing-status-bar';
-  statusBar.innerHTML = 'Add ONE of your main areas of pain or symptom at a time';
+
+  function updateStatusBar() {
+    const current = AppState.currentDrawingIndex + 1;
+    const total = AppState.drawingInstances.length;
+    statusBar.innerHTML = `<span style="font-size: var(--h2-font-size)">Add ONE of your main areas of pain or symptom at a time. Click "Add Next Area" to add the next one</span>
+      <span style="font-size: var(--min-font-size);color: var(--primary-color)">You are drawing Area #${current}</span>
+      `;
+  }
+  
+  updateStatusBar();
 
   const drawingFooter = document.createElement('div');
   drawingFooter.id = 'footer-drawing';
   drawingFooter.classList.add('footer');
 
+  const drawingNavContainer = document.createElement('div');
+  drawingNavContainer.classList.add('drawing-nav');
+
+  const prevAreaButton = document.createElement('button');
+  prevAreaButton.id = 'previous-drawing'
+  prevAreaButton.textContent = '← Previous Area'
+  prevAreaButton.classList.add('button', 'button-secondary', 'button-drawing-nav');
+
+  const nextAreaButton = document.createElement('button');
+  nextAreaButton.id = 'next-drawing';
+  nextAreaButton.textContent = 'Add Next Area';
+  nextAreaButton.classList.add('button', 'button-primary', 'button-drawing-nav');
+
   const continueButton = document.createElement('button');
-  continueButton.id = 'continue-drawing';
-  continueButton.textContent = 'Go to Area Questions';
-  continueButton.classList.add('button', 'button-primary');
+  continueButton.textContent = "I've Added All Areas";
+  continueButton.classList.add('button', 'button-success');
+
+  drawingNavContainer.appendChild(prevAreaButton);
+  drawingNavContainer.appendChild(nextAreaButton);
+  drawingFooter.appendChild(drawingNavContainer);
   drawingFooter.appendChild(continueButton);
 
-  drawingMainRow.appendChild(drawingControlsPanel);
-  drawingMainRow.appendChild(drawingCanvasPanel);
   drawingMainRow.appendChild(viewControlsPanel);
+  drawingMainRow.appendChild(drawingCanvasPanel);
+  drawingMainRow.appendChild(drawingControlsPanel);
 
-  drawingView.appendChild(statusBar);
+  // drawingView.appendChild(statusBar);
   drawingView.appendChild(drawingMainRow);
   drawingView.appendChild(drawingFooter);
 
@@ -50,7 +76,10 @@ export function createDrawingViewElements(controls) {
     drawingCanvasPanel,
     viewControlsPanel,
     drawingFooter,
+    prevAreaButton,
+    nextAreaButton,
     continueButton,
-    statusBar
+    statusBar,
+    updateStatusBar
   };
 }

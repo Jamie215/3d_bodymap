@@ -8,6 +8,7 @@ import { createSummaryView } from '../views/summaryView.js';
 import { createSurveyViewElements } from '../views/surveyView.js';
 
 // Grab predefined slots from index.html
+const slotHeader = document.querySelector('.slot-header');
 const slotLeft = document.querySelector('.slot-left');
 const slotRight = document.querySelector('.slot-right');
 const slotCanvas = document.querySelector('.slot-canvas');
@@ -151,6 +152,7 @@ function setStage(stage) {
   document.documentElement.setAttribute('data-stage', stage);
 
   // Clear slots
+  slotHeader.innerHTML = '';
   slotLeft.innerHTML = '';
   slotRight.innerHTML = '';
   slotFooter.innerHTML = '';
@@ -174,12 +176,11 @@ function setStage(stage) {
       break;
     case 'drawing':
       if (isSmallWidth()) {
+        slotHeader.appendChild(drawing.statusBar);
         const { leftFab, rightFab } = ensureFooterFabs(slotFooter);
         const drawers = ensureDrawers();
-
-        drawers.leftContent.replaceChildren(drawing.drawingControlsPanel);
-        drawers.rightContent.replaceChildren(drawing.viewControlsPanel);
-        
+        drawers.leftContent.replaceChildren(drawing.viewControlsPanel);
+        drawers.rightContent.replaceChildren(drawing.drawingControlsPanel);
         slotFooter.appendChild(drawing.drawingFooter);
 
         drawers.leftCloseBtn.onclick = () => closeDrawers(drawers);
@@ -209,8 +210,9 @@ function setStage(stage) {
         };
 
       } else {
-        slotLeft.appendChild(drawing.drawingControlsPanel);
-        slotRight.appendChild(drawing.viewControlsPanel);
+        slotHeader.appendChild(drawing.statusBar);
+        slotLeft.appendChild(drawing.viewControlsPanel);
+        slotRight.appendChild(drawing.drawingControlsPanel);
         slotFooter.appendChild(drawing.drawingFooter);
 
         const scrim = document.body.querySelector('.drawer-scrim');
