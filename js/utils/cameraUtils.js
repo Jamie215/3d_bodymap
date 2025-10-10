@@ -92,7 +92,6 @@ export default class CameraUtils {
                 footAreaRegionIds.add(regionId);
             }
         }
-        console.log('Region IDs found in right foot area:', Array.from(footAreaRegionIds).sort((a,b) => a-b));
 
         const targetRegionIds = new Set();
         for (const name of regionNames) {
@@ -408,6 +407,186 @@ export default class CameraUtils {
             radius: this.focusRadius,
             optimalDistance: this.optimalDistance
         };
+    }
+
+    findDominantBodyPart(drawnRegionNames) {
+        if (!drawnRegionNames || drawnRegionNames.size === 0) return null;
+
+        // Count how many specific regions belong to each body part
+        const bodyPartCounts = {};
+
+        for (const specificRegion of drawnRegionNames) {
+            for (const [bodyPart, regions] of Object.entries(this.regionMap)) {
+                if (regions.includes(specificRegion)) {
+                    bodyPartCounts[bodyPart] = (bodyPartCounts[bodyPart] || 0) + 1;
+                    break;
+                }
+            }
+        }
+
+        // Find body part with most drawn regions
+        let maxCount = 0;
+        let dominantBodyPart = null;
+
+        for (const [bodyPart, count] of Object.entries(bodyPartCounts)) {
+            if (count > maxCount) {
+                maxCount = count;
+                dominantBodyPart = bodyPart;
+            }
+        }
+
+        return dominantBodyPart;
+    }
+
+    analyzeDrawingOrientation(drawnRegionNames) {
+        if(!drawnRegionNames || drawnRegionNames.size === 0) {
+            return { side:'front', lateral: 'center', confidence: 0};
+        }
+
+        let anteriorCount = 0;
+        let posteriorCount = 0;
+        let lateralCount = 0;
+        let medialCount = 0;
+        let leftCount = 0;
+        let rightCount = 0;
+
+        for (const regionName of drawnRegionNames) {
+            if (regionName.includes('_ant')) anteriorCount++;
+            if (regionName.includes('_post')) posteriorCount ++;
+            if (regionName.includes('_lateral')) lateralCount++;
+            if (regionName.includes('_medial')) medialCount++;
+            if (regionName.includes('.L')) leftCount++;
+            if (regionName.includes('.R')) rightCount++;
+        }
+
+        const totalFrontBack = anteriorCount + posteriorCount;
+        const totalLeftRight = lateralCount + medialCount;
+
+        let side = 'front';
+        if (totalFrontBack > 0 && posteriorCount > anteriorCount) {
+            side = 'back';
+        }
+
+        let lateral = 'center';
+        if (totalLeftRight > 0  && lateralCount > medialCount*1.5) {
+            lateral = 'lateral';
+        }
+
+        let bodyHalf = 'center';
+        if (leftCount > rightCount * 1.2) {
+            bodyHalf = 'left';
+        } else if (rightCount > leftCount * 1.2) {
+            bodyHalf = 'right';
+        }
+
+        return {
+            side,
+            lateral,
+            bodyHalf,
+            confidence: totalFrontBack > 0 ? Math.max(anteriorCount, posteriorCount) / totalFrontBack : 0
+        };
+    }
+
+    focusOnDrawing(drawnRegionNames) {
+        if (!drawnRegionNames || drawnRegionNames.size === 0) {
+            this.resetView();
+            return;
+        }
+
+        const dominantBodyPart = this.findDominantBodyPart(drawnRegionNames);
+        if (!dominantBodyPart) {
+            console.warn('No dominant body part found');
+            this.resetView();
+            return;
+        }
+
+        const orientation = this.analyzeDrawingOrientation(drawnRegionNames);
+        console.log(`Focusing on ${dominantBodyPart}:`, {
+            side: orientation.side,
+            lateral: orientation.lateral,
+            bodyHalf: orientation.bodyHalf,
+            confidence: `${(orientation.confidence * 100).toFixed(0)}%`
+        });
+
+        const regions = this.regionMap[dominantBodyPart];
+        if(!regions) {
+            console.warn("Unknown region: ", dominantBodyPart);
+            this.resetView();
+            return;
+        }
+
+        const { center, box } = this.calculateRegionBounds(regions);
+        if(!center || !box) {
+            this.resetView();
+            return;
+        }
+
+        const optimalDistance = this.setFocus(dominantBodyPart, center, box);
+
+        let direction = this.calculateOptimalCameraDirection(dominantBodyPart, orientation);
+
+        const targetPosition = center.clone().addScaledVector(direction, optimalDistance);
+        this.moveTo(targetPosition, center, 800);
+    }
+
+    calculateOptimalCameraDirection(bodyPart, orientation) {
+        const { side, lateral, bodyHalf } = orientation;
+
+        // Special handling for feet
+        if (bodyPart.includes('Foot')) {
+            if (side === 'back' && lateral === 'lateral') {
+            // Back-lateral view of foot
+            if (bodyHalf === 'left') {
+                return new THREE.Vector3(-2, 1, -1).normalize(); // Left-back angle
+            } else if (bodyHalf === 'right') {
+                return new THREE.Vector3(2, 1, -1).normalize(); // Right-back angle
+            }
+            return new THREE.Vector3(0, 1, -2).normalize(); // Default back view
+        } else if (side === 'back') {
+            return new THREE.Vector3(0, 1, -2).normalize(); // Behind and above
+        } else if (lateral === 'lateral') {
+            // Lateral view of foot
+            if (bodyHalf === 'left') {
+                return new THREE.Vector3(-2, 1, 1).normalize(); // Left-front angle
+            } else if (bodyHalf === 'right') {
+                return new THREE.Vector3(2, 1, 1).normalize(); // Right-front angle
+            }
+        }
+            return new THREE.Vector3(0, 1, 2).normalize();
+        }
+
+        // For hands, arms, legs - consider lateral preference
+        if (lateral === 'lateral' && bodyHalf !== 'center') {
+            if (side === 'back') {
+                // Back-lateral combination
+                if (bodyHalf === 'left') {
+                    return new THREE.Vector3(-1, 0, -1).normalize(); // Look from left-back
+                } else {
+                    return new THREE.Vector3(1, 0, -1).normalize(); // Look from right-back
+                }
+            } else {
+                // Front-lateral combination
+                if (bodyHalf === 'left') {
+                    return new THREE.Vector3(-1, 0, 1).normalize(); // Look from left-front
+                } else {
+                    return new THREE.Vector3(1, 0, 1).normalize(); // Look from right-front
+                }
+            }
+        }
+        
+        // Pure lateral view (side view)
+        if (lateral === 'lateral' && bodyHalf === 'center') {
+            // Default to looking from the right side
+            return new THREE.Vector3(1, 0, 0);
+        }
+        
+        // Standard front/back views for body parts in the middle
+        if (side === 'back') {
+            return new THREE.Vector3(0, 0, -1); // Look from behind
+        }
+        
+        // Default front view
+        return new THREE.Vector3(0, 0, 1);
     }
     
     dispose() {

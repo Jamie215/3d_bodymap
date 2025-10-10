@@ -141,11 +141,9 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       }
 
       case 'survey': {
-        // Reset view
-        controls.target.set(0, 1.0, 0);
-        controls.object.position.set(0, 1.0, 1.75);
-        controls.update();
-
+        const currentInstance = AppState.drawingInstances[AppState.currentSurveyIndex];
+    
+        focusCameraOnDrawing(currentInstance);
         renderSurvey(survey.surveyInnerContainer);
         break;
       }
@@ -351,6 +349,24 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   });
   modalReturnButton.addEventListener('click', () => hideDrawContinueModal());
 
+  function focusCameraOnDrawing(drawingInstance) {
+    if (!cameraUtils || !drawingInstance) {
+      // Fallback to default view
+      controls.target.set(0, 1.0, 0);
+      controls.object.position.set(0, 1.0, 1.75);
+      controls.update();
+      return
+    }
+
+    if (drawingInstance.drawnRegionNames && drawingInstance.drawnRegionNames.size > 0) {
+      cameraUtils.focusOnDrawing(drawingInstance.drawnRegionNames);
+    } else {
+      controls.target.set(0,1,0);
+      controls.object.position.set(0,1,1.75);
+      controls.update();
+    }
+  }
+  
   function renderSurvey(container) {
     applyCustomTheme(customTheme);
 
@@ -445,6 +461,9 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     saveCurrentSurveyData();
 
     AppState.currentSurveyIndex = index;
+    
+    const currentInstance = AppState.drawingInstances[index];
+    focusCameraOnDrawing(currentInstance);
     survey.updateTitle();
     renderSurvey(survey.surveyInnerContainer);
   }
