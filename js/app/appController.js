@@ -109,17 +109,19 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
           const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
           const ctx = currentInstance.context;
 
-          if (!currentInstance.initialized) {
+          if (!currentInstance.initialized && !AppState.isEditingFromSurvey) {
             // Initialize drawing texture from base texture
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, currentInstance.canvas.width, currentInstance.canvas.height);
             if (AppState.baseTextureCanvas) ctx.drawImage(AppState.baseTextureCanvas, 0, 0);
+            currentInstance.initialized = true;
           }
 
           AppState.skinMesh.material.map = currentInstance.texture;
           AppState.skinMesh.material.needsUpdate = true;
-          currentInstance.initialized = true;
           currentInstance.texture.needsUpdate = true;
+
+          renderer.render(scene, camera);
         }
         
         updateDrawingNavigationButtons();
@@ -338,14 +340,10 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       const totalAreas = AppState.drawingInstances.length;
       showMoveToSurveyModal(`You have drawn ${totalAreas} area${totalAreas > 1? 's':''}.\nDoes this represent your intended pain/symptom area${totalAreas > 1? 's':''}?`, true, dataURL);
     }, 100);
-
-    AppState.currentSurveyIndex = 0;
-    cleanupInteraction();
-    disableCursorManagement();
-    goTo('survey');
   });
 
   modalContinueButton.addEventListener('click', () => {
+    AppState.currentSurveyIndex = 0;
     hideDrawContinueModal();
     cleanupInteraction();
     disableCursorManagement();
@@ -447,6 +445,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     saveCurrentSurveyData();
 
     AppState.currentSurveyIndex = index;
+    survey.updateTitle();
     renderSurvey(survey.surveyInnerContainer);
   }
 
@@ -491,6 +490,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     if (AppState.currentSurveyIndex < total-1) {
       navigateToSurvey(AppState.currentSurveyIndex + 1);
+
     } else {
       completeAllSurveys();
     }

@@ -46,11 +46,6 @@ export const surveyJson = {
           choices: ["Always there", "Comes and goes"],
           isRequired: true
         },
-      ]
-    },
-    {
-      name: "page2",
-      elements: [
         {
           type: "dropdown",
           name: "duration",
@@ -82,7 +77,7 @@ export const surveyJson = {
           maxLength: 200
         }
       ]
-    }
+    },
   ],
-  completeText: "Done"
+  showNavigationButtons: false
 };

@@ -13,10 +13,6 @@ export function createSurveyViewElements() {
 
   const surveyHeader = document.createElement('div');
   surveyHeader.id = 'survey-header';
-  surveyHeader.style.display = 'flex';
-  surveyHeader.style.alignItems = 'center';
-  surveyHeader.style.gap = '16px';
-  surveyHeader.style.marginBottom = '20px';
 
   const editDrawingButton = document.createElement('button');
   editDrawingButton.id = 'edit-drawing-button';
@@ -36,7 +32,7 @@ export function createSurveyViewElements() {
   surveyTitle.id = 'survey-title';
 
   function updateTitle() {
-    const current = AppState.currentDrawingIndex + 1;
+    const current = AppState.currentSurveyIndex + 1;
     surveyTitle.textContent = `Area #${current} Questionnaire`;
   }
 
@@ -57,7 +53,7 @@ export function createSurveyViewElements() {
   const nextAreaButton = document.createElement('button');
   nextAreaButton.id = 'next-drawing';
   nextAreaButton.textContent = 'Next Area Questionnaire';
-  nextAreaButton.classList.add('button', 'button-survey-nav');
+  nextAreaButton.classList.add('button', 'button-primary', 'button-survey-nav');
 
   surveyPanel.appendChild(surveyHeader);
   surveyPanel.appendChild(surveyInnerContainer);
