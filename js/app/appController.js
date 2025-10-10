@@ -57,6 +57,8 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
   let regionDropdownListener = null;
 
+  let surveyInstance = null;
+
   // Stage routing
   function goTo(stage) {
     setStage(stage);
@@ -137,6 +139,11 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       }
 
       case 'survey': {
+        // Reset view
+        controls.target.set(0, 1.0, 0);
+        controls.object.position.set(0, 1.0, 1.75);
+        controls.update();
+
         renderSurvey(survey.surveyInnerContainer);
         break;
       }
@@ -178,23 +185,38 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     renderer.render(scene, camera);
   }
 
-  // Updated button visibility logic
+  // Updated drawing view button logic
   function updateDrawingNavigationButtons() {
     const current = AppState.currentDrawingIndex;
     const total = AppState.drawingInstances.length;
 
-    // Disable previous button for first drawing
-    drawing.prevAreaButton.disabled = current === 0;
-    
-    // Update next button based on position
-    if (current < total - 1) {
-        // In the middle - show "Next Area"
-        drawing.nextAreaButton.textContent = 'Next Area →';
-        drawing.nextAreaButton.style.display = 'inline-block';
+    // Check if the drawing view from coming from survey view
+    if (AppState.isEditingFromSurvey) {
+      drawing.prevAreaButton.style.display = 'none';
+      drawing.nextAreaButton.style.display = 'none';
+
+      drawing.continueButton.textContent = 'Return to Survey';
     } else {
-        // On the last drawing - show "Add Next Area"
+      drawing.prevAreaButton.style.display = 'inline-block';
+      drawing.nextAreaButton.style.display = 'inline-block';
+
+      drawing.prevAreaButton.style.display = 'inline-block';
+      drawing.nextAreaButton.style.display = 'inline-block';
+      
+      // Disable previous button for first drawing
+      drawing.prevAreaButton.disabled = current === 0;
+      
+      // Update next button based on position
+      if (current < total - 1) {
+        drawing.nextAreaButton.textContent = 'Next Area →';
+      } else {
         drawing.nextAreaButton.textContent = '+ Add Next Area';
-        drawing.nextAreaButton.style.display = 'inline-block';
+      }
+      
+      // Reset continue button
+      drawing.continueButton.textContent = "I've Added All Areas";
+      drawing.continueButton.classList.remove('button-primary');
+      drawing.continueButton.classList.add('button-success');
     }
   }
 
@@ -223,13 +245,22 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   
   drawing.continueButton.addEventListener('click', () => {
     // Check if any drawings exist
-    let originalIndex = AppState.currentDrawingIndex;
+    // let originalIndex = AppState.currentDrawingIndex;
+    if (AppState.isEditingFromSurvey) {
+      updateCurrentDrawing();
+      AppState.isEditingFromSurvey = false;
+      AppState.currentDrawingIndex = AppState.currentSurveyIndex;
+      cleanupInteraction();
+      disableCursorManagement();
+      goTo('survey');
+      return;
+    }
     const hasDrawings = AppState.drawingInstances.some((instance, idx) => {
       AppState.currentDrawingIndex = idx;
       return !isDrawingBlank();
     });
 
-    AppState.currentDrawingIndex = originalIndex;
+    // AppState.currentDrawingIndex = originalIndex;
 
     if (!hasDrawings) {
       showMoveToSurveyModal("Please draw at least one area before continuing.", false);
@@ -305,10 +336,14 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       renderer.render(scene, camera);
 
       const totalAreas = AppState.drawingInstances.length;
-      showMoveToSurveyModal(`You have drawn ${totalAreas} area${totalAreas > 1? 's':''}.\nDoes this represent your intended pain/symptom area?`, true, dataURL);
+      showMoveToSurveyModal(`You have drawn ${totalAreas} area${totalAreas > 1? 's':''}.\nDoes this represent your intended pain/symptom area${totalAreas > 1? 's':''}?`, true, dataURL);
     }, 100);
-  });
 
+    AppState.currentSurveyIndex = 0;
+    cleanupInteraction();
+    disableCursorManagement();
+    goTo('survey');
+  });
 
   modalContinueButton.addEventListener('click', () => {
     hideDrawContinueModal();
@@ -318,21 +353,37 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   });
   modalReturnButton.addEventListener('click', () => hideDrawContinueModal());
 
-  survey.prevButton.addEventListener('click', () => goTo('drawing'));
-
-  // Set initial view
-  goTo('summary');
-
   function renderSurvey(container) {
-    const i = AppState.currentDrawingIndex;
     applyCustomTheme(customTheme);
 
-    const survey = new SurveyKO.Model(surveyJson);
-    container.innerHTML = '';
-    survey.css = { ...survey.css, root: "sv-root-modern sv-root-plain" };
-    survey.render(container);
+    // Create or reuse survey instance
+    if (!surveyInstance) {
+      surveyInstance = new SurveyKO.Model(surveyJson);
+      survey.css = { ...survey.css, root: "sv-root-modern sv-root-plain" };
+    }
 
-    survey.onAfterRenderQuestion.add(function (survey, options) {
+    const currentInstance = AppState.drawingInstances[AppState.currentSurveyIndex];
+    if (currentInstance.questionnaireData) {
+      surveyInstance.data = currentInstance.questionnaireData;
+    } else {
+      surveyInstance.clear();
+    }
+
+    // Update canvas to show current drawing
+    if (AppState.skinMesh && currentInstance) {
+      AppState.skinMesh.material.map = currentInstance.texture;
+      AppState.skinMesh.material.needsUpdate = true;
+      currentInstance.texture.needsUpdate = true;
+    }
+
+    survey.updateTitle();
+    updateSurveyNavigationButtons();
+
+    // Render survey
+    container.innerHTML = '';
+    surveyInstance.render(container);
+
+    surveyInstance.onAfterRenderQuestion.add(function (survey, options) {
       if (options.question.name !== "intensityScale") return;
 
       const questionEl = options.htmlElement;
@@ -360,19 +411,93 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       ratingContent.appendChild(layoutRow);
     });
 
-    survey.onComplete.add(sender => {
-      const canvas = AppState.drawingInstances[i].canvas;
-      AppState.drawingInstances[i].uvDrawingData = canvas.toDataURL('image/png');
-      AppState.drawingInstances[i].questionnaireData = sender.data;
-
-      if (AppState.baseTextureContext && AppState.baseTextureTexture) {
-        AppState.baseTextureContext.drawImage(canvas, 0, 0);
-        AppState.baseTextureTexture.needsUpdate = true;
-      }
-      AppState.baseTextureTexture.needsUpdate = true;
-      goTo('summary');
-    });
+    renderer.render(scene, camera);
   }
+
+  function updateSurveyNavigationButtons() {
+    const total = AppState.drawingInstances.length;
+
+    survey.prevAreaButton.disabled = AppState.currentSurveyIndex === 0;
+
+    // Update next button text and visiblity
+    if (AppState.currentSurveyIndex < total-1) {
+      survey.nextAreaButton.textContent = "Next Area Questionnaire →";
+    } else {
+      survey.nextAreaButton.textContent = 'Move to Main Questionnaires';
+    }
+  }
+
+  function saveCurrentSurveyData() {
+    if(!surveyInstance) return false;
+
+    // Validate current survey
+    if (!surveyInstance.isCurrentPageHasErrors) {
+      const currentInstance = AppState.drawingInstances[AppState.currentSurveyIndex];
+      const canvas = currentInstance.canvas;
+
+      currentInstance.questionnaireData = { ...surveyInstance.data };
+      currentInstance.uvDrawingData = canvas.toDataURL('image/png');
+      return true;
+    }
+    return false;
+  }
+
+  function navigateToSurvey(index) {
+    if (index < 0 || index >= AppState.drawingInstances.length) return;
+    saveCurrentSurveyData();
+
+    AppState.currentSurveyIndex = index;
+    renderSurvey(survey.surveyInnerContainer);
+  }
+
+  function completeAllSurveys() {
+    if(!saveCurrentSurveyData()) {
+      surveyInstance.validate();
+      return;
+    }
+
+    survey.surveyInnerContainer.textContent = "Survey Complete";
+
+    survey.editDrawingButton.style.display = 'none';
+    survey.prevAreaButton.style.display = 'none';
+    survey.nextAreaButton.style.display = 'none';
+
+    surveyInstance = null;
+    AppState.currentSurveyIndex = 0;
+  }
+
+  survey.editDrawingButton.addEventListener('click', () => {
+    saveCurrentSurveyData();
+
+    AppState.isEditingFromSurvey = true;
+    AppState.currentDrawingIndex = AppState.currentSurveyIndex;
+
+    goTo('drawing');
+  })
+
+  survey.prevAreaButton.addEventListener('click', () => {
+    if (AppState.currentSurveyIndex >= 1 ) {
+      navigateToSurvey(AppState.currentSurveyIndex - 1);
+    }
+  });
+
+  survey.nextAreaButton.addEventListener('click', () => {
+    const total = AppState.drawingInstances.length;
+
+    if (surveyInstance.isCurrentPageHasErrors) {
+      surveyInstance.validate();
+      return;
+    }
+
+    if (AppState.currentSurveyIndex < total-1) {
+      navigateToSurvey(AppState.currentSurveyIndex + 1);
+    } else {
+      completeAllSurveys();
+    }
+  });
+
+  // Set initial view
+  goTo('summary');
 
   // Cleanup
   window.cleanupApplication = () => {

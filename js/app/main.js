@@ -225,6 +225,7 @@ function setStage(stage) {
       break;
     case 'survey':
       slotRight.appendChild(survey.surveyPanel);
+      slotFooter.appendChild(survey.surveyFooter);
       break;
   }
 }

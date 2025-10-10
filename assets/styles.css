@@ -151,9 +151,11 @@ canvas {
 :root[data-stage="survey"] .slot-left  { display: none; }
 :root[data-stage="survey"] .slot-canvas,
 :root[data-stage="survey"] .slot-right { display: flex; }
-:root[data-stage="survey"] .slot-footer { display: none; }
+:root[data-stage="survey"] .slot-footer { display: flex; }
 :root[data-stage="survey"] .app-shell {
-  grid-template-areas: "center right";
+  grid-template-areas: 
+    "center right"
+    "footer footer";
   grid-template-columns: 1fr clamp(38rem, 60vw, 65rem) !important;
 }
 

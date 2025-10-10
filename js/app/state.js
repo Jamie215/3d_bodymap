@@ -18,7 +18,9 @@ const AppState = {
     viewPivot: null,
     viewRadius: null,
     modelRoot: null,
-    cameraUtils: null
+    cameraUtils: null,
+    currentSurveyIndex: 0,
+    isEditingFromSurvey: false
 };
 
 export default AppState;

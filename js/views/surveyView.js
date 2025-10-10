@@ -11,32 +11,67 @@ export function createSurveyViewElements() {
   const surveyInnerContainer = document.createElement('div');
   surveyInnerContainer.id = 'survey-inner';
 
-  const prevButton = document.createElement('button');
-  prevButton.textContent = '← Previously Drawn Area';
-  prevButton.classList.add('button', 'button-secondary', 'return-button');
+  const surveyHeader = document.createElement('div');
+  surveyHeader.id = 'survey-header';
+  surveyHeader.style.display = 'flex';
+  surveyHeader.style.alignItems = 'center';
+  surveyHeader.style.gap = '16px';
+  surveyHeader.style.marginBottom = '20px';
 
-  const statusBar = document.createElement('div');
-  statusBar.id = 'survey-status-bar';
+  const editDrawingButton = document.createElement('button');
+  editDrawingButton.id = 'edit-drawing-button';
+  editDrawingButton.classList.add('button', 'button-secondary');
+  
+  const editIcon = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
+      <path d="M12 20h9"></path>
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+    </svg>
+  `;
+  editDrawingButton.innerHTML = editIcon + '<span>Edit Drawing</span>';
+  editDrawingButton.style.display = 'inline-flex';
+  editDrawingButton.style.alignItems = 'center';
 
-  function updateStatusBar() {
+  const surveyTitle = document.createElement('h2');
+  surveyTitle.id = 'survey-title';
+
+  function updateTitle() {
     const current = AppState.currentDrawingIndex + 1;
-    const total = AppState.drawingInstances.length;
-    statusBar.innerHTML = `
-      <span style="font-size: var(--min-font-size);color: var(--primary-color)"> Area ${current} of ${total}</span>
-      `;
+    surveyTitle.textContent = `Area #${current} Questionnaire`;
   }
 
-  surveyPanel.appendChild(statusBar);
-  surveyPanel.appendChild(prevButton);
+  updateTitle();
+
+  surveyHeader.appendChild(editDrawingButton);
+  surveyHeader.appendChild(surveyTitle);
+
+  const surveyFooter = document.createElement('div');
+  surveyFooter.id = 'footer-survey';
+  surveyFooter.classList.add('footer');
+
+  const prevAreaButton = document.createElement('button');
+  prevAreaButton.id = 'previous-drawing'
+  prevAreaButton.textContent = '← Previous Area Questionnaire';
+  prevAreaButton.classList.add('button', 'button-secondary', 'button-survey-nav');
+
+  const nextAreaButton = document.createElement('button');
+  nextAreaButton.id = 'next-drawing';
+  nextAreaButton.textContent = 'Next Area Questionnaire';
+  nextAreaButton.classList.add('button', 'button-survey-nav');
+
+  surveyPanel.appendChild(surveyHeader);
   surveyPanel.appendChild(surveyInnerContainer);
-  surveyView.appendChild(surveyPanel);
+  surveyFooter.appendChild(prevAreaButton);
+  surveyFooter.appendChild(nextAreaButton);
 
   return {
     root: surveyView,
     surveyPanel,
     surveyInnerContainer,
-    prevButton,
-    statusBar,
-    updateStatusBar
+    surveyFooter,
+    editDrawingButton,
+    prevAreaButton,
+    nextAreaButton,
+    updateTitle
   };
 }

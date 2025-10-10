@@ -25,7 +25,6 @@ export function createDrawingViewElements(controls) {
 
   function updateStatusBar() {
     const current = AppState.currentDrawingIndex + 1;
-    const total = AppState.drawingInstances.length;
     statusBar.innerHTML = `<span style="font-size: var(--h2-font-size)">Add ONE of your main areas of pain or symptom at a time. Click "Add Next Area" to add the next one</span>
       <span style="font-size: var(--min-font-size);color: var(--primary-color)">You are drawing Area #${current}</span>
       `;
@@ -58,14 +57,6 @@ export function createDrawingViewElements(controls) {
   drawingNavContainer.appendChild(nextAreaButton);
   drawingFooter.appendChild(drawingNavContainer);
   drawingFooter.appendChild(continueButton);
-
-  drawingMainRow.appendChild(viewControlsPanel);
-  drawingMainRow.appendChild(drawingCanvasPanel);
-  drawingMainRow.appendChild(drawingControlsPanel);
-
-  // drawingView.appendChild(statusBar);
-  drawingView.appendChild(drawingMainRow);
-  drawingView.appendChild(drawingFooter);
 
   createDrawingControls(drawingControlsPanel);
   createViewControls(controls, viewControlsPanel);

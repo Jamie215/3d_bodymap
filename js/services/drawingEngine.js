@@ -206,19 +206,10 @@ export function drawAtPointer(camera, pointer, isErasing = false) {
     raycaster.near = camera.near;
     raycaster.far = camera.far;
 
-    console.log('Camera near/far:', camera.near, camera.far);
-    console.log('Camera position:', camera.position);
-    console.log('Pointer:', pointer);
-
     const intersects = raycaster.intersectObject(AppState.skinMesh, true);
-    console.log('Intersects found:', intersects.length);
 
     if (intersects.length > 0) {
         const hit = intersects[0];
-        console.log('Hit point:', hit.point);
-        console.log('Hit UV:', hit.uv);
-        console.log('Hit faceIndex:', hit.faceIndex);
-        console.log('Hit region:', AppState.faceRegionMap?.get(hit.faceIndex));
         processHit(hit, isErasing);
 
         const distanceFromCenter = Math.abs(hit.point.x);

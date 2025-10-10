@@ -97,16 +97,8 @@ export default class CameraUtils {
         const targetRegionIds = new Set();
         for (const name of regionNames) {
             const id = AppState.regionToIdMap?.[name];
-            console.log(`  "${name}" -> ID: ${id}`)
+            // console.log(`  "${name}" -> ID: ${id}`)
             if (id !== undefined) targetRegionIds.add(id);
-        }
-        console.log('Target region IDs:', Array.from(targetRegionIds).sort((a,b) => a-b));
-
-        // Find which IDs are in foot area but not in our target list
-        const missingIds = Array.from(footAreaRegionIds).filter(id => !targetRegionIds.has(id));
-        if (missingIds.length > 0) {
-            console.log('⚠️ Region IDs in foot area NOT in our mapping:', missingIds);
-            console.log('These correspond to regions:', missingIds.map(id => AppState.idToRegionMap?.[id] || 'unknown'));
         }
 
         if (targetRegionIds.size === 0) return {center:null, box:null};
@@ -124,8 +116,6 @@ export default class CameraUtils {
             }
         }
 
-        console.log('Found matching vertices:', points.length);
-
         if (points.length === 0) return {center:null, box:null};
 
         // Create box from local space points
@@ -138,10 +128,6 @@ export default class CameraUtils {
         
         const center = new THREE.Vector3();
         box.getCenter(center);
-        
-        console.log('Local box:', {min: localBox.min, max: localBox.max});
-        console.log('World box:', {min: box.min, max: box.max, center: center});
-
 
         return {center, box}
     }

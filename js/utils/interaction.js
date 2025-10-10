@@ -262,36 +262,12 @@ function handlePointerDown(camera, controls) {
     const bbox = AppState.skinMesh.geometry.boundingBox.clone();
     bbox.applyMatrix4(AppState.skinMesh.matrixWorld);
     
-    console.log('=== Full Diagnostic ===');
-    console.log('Camera pos:', camera.position);
-    console.log('Controls target:', controls.target);
-    console.log('Foot center (expected):', {
-        x: 0,
-        y: (bbox.min.y + bbox.max.y) / 2,
-        z: (bbox.min.z + bbox.max.z) / 2
-    });
-    console.log('Mesh bbox min:', bbox.min);
-    console.log('Mesh bbox max:', bbox.max);
-    
     raycaster.setFromCamera(pointer, camera);
     raycaster.near = camera.near;
     raycaster.far = camera.far;
     
-    console.log('Pointer NDC:', pointer);
-    console.log('Ray origin:', raycaster.ray.origin);
-    console.log('Ray direction (detailed):', {
-        x: raycaster.ray.direction.x,
-        y: raycaster.ray.direction.y,
-        z: raycaster.ray.direction.z
-    });
-    
-    // Calculate where we're aiming
-    const aimPoint = raycaster.ray.origin.clone().addScaledVector(raycaster.ray.direction, 1.0);
-    console.log('Aiming toward point at distance 1.0:', aimPoint);
-    console.log('Distance from aim point to target:', aimPoint.distanceTo(controls.target));
-    
+    // Calculate where we're aiming    
     const intersects = raycaster.intersectObject(AppState.skinMesh, true);
-    console.log('Intersects found:', intersects.length);
 
     if (intersects.length > 0) {
         AppState.isDrawing = true;
