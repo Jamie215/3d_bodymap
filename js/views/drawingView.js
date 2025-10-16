@@ -25,9 +25,28 @@ export function createDrawingViewElements(controls) {
 
   function updateStatusBar() {
     const current = AppState.currentDrawingIndex + 1;
-    statusBar.innerHTML = `<span style="font-size: var(--h2-font-size)">Add ONE of your main areas of pain or symptom at a time. Click "Add Next Area" to add the next one</span>
-      <span style="font-size: var(--min-font-size);color: var(--primary-color)">You are drawing Area #${current}</span>
-      `;
+    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+    const colour = currentInstance?.colour;
+
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 0, g: 0, b: 0 };
+    };
+
+    const rgb = hexToRgb(colour);
+    const bgColour = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.075)`;
+
+    if (AppState.isEditingFromSurvey) {
+      statusBar.innerHTML = `<span style="font-size: var(--h2-font-size); background-color: ${bgColour}; color: ${colour}; font-weight: 600;">You are editing Area #${current}</span>`;
+    } else {
+      statusBar.innerHTML = `<span style="font-size: var(--h2-font-size)">Add ONE of your main areas of pain or symptom at a time. Click "Add Next Area" to add the next one</span>
+        <span style="font-size: var(--min-font-size); color: ${colour}; background-color: ${bgColour}; display: inline-block; margin-top: 4px; font-weight: 600;">You are drawing Area #${current}</span>
+        `;
+    }
   }
   
   updateStatusBar();
@@ -42,12 +61,12 @@ export function createDrawingViewElements(controls) {
   const prevAreaButton = document.createElement('button');
   prevAreaButton.id = 'previous-drawing'
   prevAreaButton.textContent = '← Previous Area'
-  prevAreaButton.classList.add('button', 'button-secondary', 'button-drawing-nav');
+  prevAreaButton.classList.add('button', 'button-prev-nav', 'button-drawing-center');
 
   const nextAreaButton = document.createElement('button');
   nextAreaButton.id = 'next-drawing';
   nextAreaButton.textContent = 'Add Next Area';
-  nextAreaButton.classList.add('button', 'button-primary', 'button-drawing-nav');
+  nextAreaButton.classList.add('button', 'button-primary', 'button-drawing-center');
 
   const continueButton = document.createElement('button');
   continueButton.textContent = "I've Added All Areas";
@@ -67,6 +86,7 @@ export function createDrawingViewElements(controls) {
     drawingCanvasPanel,
     viewControlsPanel,
     drawingFooter,
+    drawingNavContainer,
     prevAreaButton,
     nextAreaButton,
     continueButton,

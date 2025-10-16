@@ -75,6 +75,177 @@ export const surveyJson = {
           name: "comment",
           title: "Is there anything else you would like to tell us about this pain or symptom? (Optional)",
           maxLength: 200
+        },
+        {
+          type: "radiogroup",
+          name: "mainArea",
+          title: "Is this your main area of pain or symptom?",
+          choices: ["Yes", "No"],
+          isRequired: true
+        },
+        {
+          type: "comment",
+          name: "makingWorse",
+          title: "What makes your pain or symptom worse?",
+          maxLength: 300,
+          visibleIf: "{mainArea} == Yes",
+          isRequired: true
+        },
+        {
+          type: "comment",
+          name: "makingBetter",
+          title: "What makes your pain or symptom better?",
+          maxLength: 300,
+          visibleIf: "{mainArea} == Yes",
+          isRequired: true
+        },
+        {
+          type: "radiogroup",
+          name: "timeNotExperiencing",
+          title: "Is there a time of day when you do not experience your pain or symptom?",
+          choices: ["Yes", "No"],
+          visibleIf: "{mainArea} == Yes",
+          isRequired: true
+        },
+        {
+          type: "checkbox",
+          name:"timeNotExperiencingDetail",
+          title: "If YES, when?",
+          description: "Please check ALL that apply.",
+          choices: [
+            { 
+              "value": "start-of-day",
+              "text": "Start of your day"
+            },
+            {
+              "value": "middle-of-day",
+              "text" : "Middle of your day"
+            },
+            {
+              "value": "end-of-day",
+              "text": "End of your day"
+            },
+            {
+              "value": "bedtime",
+              "text": "Bedtime"
+            },
+            {
+              "value": "sleeping",
+              "text": "Sleeping"
+            }
+          ],
+          maxSelectedChoices: 5,
+          visibleIf: "{timeNotExperiencing} == Yes",
+          isRequired: true
+        },
+        {
+          type: "radiogroup",
+          name: "timeExperienceWorse",
+          title: "Is there a time of the day when your pain or symptom get worse?",
+          choices: ["Yes", "No"],
+          visibleIf: "{mainArea} == Yes",
+          isRequired: true
+        },
+        {
+          type: "checkbox",
+          name: "timeExperienceWorseDetail",
+          title: "If YES, when?",
+          description: "Please check ALL that apply.",
+          choices: [
+            { 
+              "value": "start-of-day",
+              "text": "Start of your day"
+            },
+            {
+              "value": "middle-of-day",
+              "text" : "Middle of your day"
+            },
+            {
+              "value": "end-of-day",
+              "text": "End of your day"
+            },
+            {
+              "value": "bedtime",
+              "text": "Bedtime"
+            },
+            {
+              "value": "sleeping",
+              "text": "Sleeping"
+            }
+          ],
+          maxSelectedChoices: 5,
+          visibleIf: "{timeExperienceWorse} == Yes",
+          isRequired: true
+        },
+        {
+          type: "radiogroup",
+          name: "onsetCause",
+          title: "Was the onset of your current problem related to:",
+          choices: [
+            "Physical trauma (e.g., motor vehicle collision, fall, extreme exertion, workplace injury, etc.)",
+            "A common physical actiity (e.g., exercise, putting on socks, typical lifting activities, etc.)",
+            "Arthritis",
+            "No clear event or cause"
+          ],
+          showOtherItem: true,
+          otherPlaceholder: "Please describe...",
+          otherText: "Other, please describe",
+          visibleIf: "{mainArea} == Yes",
+          isRequired: true
+        },
+        {
+          type: "dropdown",
+          name: "interfereActivity",
+          title: "In the past 7 days, how much did this pain or symptom interfere with your day-to-day activities?",
+          choices: [
+            "Not at all",
+            "A little bit",
+            "Somewhat",
+            "Quite a bit",
+            "Very much"
+          ],
+          visibleIf: "{mainArea} == Yes",
+          isRequired: true
+        },
+        {
+          type: "radiogroup",
+          name: "treatmentForImprovement",
+          title: "Has any treatment improved this pain or symptom?",
+          choices: ["Yes", "No"],
+          visibleIf: "{mainArea} == Yes",
+          isRequired: true
+        },
+        {
+          type: "radiogroup",
+          name: "treatmentForImprovementDetail",
+          title: "If YES, what was the treatment",
+          choices: [
+            "Surgery",
+            "Physiotherapy",
+            "Injection",
+            "Counselling"
+          ],
+          showOtherItem: true,
+          otherPlaceholder: "Please describe...",
+          otherText: "Other, please describe",
+          visibleIf: "{treatmentForImprovement} == Yes",
+          isRequired: true
+        },
+        {
+          type: "radiogroup",
+          name: "medicationForImprovement",
+          title: "We will ask for details about medications later in the survey. For this pain/symptom, have any medicaitons improved it?",
+          choices: ["Yes","No"],
+          visibleIf: "{mainArea} == Yes",
+          isRequired: true
+        },
+        {
+          type: "comment",
+          name: "medicationForImprovementDetail",
+          title: "If YES, what medication?",
+          maxLength: 100,
+          visibleIf: "{medicationForImprovement} == Yes",
+          isRequired: true
         }
       ]
     },

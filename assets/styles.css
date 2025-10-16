@@ -83,6 +83,48 @@ canvas {
   padding: var(--padding);
   width: 100%;
   height: 100%;
+  position: relative; /* For absolute positioning of children */
+}
+
+/* Edit Drawing Button - Only positioned absolutely in survey stage */
+:root[data-stage="survey"] #edit-drawing-button {
+  position: absolute !important;
+  top: 1rem;
+  left: 1rem;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--primary-color);
+  padding: 0.625rem 1rem;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+:root[data-stage="survey"] #edit-drawing-button:hover {
+  background: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(2, 119, 189, 0.3);
+}
+
+:root[data-stage="survey"] #edit-drawing-button svg {
+  width: 22px;
+  height: 22px;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* =========================
@@ -129,7 +171,7 @@ canvas {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 1rem 0;
+  padding-top: 1rem;
 }
 :root[data-stage="drawing"] .slot-left,
 :root[data-stage="drawing"] .slot-right {
@@ -179,6 +221,7 @@ canvas {
   gap: 1rem;
   flex-shrink: 1;
   min-height: 0;
+  justify-content: center;
 }
 
 /* Section headers inside panels */
@@ -222,9 +265,9 @@ canvas {
   flex-shrink: 0;
 }
 
-.button-drawing-nav {
+.button-drawing-center {
   flex-direction: column;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 500;
   justify-content: center;
   gap: 0.75rem;
@@ -571,7 +614,13 @@ input[type="range"]::-webkit-slider-thumb {
 
 .button-success { 
   background: #88b4a2; 
-  color: #fff; 
+  color: #ffffff; 
+}
+
+.button-prev-nav {
+  background: #ffffff;
+  color: var(--primary-color);
+  border: 3px solid var(--primary-color);
 }
 
 .return-button { 
@@ -598,7 +647,7 @@ input[type="range"]::-webkit-slider-thumb {
 .footer .button {
   min-width: 140px;
   padding: 0.875rem 1.5rem;
-  font-size: 0.95rem;
+  font-size: var(--min-font-size);
   font-weight: 600;
   gap: 0.5rem;
 }
@@ -803,10 +852,12 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: stretch;
 }
 
-/* Survey panel */
+/* =========================
+   Survey Panel & Header
+========================= */
 #survey-panel { 
   width: 100%; 
-  padding: var(--padding) var(--padding) var(--padding) 0;
+  padding: 0; /* Remove all padding */
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -815,22 +866,159 @@ input[type="range"]::-webkit-slider-thumb {
 
 #survey-header {
   display: flex;
-  gap: 1rem;
+  justify-content: center;
   align-items: center;
-  padding-bottom: 0.75rem;
+  padding: 1rem 2rem;
+  background: white;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 0;
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
+#survey-title {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-weight: 600;
+  color: var(--secondary-color);
+  margin: 0;
+  text-align: center;
+  width: 100%;
+}
+
+/* =========================
+   Survey Content Styling
+========================= */
 #survey-inner {
-  border: 2px solid #ccc;
-  border-radius: var(--border-radius);
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: none !important;
+  box-shadow: none !important;
+  background-color: white !important;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 0 !important;
+  flex: 1; /* Take remaining space */
 }
 
-.sd-question { 
-  margin-bottom: 1rem !important; 
+/* Remove all SurveyJS borders and panels */
+.sd-body {
+  border: none !important;
+  box-shadow: none !important;
+  background-color: white !important;
+  padding: 0 !important;
+}
+
+.sd-body__page {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Remove the grey panel - make everything transparent */
+.sd-question,
+.sd-panel,
+.sd-element,
+.sd-question__content-container,
+.sd-question__content {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Page padding - responsive */
+.sd-page {
+  padding: 1rem 2rem !important;
+  background: transparent !important;
+}
+
+/* Reduce question spacing */
+.sd-row {
+  margin-bottom: 1rem !important; /* Reduced from 1.75rem */
+}
+
+.sd-row:first-child {
+  margin-top: 0 !important;
+}
+
+.sd-row:last-child {
+  margin-bottom: 0.5rem !important;
+}
+
+/* Question content spacing */
+.sd-question__content {
+  padding: 0.5rem 0 !important; /* Reduced padding */
+}
+
+/* Question title spacing */
+.sd-question__title {
+  font-weight: 600 !important;
+  margin-bottom: 0.5rem !important; /* Reduced from 0.75rem */
+  color: #1f2328 !important;
+}
+
+.sd-question__description {
+  color: #6b7280 !important;
+  font-size: 0.95rem !important;
+  margin-top: 0.25rem !important;
+}
+
+/* =========================
+   Survey Input Styling
+========================= */
+.sd-input,
+.sd-dropdown,
+.sd-comment,
+.sd-text {
+  background-color: white !important;
+  border: 1px solid #d1d5db !important;
+  padding: 0.75rem !important;
+  border-radius: 6px !important;
+}
+
+.sd-input:focus,
+.sd-dropdown:focus,
+.sd-comment:focus {
+  outline: none !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 3px rgba(2, 119, 189, 0.1) !important;
+}
+
+/* Radio and Checkbox Styling */
+.sd-selectbase__item {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  margin-bottom: 0.5rem !important; /* Add spacing between options */
+}
+
+.sd-selectbase__item:hover {
+  background-color: rgba(2, 119, 189, 0.05) !important;
+  border-color: rgba(2, 119, 189, 0.2) !important;
+}
+
+.sd-selectbase__item--checked {
+  background-color: rgba(2, 119, 189, 0.1) !important;
+  border-color: var(--primary-color) !important;
+}
+
+/* Rating Scale */
+.sd-rating {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.sd-rating__item {
+  background: white !important;
+  border: 2px solid #d1d5db !important;
+}
+
+.sd-rating__item:hover {
+  border-color: var(--primary-color) !important;
+  background: rgba(2, 119, 189, 0.05) !important;
+}
+
+.sd-rating__item--selected {
+  background: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
 }
 
 .rating-layout-row {
@@ -849,31 +1037,45 @@ input[type="range"]::-webkit-slider-thumb {
   text-align: left; 
 }
 
-.sd-navigation__next-btn {
-  background-color: #269DE0 !important; 
-  color: #fff !important;
+/* Error Messages */
+.sd-question--error .sd-question__erbox {
+  display: block !important;
+  margin-top: 0.5rem;
+  background: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  padding: 0.75rem !important;
+  border-radius: 6px !important;
+  font-size: 0.9rem;
+  color: #dc2626;
 }
 
-.sd-navigation__next-btn:hover {
-  background-color: #1d87c2 !important; 
-  color: #fff !important;
+.sd-question:not(.sd-question--error) .sd-question__erbox {
+  display: none !important;
 }
 
-.sd-navigation__prev-btn {
-  background-color: transparent !important;
-  border: 2px solid #269DE0 !important; 
-  color: #269DE0 !important;
+/* Remove any remaining SurveyJS containers */
+.sd-container,
+.sd-container-modern,
+.sd-root-modern {
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
 }
 
-.sd-navigation__prev-btn:hover { 
-  background-color: #e0f4ff !important; 
-  color: #269DE0 !important; 
+.sd-navigation {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 /* =========================
    Modals
 ========================= */
-#confirmation-modal {
+.modal,
+#confirmation-modal,
+#reset-modal,
+#delete-empty-modal {
   position: fixed; 
   inset: 0;
   margin: auto; 
@@ -884,41 +1086,62 @@ input[type="range"]::-webkit-slider-thumb {
   z-index: 10000;
 }
 
-#modal-text {
+.modal[style*="display: flex"],
+#confirmation-modal[style*="display: flex"],
+#reset-modal[style*="display: flex"],
+#delete-empty-modal[style*="display: flex"] {
+  display: flex !important;
+}
+
+#modal-text,
+#reset-modal-text,
+#delete-empty-text {
   white-space: pre-line;
+  margin: 0 0 1.5rem 0;
+  font-size: var(--h2-font-size);
+  line-height: 1.4;
+  color: var(--secondary-color);
 }
 
 .modal-content {
   background: white; 
-  padding: var(--padding); 
+  padding: 2rem; 
   border-radius: var(--border-radius);
   text-align: center; 
   max-width: min(60vw, 38rem); 
   max-height: min(85vh, 44rem); 
   width: 100%; 
   box-sizing: border-box;
-  font-size: var(--min-font-size); 
-  font-weight: bold;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
 
 .modal-button-group { 
   display: flex; 
   justify-content: center; 
-  gap: 1rem; 
+  gap: 1rem;
+  margin-top: 1.5rem;
 }
 
 .modal-button {
-  padding: 0.5rem 1.25rem; 
+  padding: 0.875rem 1.5rem; 
   font-size: var(--min-font-size);
-  border: 1px solid var(--secondary-color); 
+  font-weight: 600;
+  border: 2px solid var(--secondary-color); 
   background-color: var(--background-color);
   border-radius: var(--border-radius); 
   cursor: pointer; 
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  min-width: 140px;
 }
 
 .modal-button:hover { 
-  background: #e0e0e0; 
+  background: #e0e0e0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.modal-button:active {
+  transform: translateY(0);
 }
 
 .modal-button:disabled, 
@@ -927,31 +1150,71 @@ input[type="range"]::-webkit-slider-thumb {
   color: #888 !important; 
   border: 1px solid #bbb; 
   cursor: not-allowed;
+  transform: none;
 }
 
-#modal-continue { 
+#modal-continue,
+#modal-reset-confirm,
+#delete-empty-continue { 
   background: #88b4a2; 
-  color: white; 
+  color: white;
+  border-color: #88b4a2;
 }
 
-#modal-continue:hover { 
-  background: #69a08a ip !important; 
+#modal-continue:hover,
+#modal-reset-confirm:hover,
+#delete-empty-continue:hover { 
+  background: #69a08a !important; 
+  border-color: #69a08a;
+}
+
+#modal-return,
+#modal-return-reset,
+#delete-empty-return {
+  background: white;
+  color: var(--secondary-color);
+  border-color: var(--secondary-color);
+}
+
+#modal-return:hover,
+#modal-return-reset:hover,
+#delete-empty-return:hover {
+  background: #f5f5f5 !important;
 }
 
 .drawing-preview {
   object-fit: contain; 
   display: block; 
-  margin: 0 auto 16px auto;
+  margin: 1rem auto;
   border: 1px solid #ccc; 
   border-radius: var(--border-radius);
+  max-width: 100%;
+  max-height: 350px;
 }
 
 /* =========================
-   Responsive Breakpoints
+   Responsive - iPad Mini and larger tablets (768px+)
 ========================= */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Adjust survey page padding for tablets */
+  .sd-page {
+    padding: 1rem 1.5rem !important;
+  }
+  
+  #survey-header {
+    padding: 0.875rem 1.5rem;
+  }
+  
+  /* Slightly reduce question spacing on tablets */
+  .sd-row {
+    margin-bottom: 0.875rem !important;
+  }
+}
 
-/* LG desktops / wide laptops (≤1280px) */
-@media (max-width: 1280px) {
+/* =========================
+   Responsive - Larger Desktops
+========================= */
+@media (min-width: 1280px) {
   :root[data-stage="summary"] .app-shell { 
     grid-template-columns: 1fr clamp(18rem, 36vw, 42rem); 
   }
@@ -963,9 +1226,28 @@ input[type="range"]::-webkit-slider-thumb {
   :root[data-stage="survey"] .app-shell { 
     grid-template-columns: 1fr clamp(32rem, 40vw, 58rem); 
   }
+  
+  /* Reduce side padding on wider screens */
+  .sd-page {
+    padding: 1rem 1.25rem !important;
+  }
 }
 
-/* Tablets / small laptops (≤1024px) */
+@media (min-width: 1536px) {
+  .sd-page {
+    padding: 1rem 1rem !important;
+  }
+}
+
+@media (min-width: 1920px) {
+  .sd-page {
+    padding: 1rem 0.75rem !important;
+  }
+}
+
+/* =========================
+   Responsive - General Tablet/Mobile Layout
+========================= */
 @media (max-width: 1024px) {
   .app-shell {
     grid-template-areas:
@@ -1004,6 +1286,24 @@ input[type="range"]::-webkit-slider-thumb {
     width: auto; 
   }
   
+  /* Edit button adjustments for tablets */
+  :root[data-stage="survey"] #edit-drawing-button {
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.9rem;
+  }
+  
+  :root[data-stage="survey"] #edit-drawing-button svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  #survey-header {
+    padding: 0.75rem 1.5rem;
+  }
+
+  /* FAB and Drawer for mobile navigation */
   .fab,
   .drawer,
   .drawer-scrim {
@@ -1041,7 +1341,7 @@ input[type="range"]::-webkit-slider-thumb {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.35);
-    z-index: 9999;
+    z-index: 9998;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
@@ -1081,11 +1381,6 @@ input[type="range"]::-webkit-slider-thumb {
   .drawer-close:hover { 
     background: #f5f5f5; 
   }
-  
-  .drawer-close:focus-visible {
-    outline: 2px solid #3b82f6;
-    outline-offset: 2px;
-  }
 
   .drawer-content {
     padding: var(--padding, 1rem);
@@ -1106,6 +1401,7 @@ input[type="range"]::-webkit-slider-thumb {
   }
 }
 
+/* Desktop only styles */
 @media (min-width: 1025px) {
   .footer { 
     position: static; 
@@ -1120,7 +1416,7 @@ input[type="range"]::-webkit-slider-thumb {
   }
 }
 
-/* Phones / small tablets (≤768px) */
+/* Small tablets and phones */
 @media (max-width: 768px) {
   .app-shell {
     grid-template-rows: minmax(65dvh, 1fr) auto auto auto;
@@ -1162,21 +1458,29 @@ input[type="range"]::-webkit-slider-thumb {
   .vertical-slider {
     width: 6rem !important;
   }
+  
+  /* Survey adjustments for mobile */
+  .sd-page {
+    padding: 0.75rem 1rem !important;
+  }
+  
+  .sd-row {
+    margin-bottom: 0.75rem !important;
+  }
+  
+  #survey-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  #survey-title {
+    font-size: 1.125rem;
+  }
 }
 
-/* Small phones (≤600px) */
+/* Small phones */
 @media (max-width: 600px) {
   .app-shell {
     grid-template-rows: minmax(70dvh, 1fr) auto auto auto;
-  }
-
-  .footer {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    width: auto;
-    gap: 0.5rem;
   }
 
   .button {
@@ -1202,9 +1506,24 @@ input[type="range"]::-webkit-slider-thumb {
     width: clamp(0.9rem, 5vw, 1.1rem);
     height: clamp(0.9rem, 5vw, 1.1rem);
   }
+  
+  /* Hide edit button text on small mobile */
+  :root[data-stage="survey"] #edit-drawing-button {
+    top: 0.5rem;
+    left: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  :root[data-stage="survey"] #edit-drawing-button span {
+    display: none;
+  }
+  
+  :root[data-stage="survey"] #edit-drawing-button svg {
+    margin-right: 0;
+  }
 }
 
-/* Extra small phones (≤480px) */
+/* Extra small phones */
 @media (max-width: 480px) {
   .app-shell {
     grid-template-rows: minmax(74dvh, 80dvh) auto auto auto;
@@ -1241,17 +1560,27 @@ input[type="range"]::-webkit-slider-thumb {
   #summary-status-panel { 
     padding: 0.75rem; 
   }
+  
+  /* Survey on very small screens */
+  .sd-page {
+    padding: 0.5rem 0.75rem !important;
+  }
+  
+  .sd-row {
+    margin-bottom: 0.625rem !important;
+  }
 }
 
+/* Height-based adjustments */
 @media (max-height: 900px) {
   .size-indicator {
-    font-size: 1.1rem; /* Reduced from 1.25rem */
+    font-size: 1.1rem;
     top: -1.25rem;
   }
   
   .vertical-slider-container {
     height: 8rem;
-    padding: 2.5rem 0 0.75rem 0; /* Adjusted padding */
+    padding: 2.5rem 0 0.75rem 0;
   }
   
   .vertical-slider {

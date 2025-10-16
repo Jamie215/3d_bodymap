@@ -1,101 +1,117 @@
 // modal.js
-let modalEl, modalText, modalContinueButton, modalReturnButton, drawingPreview, resetModalEl, resetReturnButton, resetConfirmButton, resetModalText;
+// Continue/Survey Modal
+let continueModalEl, continueModalText, continueModalButton, returnModalButton, drawingPreview;
+
+// Reset Modal
+let resetModalEl, resetModalText, resetReturnButton, resetConfirmButton;
+
+// Delete Empty Modal
+let deleteEmptyModalEl, deleteEmptyText, deleteEmptyReturnButton, deleteEmptyContinueButton;
+
+// Helper to create modal structure
+function createModal(id, className = 'modal') {
+  const modal = document.createElement('div');
+  modal.id = id;
+  modal.style.display = 'none';
+  modal.classList.add(className);
+  return modal;
+}
+
+function createModalContent() {
+  const content = document.createElement('div');
+  content.classList.add('modal-content');
+  return content;
+}
+
+function createButton(id, text, className = 'modal-button') {
+  const button = document.createElement('button');
+  button.id = id;
+  button.classList.add(className);
+  button.innerText = text;
+  return button;
+}
+
+function createButtonGroup(...buttons) {
+  const group = document.createElement('div');
+  group.classList.add('modal-button-group');
+  buttons.forEach(btn => group.appendChild(btn));
+  return group;
+}
 
 export function initDrawContinueModal(container) {
-  // Create modal container
-  modalEl = document.createElement('div');
-  modalEl.id = 'confirmation-modal';
-  modalEl.style.display = 'none';
-  modalEl.classList.add('modal');
+  continueModalEl = createModal('confirmation-modal');
+  const modalContent = createModalContent();
 
-  const modalContent = document.createElement('div');
-  modalContent.classList.add('modal-content');
-
-  modalText = document.createElement('h2');
-  modalText.id = 'modal-text';
+  continueModalText = document.createElement('h2');
+  continueModalText.id = 'modal-text';
 
   drawingPreview = document.createElement('img');
   drawingPreview.id = 'drawing-preview';
   drawingPreview.classList.add('drawing-preview');
 
-  const buttonGroup = document.createElement('div');
-  buttonGroup.classList.add('modal-button-group');
+  returnModalButton = createButton('modal-return', 'Return to My Drawing');
+  continueModalButton = createButton('modal-continue', 'Yes, Proceed');
+  
+  const buttonGroup = createButtonGroup(returnModalButton, continueModalButton);
 
-  modalReturnButton = document.createElement('button');
-  modalReturnButton.id = 'modal-return';
-  modalReturnButton.classList.add('modal-button');
-  modalReturnButton.innerText = 'No, Return to My Drawing';
-
-  modalContinueButton = document.createElement('button');
-  modalContinueButton.id = 'modal-continue';
-  modalContinueButton.classList.add('modal-button');
-  modalContinueButton.innerText = 'Yes, Proceed';
-
-  buttonGroup.appendChild(modalReturnButton);
-  buttonGroup.appendChild(modalContinueButton);
-
-  modalContent.appendChild(modalText);
+  modalContent.appendChild(continueModalText);
   modalContent.appendChild(drawingPreview);
   modalContent.appendChild(buttonGroup);
-  modalEl.appendChild(modalContent);
-  container.appendChild(modalEl);
+  continueModalEl.appendChild(modalContent);
+  container.appendChild(continueModalEl);
 }
 
 export function initDrawResetModal(container) {
-  // Create modal container
-  resetModalEl = document.createElement('div');
-  resetModalEl.id = 'confirmation-modal';
-  resetModalEl.style.display = 'none';
-  resetModalEl.classList.add('modal');
-
-  const resetModalContent = document.createElement('div');
-  resetModalContent.classList.add('modal-content');
+  resetModalEl = createModal('reset-modal');
+  const modalContent = createModalContent();
 
   resetModalText = document.createElement('h2');
-  resetModalText.id = 'modal-text';
+  resetModalText.id = 'reset-modal-text';
   resetModalText.textContent = 'Are you sure you want to erase all of your current drawing?';
 
-  const resetButtonGroup = document.createElement('div');
-  resetButtonGroup.classList.add('modal-button-group');
+  resetReturnButton = createButton('modal-return-reset', 'Return to my drawing');
+  resetConfirmButton = createButton('modal-reset-confirm', 'Reset my drawing');
+  
+  const buttonGroup = createButtonGroup(resetReturnButton, resetConfirmButton);
 
-  resetReturnButton = document.createElement('button');
-  resetReturnButton.id = 'modal-return-reset';
-  resetReturnButton.classList.add('modal-button');
-  resetReturnButton.innerText = 'No, return to my drawing';
-
-  resetConfirmButton = document.createElement('button');
-  resetConfirmButton.id = 'modal-reset-reset';
-  resetConfirmButton.classList.add('modal-button');
-  resetConfirmButton.innerText = 'Yes, reset my drawing';
-
-  resetButtonGroup.appendChild(resetReturnButton);
-  resetButtonGroup.appendChild(resetConfirmButton);
-
-  resetModalContent.appendChild(resetModalText);
-  resetModalContent.appendChild(resetButtonGroup);
-  resetModalEl.appendChild(resetModalContent);
+  modalContent.appendChild(resetModalText);
+  modalContent.appendChild(buttonGroup);
+  resetModalEl.appendChild(modalContent);
   container.appendChild(resetModalEl);
 }
 
-export function getModalElements(modalType) {
-  if (modalType === "continue") {
-    return {
-      modalContinueButton,
-      modalReturnButton
-    };
-  } else {
-    return {
-      resetReturnButton,
-      resetConfirmButton
-    };
-  }
+export function initDeleteEmptyModal(container) {
+  deleteEmptyModalEl = createModal('delete-empty-modal');
+  const modalContent = createModalContent();
+
+  deleteEmptyText = document.createElement('h2');
+  deleteEmptyText.id = 'delete-empty-text';
+
+  deleteEmptyReturnButton = createButton('delete-empty-return', 'Return to Drawing');
+  deleteEmptyContinueButton = createButton('delete-empty-continue', 'Delete & Continue');
+  
+  const buttonGroup = createButtonGroup(deleteEmptyReturnButton, deleteEmptyContinueButton);
+
+  modalContent.appendChild(deleteEmptyText);
+  modalContent.appendChild(buttonGroup);
+  deleteEmptyModalEl.appendChild(modalContent);
+  container.appendChild(deleteEmptyModalEl);
 }
 
-export function showMoveToSurveyModal(text, previewVisible, previewDataURL = null) {
-  modalText.textContent = text;
-  modalContinueButton.disabled = !previewVisible;
-  modalContinueButton.classList.toggle('disabled', !previewVisible);
+export function getModalElements(modalType) {
+  const modalMap = {
+    continue: { continueButton: continueModalButton, returnButton: returnModalButton },
+    reset: { resetReturnButton, resetConfirmButton },
+    deleteEmpty: { deleteEmptyReturnButton, deleteEmptyContinueButton }
+  };
+  return modalMap[modalType] || {};
+}
 
+// Continue/Survey Modal functions
+export function showMoveToSurveyModal(text, previewVisible, previewDataURL = null) {
+  continueModalText.textContent = text;
+  continueModalButton.style.display = previewVisible ? 'flex' : 'none';
+  
   if (previewVisible && previewDataURL) {
     drawingPreview.src = previewDataURL;
     drawingPreview.style.display = 'block';
@@ -103,17 +119,34 @@ export function showMoveToSurveyModal(text, previewVisible, previewDataURL = nul
     drawingPreview.style.display = 'none';
   }
 
-  modalEl.style.display = 'flex';
+  continueModalEl.style.display = 'flex';
 }
 
 export function hideDrawContinueModal() {
-  modalEl.style.display = 'none';
+  continueModalEl.style.display = 'none';
 }
 
+// Reset Modal functions
 export function showDrawResetModal() {
   resetModalEl.style.display = 'flex';
 }
 
 export function hideDrawResetModal() {
   resetModalEl.style.display = 'none';
+}
+
+// Delete Empty Modal functions
+export function showDeleteEmptyModal(text) {
+  deleteEmptyText.textContent = text;
+  deleteEmptyModalEl.style.display = 'flex';
+
+  if (text=='This drawing area is empty. Please draw before adding new area.') {
+    deleteEmptyContinueButton.style.display = 'none';
+  } else {
+    deleteEmptyContinueButton.style.display = 'flex';
+  }
+}
+
+export function hideDeleteEmptyModal() {
+  deleteEmptyModalEl.style.display = 'none';
 }

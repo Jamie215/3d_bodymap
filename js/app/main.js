@@ -1,6 +1,6 @@
 // main.js
 import { initApp } from './appController.js';
-import { initDrawContinueModal, initDrawResetModal } from '../components/modal.js';
+import { initDrawContinueModal, initDrawResetModal, initDeleteEmptyModal } from '../components/modal.js';
 import { createScene } from '../utils/scene.js';
 import { createDrawingViewElements } from '../views/drawingView.js';
 import { createSelectionView } from '../views/selectionView.js';
@@ -31,6 +31,7 @@ const survey = createSurveyViewElements();
 // Initialize modals
 initDrawContinueModal(document.body);
 initDrawResetModal(document.body);
+initDeleteEmptyModal(document.body);
 
 const ro = new ResizeObserver(entries => {
   const { width, height } = entries[0].contentRect;
