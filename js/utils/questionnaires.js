@@ -135,7 +135,7 @@ export const surveyJson = {
             }
           ],
           maxSelectedChoices: 5,
-          visibleIf: "{timeNotExperiencing} == Yes",
+          visibleIf: "{mainArea} == Yes and {timeNotExperiencing} == Yes",
           isRequired: true
         },
         {
@@ -174,7 +174,7 @@ export const surveyJson = {
             }
           ],
           maxSelectedChoices: 5,
-          visibleIf: "{timeExperienceWorse} == Yes",
+          visibleIf: "{mainArea} == Yes and {timeExperienceWorse} == Yes",
           isRequired: true
         },
         {
@@ -228,7 +228,7 @@ export const surveyJson = {
           showOtherItem: true,
           otherPlaceholder: "Please describe...",
           otherText: "Other, please describe",
-          visibleIf: "{treatmentForImprovement} == Yes",
+          visibleIf: "{mainArea} == Yes and {treatmentForImprovement} == Yes",
           isRequired: true
         },
         {
@@ -244,7 +244,7 @@ export const surveyJson = {
           name: "medicationForImprovementDetail",
           title: "If YES, what medication?",
           maxLength: 100,
-          visibleIf: "{medicationForImprovement} == Yes",
+          visibleIf: "{mainArea} == Yes and {medicationForImprovement} == Yes",
           isRequired: true
         }
       ]

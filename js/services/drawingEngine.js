@@ -292,6 +292,64 @@ function eraseFromRegionMap(hit, instance, radius, regionName) {
     }
 }
 
+export function updateInstanceColors() {
+    AppState.drawingInstances.forEach((instance, index) => {
+        const newColor = colourPalette[index % colourPalette.length];
+        
+        // Special case for 10th color (index 9)
+        if (index % colourPalette.length === 9) {
+            instance.colour = '#333399';
+        } else {
+            instance.colour = newColor;
+        }
+
+        redrawInstanceWithNewColor(instance);
+    });
+}
+
+function redrawInstanceWithNewColor(instance) {
+    const { canvas, context, colour } = instance;
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels = imageData.data;
+    
+    // Parse the new color
+    const newColor = hexToRgb(colour);
+    
+    for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+        const a = pixels[i + 3];
+        
+        // If pixel is not white (i.e., it's part of the drawing)
+        if (!(r === 255 && g === 255 && b === 255 && a === 255)) {
+            // Check if it's not the base texture (you may need to adjust this logic)
+            // For now, we'll replace any non-white pixel with the new color
+            if (a > 0 && !(r === 255 && g === 255 && b === 255)) {
+                pixels[i] = newColor.r;
+                pixels[i + 1] = newColor.g;
+                pixels[i + 2] = newColor.b;
+                // Keep the same alpha
+            }
+        }
+    }
+    
+    context.putImageData(imageData, 0, 0);
+    instance.texture.needsUpdate = true;
+}
+
+/**
+ * Convert hex color to RGB object
+ */
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 };
+}
+
 export function addNewDrawingInstance() {
     const instanceId = `drawing-${AppState.drawingInstances.length + 1}`;
     const textureBundle = texturePool.getNewTexture(instanceId);

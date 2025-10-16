@@ -59,7 +59,12 @@ export function createSelectionView(onModelSelected) {
       }
     });
 
+    // TODO: Update female model with region labelling
     if (model === models[0]) {
+      button.disabled = true;
+    }
+
+    if (model === models[1]) {
       button.style.borderColor = 'var(--primary-color)';
     }
   });
