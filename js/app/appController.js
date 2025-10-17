@@ -1,4 +1,4 @@
-// appController.js - Fixed version
+// appController.js
 import { loadModel, cleanupAllModels } from '../services/modelLoader.js';
 import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance, buildGlobalUVMap, initializeRegionMappings, updateInstanceColors } from '../services/drawingEngine.js';
 import texturePool from '../utils/textureManager.js';
@@ -183,6 +183,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
   function handleNavigationAfterDelete(direction) {
     if (AppState.drawingInstances.length === 0) {
+      AppState.isEditingFromSurvey = false;
       goTo('summary');
       return;
     }
@@ -359,7 +360,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     switch (stage) {
       case 'summary': {
         controls.target.set(0, 1.0, 0);
-        controls.object.position.set(0, 1.0, 1.75);
+        controls.object.position.set(0, 1.0, 1.5);
         controls.update();
 
         const canvasPanel = document.getElementById('canvas-panel');
@@ -424,6 +425,11 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       }
 
       case 'survey': {
+        // Reset view
+        controls.target.set(0, 1.0, 0);
+        controls.object.position.set(0, 1.0, 1.5);
+        controls.update();
+
         const canvasPanel = document.getElementById('canvas-panel');
         if (canvasPanel && !canvasPanel.contains(survey.editDrawingButton)) {
           canvasPanel.appendChild(survey.editDrawingButton);
@@ -441,23 +447,26 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
   summary.changeModelButton.addEventListener('click', () => goTo('selection'))
   summary.addNewInstanceButton.addEventListener('click', () => {
+    AppState.isEditingFromSurvey = false;
     addNewDrawingInstance();
     goTo('drawing');
   });
 
   selection.returnSummaryButton.addEventListener('click', () => goTo('summary'))
   selection.addNewInstanceButton.addEventListener('click', () => {
+    AppState.isEditingFromSurvey = false;
     addNewDrawingInstance();
     goTo('drawing');
   })
 
   // ============================================================================
-  // DRAWING NAVIGATION - FIXED
+  // DRAWING NAVIGATION
   // ============================================================================
 
   function updateDrawingNavigationButtons() {
     const current = AppState.currentDrawingIndex;
     const total = AppState.drawingInstances.length;
+    console.log("isEditingFromSurvey: ", AppState.isEditingFromSurvey);
 
     if (AppState.isEditingFromSurvey) {
       drawing.prevAreaButton.style.display = 'none';
@@ -469,6 +478,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     } else {
       drawing.prevAreaButton.style.display = 'inline-block';
       drawing.nextAreaButton.style.display = 'inline-block';
+      drawing.drawingNavContainer.style.display = 'flex';
       drawing.drawingFooter.style.display = 'flex';
       drawing.drawingFooter.style.justifyContent = 'flex-end';
       drawing.prevAreaButton.disabled = current === 0;
@@ -486,13 +496,13 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     }
   }
 
-  // FIXED: Previous button logic
+  // Previous button logic
   drawing.prevAreaButton.addEventListener('click', () => {
     const current = AppState.currentDrawingIndex;
     const total = AppState.drawingInstances.length;
     const isEmpty = isDrawingBlank();
     
-    // FIXED: If on last drawing and it's empty, just navigate without modal
+    // If on last drawing and it's empty, just navigate without modal
     if (current === total - 1 && isEmpty) {
       deleteDrawingInstance(current);
       if (AppState.drawingInstances.length === 0) {
@@ -598,7 +608,11 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     disableCursorManagement();
     goTo('survey');
   });
-  modalReturnButton.addEventListener('click', () => hideDrawContinueModal());
+  modalReturnButton.addEventListener('click', () => {
+    hideDrawContinueModal();
+    updateCurrentDrawing();
+    drawing.updateStatusBar();
+  });
 
   deleteEmptyReturnButton.addEventListener('click', () => {
     hideDeleteEmptyModal();
