@@ -20,7 +20,8 @@ const AppState = {
     modelRoot: null,
     cameraUtils: null,
     currentSurveyIndex: 0,
-    isEditingFromSurvey: false
+    isEditingFromSurvey: false,
+    generalSurveyResponse: null
 };
 
 export default AppState;

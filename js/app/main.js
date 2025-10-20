@@ -64,14 +64,14 @@ function ensureFooterFabs(slotFooter) {
     leftFab = document.createElement('button');
     leftFab.className = 'fab left';
     leftFab.type = 'button';
-    leftFab.textContent = 'Draw Controls';
+    leftFab.textContent = 'View Controls';
     slotFooter.appendChild(leftFab);
   }
   if (!rightFab) {
     rightFab = document.createElement('button');
     rightFab.className = 'fab right';
     rightFab.type = 'button';
-    rightFab.textContent = 'View Controls';
+    rightFab.textContent = 'Draw Controls';
     slotFooter.appendChild(rightFab);
   }
   return { leftFab, rightFab };
@@ -224,10 +224,13 @@ function setStage(stage) {
         r?.classList.remove('open');
       }
       break;
-    case 'survey':
+    case 'area-survey':
       slotRight.appendChild(survey.surveyPanel);
       slotFooter.appendChild(survey.surveyFooter);
       break;
+    case 'general-survey':
+      slotRight.appendChild(survey.surveyPanel);
+      slotFooter.appendChild(survey.surveyFooter);
   }
 }
 

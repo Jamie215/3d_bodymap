@@ -1,4 +1,4 @@
-export const surveyJson = {
+export const generalSurveyJson = {
   title: "General Questionnaire",
   showQuestionNumbers: "off",
   showTitle: false,
@@ -16,7 +16,7 @@ export const surveyJson = {
         {
           type: "radiogroup",
           name: "medication",
-          title: "Do you take medications (prescriton and/or over-the-counter) for your spinal pain?",
+          title: "Do you take medications (prescription and/or over-the-counter) for your spinal pain?",
           choices: ["Yes", "No"],
           isRequired: true
         },
@@ -56,11 +56,11 @@ export const surveyJson = {
                 "text": "Narcotic Pain Medication"
             },
             {
-                "value": "anti-depressnat",
+                "value": "anti-depressant",
                 "text": "Anti-Depressant"
             },
             {
-                "value": "neurolepics",
+                "value": "neuroleptics",
                 "text": "Neuroleptics (agents to calm nerve pain)"
             },
             {
@@ -68,10 +68,11 @@ export const surveyJson = {
                 "text": "Cannabis"
             },
           ],
-          eachRowRequired: true
+          eachRowRequired: true,
+          isRequired: true
         },
         {
-          type: "dropdown",
+          type: "radiogroup",
           name: "narcoticPainDuration",
           title: "If you indicated that you have taken Narcotic Pain Medication, how long have you taken narcotic pain medication?",
           choices: [

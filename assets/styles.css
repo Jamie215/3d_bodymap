@@ -87,7 +87,7 @@ canvas {
 }
 
 /* Edit Drawing Button - Only positioned absolutely in survey stage */
-:root[data-stage="survey"] #edit-drawing-button {
+:root[data-stage="area-survey"] #edit-drawing-button {
   position: absolute !important;
   top: 1rem;
   left: 1rem;
@@ -102,14 +102,14 @@ canvas {
   animation: slideInFromRight 0.3s ease-out;
 }
 
-:root[data-stage="survey"] #edit-drawing-button:hover {
+:root[data-stage="area-survey"] #edit-drawing-button:hover {
   background: var(--primary-color);
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(2, 119, 189, 0.3);
 }
 
-:root[data-stage="survey"] #edit-drawing-button svg {
+:root[data-stage="area-survey"] #edit-drawing-button svg {
   width: 22px;
   height: 22px;
   margin-right: 0.5rem;
@@ -166,7 +166,12 @@ canvas {
   overflow: hidden;
 }
 :root[data-stage="drawing"] .slot-canvas,
-:root[data-stage="drawing"] .slot-footer { display: flex; justify-content: center; align-items: center;}
+:root[data-stage="drawing"] .slot-footer { 
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  position: relative;
+}
 :root[data-stage="drawing"] .slot-header {
   display: flex;
   justify-content: center;
@@ -187,23 +192,62 @@ canvas {
   overscroll-behavior: none;
   padding: 0 !important;
 }
+/* When drawing-nav is visible (default state) */
+:root[data-stage="drawing"] .drawing-nav {
+  display: flex;
+}
 
-/* SURVEY */
-:root[data-stage="survey"] .slot-header { display: none; }
-:root[data-stage="survey"] .slot-left  { display: none; }
-:root[data-stage="survey"] .slot-canvas,
-:root[data-stage="survey"] .slot-right { 
+/* When drawing-nav is visible, position continue button absolutely */
+:root[data-stage="drawing"] .drawing-nav:not([style*="display: none"]) ~ .button-success {
+  position: absolute;
+  right: 1rem;
+}
+
+/* When drawing-nav is hidden, continue button stays in normal flow (centered) */
+:root[data-stage="drawing"] .drawing-nav[style*="display: none"] ~ .button-success {
+  position: static;
+  margin: 0 auto;
+}
+
+/* AREA SURVEY */
+:root[data-stage="area-survey"] .slot-header { display: none; }
+:root[data-stage="area-survey"] .slot-left  { display: none; }
+:root[data-stage="area-survey"] .slot-canvas,
+:root[data-stage="area-survey"] .slot-right { 
   display: flex;
   flex-direction: column;
   overflow: hidden;
   height: 100%;
 }
-:root[data-stage="survey"] .slot-footer { display: flex; }
-:root[data-stage="survey"] .app-shell {
+:root[data-stage="area-survey"] .slot-footer { display: flex; }
+:root[data-stage="area-survey"] .app-shell {
   grid-template-areas: 
     "center right"
     "footer footer";
-  grid-template-columns: 1fr clamp(38rem, 60vw, 65rem) !important;
+  grid-template-columns: 1fr clamp(72vw, 72vw, 65rem) !important;
+}
+
+/* GENERAL SURVEY */
+:root[data-stage="general-survey"] .slot-header { display: none; }
+:root[data-stage="general-survey"] .slot-left  { display: none; }
+:root[data-stage="general-survey"] .slot-canvas,
+:root[data-stage="general-survey"] .slot-right { 
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+:root[data-stage="general-survey"] .slot-footer { display: flex; }
+:root[data-stage="general-survey"] .app-shell {
+  grid-template-areas: 
+    "center right"
+    "footer footer";
+  grid-template-columns: 1fr clamp(72vw, 72vw, 65rem) !important;
+}
+
+/* Hide edit button in general survey */
+:root[data-stage="general-survey"] #edit-drawing-button {
+  display: none !important;
 }
 
 /* =========================
@@ -608,7 +652,8 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .button-danger { 
-  background: #d32f2f; 
+  background: #d44545 !important;
+  border: #d44545 !important; 
   color: #fff; 
 }
 
@@ -884,6 +929,39 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
+/* Survey Progress Bar */
+#survey-progress-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: auto;
+  gap: 0.5rem;
+}
+
+#survey-progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+#survey-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), #0288d1);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+#survey-progress-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-align: center;
+}
+
 /* =========================
    Survey Content Styling
 ========================= */
@@ -926,7 +1004,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Page padding - responsive */
 .sd-page {
-  padding: 1rem 2rem !important;
+  padding: 1rem 1rem !important;
   background: transparent !important;
 }
 
@@ -963,6 +1041,33 @@ input[type="range"]::-webkit-slider-thumb {
   color: #6b7280 !important;
   font-size: 0.95rem !important;
   margin-top: 0.25rem !important;
+}
+
+/* Matrix row text styling - ensure proper spacing and alignment */
+.sd-matrix__row-text {
+  line-height: 1.5 !important;
+  padding: 0.5rem 0 !important;
+}
+
+/* Ensure small tags in matrix rows are properly styled */
+.sd-matrix__row-text small {
+  display: block;
+  color: #6b7280;
+  font-weight: normal;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* Add some spacing between matrix rows for better readability */
+.sd-matrix__row {
+  padding: 0.75rem 0 !important;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.sd-matrix__row:last-child {
+  border-bottom: none;
 }
 
 /* =========================
@@ -1047,7 +1152,7 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 0.5rem;
   background: #fef2f2 !important;
   border: 1px solid #fecaca !important;
-  padding: 0.75rem !important;
+  padding: 0.75rem 2rem !important;
   border-radius: 6px !important;
   font-size: 0.9rem;
   color: #dc2626;
@@ -1202,7 +1307,7 @@ input[type="range"]::-webkit-slider-thumb {
 @media (min-width: 768px) and (max-width: 1024px) {
   /* Adjust survey page padding for tablets */
   .sd-page {
-    padding: 1rem 1.5rem !important;
+    padding: 1rem 1rem !important;
   }
   
   #survey-header {
@@ -1218,7 +1323,7 @@ input[type="range"]::-webkit-slider-thumb {
 /* =========================
    Responsive - Larger Desktops
 ========================= */
-@media (min-width: 1280px) {
+/* @media (min-width: 1280px) {
   :root[data-stage="summary"] .app-shell { 
     grid-template-columns: 1fr clamp(18rem, 36vw, 42rem); 
   }
@@ -1227,27 +1332,10 @@ input[type="range"]::-webkit-slider-thumb {
     grid-template-columns: 1fr clamp(28rem, 38vw, 50rem); 
   }
   
-  :root[data-stage="survey"] .app-shell { 
-    grid-template-columns: 1fr clamp(32rem, 40vw, 58rem); 
+  :root[data-stage="area-survey"] .app-shell { 
+    grid-template-columns: 1fr clamp(40rem, 72vw, 65rem); 
   }
-  
-  /* Reduce side padding on wider screens */
-  .sd-page {
-    padding: 1rem 1.25rem !important;
-  }
-}
-
-@media (min-width: 1536px) {
-  .sd-page {
-    padding: 1rem 1rem !important;
-  }
-}
-
-@media (min-width: 1920px) {
-  .sd-page {
-    padding: 1rem 0.75rem !important;
-  }
-}
+} */
 
 /* =========================
    Responsive - General Tablet/Mobile Layout
@@ -1291,14 +1379,14 @@ input[type="range"]::-webkit-slider-thumb {
   }
   
   /* Edit button adjustments for tablets */
-  :root[data-stage="survey"] #edit-drawing-button {
+  :root[data-stage="area-survey"] #edit-drawing-button {
     top: 0.75rem;
     left: 0.75rem;
     padding: 0.5rem 0.875rem;
     font-size: 0.9rem;
   }
   
-  :root[data-stage="survey"] #edit-drawing-button svg {
+  :root[data-stage="area-survey"] #edit-drawing-button svg {
     width: 16px;
     height: 16px;
   }
@@ -1465,7 +1553,7 @@ input[type="range"]::-webkit-slider-thumb {
   
   /* Survey adjustments for mobile */
   .sd-page {
-    padding: 0.75rem 1rem !important;
+    padding: 0.75rem 0.75rem !important;
   }
   
   .sd-row {
@@ -1478,6 +1566,18 @@ input[type="range"]::-webkit-slider-thumb {
   
   #survey-title {
     font-size: 1.125rem;
+  }
+
+  #survey-progress-container {
+    padding: 0 1rem 0.5rem 1rem !important;
+  }
+  
+  #survey-progress-bar {
+    height: 6px;
+  }
+  
+  #survey-progress-text {
+    font-size: 0.8rem;
   }
 }
 
@@ -1512,17 +1612,17 @@ input[type="range"]::-webkit-slider-thumb {
   }
   
   /* Hide edit button text on small mobile */
-  :root[data-stage="survey"] #edit-drawing-button {
+  :root[data-stage="area-survey"] #edit-drawing-button {
     top: 0.5rem;
     left: 0.5rem;
     padding: 0.5rem 0.75rem;
   }
   
-  :root[data-stage="survey"] #edit-drawing-button span {
+  :root[data-stage="area-survey"] #edit-drawing-button span {
     display: none;
   }
   
-  :root[data-stage="survey"] #edit-drawing-button svg {
+  :root[data-stage="area-survey"] #edit-drawing-button svg {
     margin-right: 0;
   }
 }
@@ -1567,7 +1667,7 @@ input[type="range"]::-webkit-slider-thumb {
   
   /* Survey on very small screens */
   .sd-page {
-    padding: 0.5rem 0.75rem !important;
+    padding: 0.5rem 0.5rem !important;
   }
   
   .sd-row {

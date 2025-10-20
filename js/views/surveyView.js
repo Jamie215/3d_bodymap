@@ -22,6 +22,26 @@ export function createSurveyViewElements() {
   surveyTitle.style.margin = '0';
   surveyTitle.style.padding = '1rem 0';
 
+  // Create progress bar
+  const progressContainer = document.createElement('div');
+  progressContainer.id = 'survey-progress-container';
+  progressContainer.style.width = '100%';
+  progressContainer.style.padding = '0 2rem 0.75rem 2rem';
+
+  const progressBar = document.createElement('div');
+  progressBar.id = 'survey-progress-bar';
+
+  const progressFill = document.createElement('div');
+  progressFill.id = 'survey-progress-fill';
+
+  const progressText = document.createElement('span');
+  progressText.id = 'survey-progress-text';
+  progressText.textContent = '0 of 0 questions completed';
+
+  progressBar.appendChild(progressFill);
+  progressContainer.appendChild(progressBar);
+  progressContainer.appendChild(progressText);
+
   // Edit button will be created separately for canvas panel
   const editDrawingButton = document.createElement('button');
   editDrawingButton.id = 'edit-drawing-button';
@@ -36,21 +56,31 @@ export function createSurveyViewElements() {
   editDrawingButton.innerHTML = editIcon + '<span>Edit Drawing</span>';
   editDrawingButton.style.alignItems = 'center';
 
-  function updateTitle() {
-    const current = AppState.currentSurveyIndex + 1;
-    const titleText = `Area #${current} Questionnaire`;
-    surveyTitle.textContent = titleText;
-    
+  function updateTitle(type='area') {
+    if (type === 'general') {
+      surveyTitle.textContent = 'General Questionnaire';
+    } else {
+      const current = AppState.currentSurveyIndex + 1;
+      const titleText = `Area #${current} Questionnaire`;
+      surveyTitle.textContent = titleText;
+    }
+
     // Also update the surveyJson title if it exists
     if (window.surveyInstance) {
       window.surveyInstance.title = titleText;
     }
   }
 
+  function updateProgress(completed, total) {
+    const percentage = total > 0 ? (completed/total)*100 : 0;
+    progressFill.style.width = `${percentage}%`;
+    progressText.textContent = `${completed} of ${total} Questions Completed`;
+  }
+
   updateTitle();
 
-  // Only add the title to the header, not the button
   surveyHeader.appendChild(surveyTitle);
+  surveyHeader.appendChild(progressContainer);
 
   const surveyFooter = document.createElement('div');
   surveyFooter.id = 'footer-survey';
@@ -79,6 +109,7 @@ export function createSurveyViewElements() {
     editDrawingButton, // Return it separately to be added to canvas panel
     prevAreaButton,
     nextAreaButton,
-    updateTitle
+    updateTitle,
+    updateProgress
   };
 }

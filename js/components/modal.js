@@ -73,6 +73,7 @@ export function initDrawResetModal(container) {
   resetConfirmButton = createButton('modal-reset-confirm', 'Reset my drawing');
   
   const buttonGroup = createButtonGroup(resetReturnButton, resetConfirmButton);
+  resetConfirmButton.classList.add('button-danger');
 
   modalContent.appendChild(resetModalText);
   modalContent.appendChild(buttonGroup);
@@ -88,9 +89,10 @@ export function initDeleteEmptyModal(container) {
   deleteEmptyText.id = 'delete-empty-text';
 
   deleteEmptyReturnButton = createButton('delete-empty-return', 'Return to Drawing');
-  deleteEmptyContinueButton = createButton('delete-empty-continue', 'Delete & Continue');
+  deleteEmptyContinueButton = createButton('delete-empty-continue', 'Delete & Proceed');
   
   const buttonGroup = createButtonGroup(deleteEmptyReturnButton, deleteEmptyContinueButton);
+  deleteEmptyContinueButton.classList.add('button-danger');
 
   modalContent.appendChild(deleteEmptyText);
   modalContent.appendChild(buttonGroup);

@@ -1,4 +1,4 @@
-export const surveyJson = {
+export const areaSurveyJson = {
   title: "Area-Specific Questionnaire",
   showQuestionNumbers: "off",
   showTitle: false,
@@ -15,7 +15,7 @@ export const surveyJson = {
         {
           type: "radiogroup",
           name: "firstEpisode",
-          title: "Is this your first episode of this pain/symptom?",
+          title: "Is this your first episode of this pain or symptom?",
           choices: ["Yes", "No"],
           isRequired: true
         },
@@ -47,7 +47,7 @@ export const surveyJson = {
           isRequired: true
         },
         {
-          type: "dropdown",
+          type: "radiogroup",
           name: "duration",
           title: "How long have you had this pain or symptom?",
           choices: ["Less than 7 days", 
@@ -62,10 +62,11 @@ export const surveyJson = {
           type: "rating",
           name: "intensityScale",
           title: "Please mark on the 0 (No pain or symptom) - 10 (Worst pain or symptom imaginable) scale how much pain or symptom you have had in this area, on average, over the past week",
-          minRateDescription: "No pain or symptom",
-          maxRateDescription: "Worst pain or symptom imaginable",
-          displayMode: "dropdown",
+          // minRateDescription: "No pain or symptom",
+          // maxRateDescription: "Worst pain or symptom imaginable",
+          // displayMode: "dropdown",
           rateCount: 11,
+          // rateValues: [0,1,2,3,4,5,6,7,8,9,10],
           rateMin: 0,
           rateMax: 10,
           isRequired: true
@@ -74,7 +75,7 @@ export const surveyJson = {
           type: "comment",
           name: "comment",
           title: "Is there anything else you would like to tell us about this pain or symptom? (Optional)",
-          maxLength: 200
+          maxLength: 300
         },
         {
           type: "radiogroup",
@@ -194,7 +195,7 @@ export const surveyJson = {
           isRequired: true
         },
         {
-          type: "dropdown",
+          type: "radiogroup",
           name: "interfereActivity",
           title: "In the past 7 days, how much did this pain or symptom interfere with your day-to-day activities?",
           choices: [
@@ -218,7 +219,7 @@ export const surveyJson = {
         {
           type: "radiogroup",
           name: "treatmentForImprovementDetail",
-          title: "If YES, what was the treatment",
+          title: "If YES, what was the treatment?",
           choices: [
             "Surgery",
             "Physiotherapy",
@@ -234,7 +235,7 @@ export const surveyJson = {
         {
           type: "radiogroup",
           name: "medicationForImprovement",
-          title: "We will ask for details about medications later in the survey. For this pain/symptom, have any medicaitons improved it?",
+          title: "We will ask for details about medications later in the survey. For this pain or symptom, have any medications improved it?",
           choices: ["Yes","No"],
           visibleIf: "{mainArea} == Yes",
           isRequired: true

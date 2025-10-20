@@ -3,8 +3,9 @@ import { loadModel, cleanupAllModels } from '../services/modelLoader.js';
 import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance, buildGlobalUVMap, initializeRegionMappings, updateInstanceColors } from '../services/drawingEngine.js';
 import texturePool from '../utils/textureManager.js';
 import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement } from '../utils/interaction.js';
-import { applyCustomTheme, customTheme } from '../utils/questionnaires_theme.js';
-import { surveyJson } from '../utils/questionnaires.js';
+import { applyCustomTheme, customTheme } from '../utils/surveyTheme.js';
+import { areaSurveyJson } from '../utils/areaSurvey.js';
+import { generalSurveyJson } from '../utils/generalSurvey.js';
 import { getModalElements, showMoveToSurveyModal, hideDrawContinueModal, showDeleteEmptyModal, hideDeleteEmptyModal } from '../components/modal.js';
 import SurveyKO from "https://cdn.skypack.dev/survey-knockout";
 import AppState from './state.js';
@@ -233,7 +234,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     AppState.currentDrawingIndex = AppState.currentSurveyIndex;
     cleanupInteraction();
     disableCursorManagement();
-    goTo('survey');
+    goTo('area-survey');
   }
 
   function handleMoveToSurveyAfterDelete() {
@@ -258,37 +259,43 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       currentInstance.texture.needsUpdate = true;
     }
   }
+  
+  function createCombinedTexture() {
+    const combinedCanvas = document.createElement('canvas');
+    combinedCanvas.width = texturePool.width;
+    combinedCanvas.height = texturePool.height;
+    const ctx = combinedCanvas.getContext('2d');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
+
+    AppState.drawingInstances.forEach(instance => {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = instance.canvas.width;
+      tempCanvas.height = instance.canvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      tempCtx.drawImage(instance.canvas, 0, 0);
+      const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      const pixels = imageData.data;
+      
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i] === 255 && pixels[i+1] === 255 && pixels[i+2] === 255) {
+          pixels[i+3] = 0;
+        }
+      }
+
+      tempCtx.putImageData(imageData, 0, 0);
+      ctx.drawImage(tempCanvas, 0, 0);
+    });
+
+    // Return the combined texture
+    return combinedCanvas
+  }
 
   function showPreviewAndConfirmModal() {
     setTimeout(() => {
-      const combinedCanvas = document.createElement('canvas');
-      combinedCanvas.width = texturePool.width;
-      combinedCanvas.height = texturePool.height;
-      const ctx = combinedCanvas.getContext('2d');
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
-
-      AppState.drawingInstances.forEach(instance => {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = instance.canvas.width;
-        tempCanvas.height = instance.canvas.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        
-        tempCtx.drawImage(instance.canvas, 0, 0);
-        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-        const pixels = imageData.data;
-        
-        for (let i = 0; i < pixels.length; i += 4) {
-          if (pixels[i] === 255 && pixels[i+1] === 255 && pixels[i+2] === 255) {
-            pixels[i+3] = 0;
-          }
-        }
-    
-        tempCtx.putImageData(imageData, 0, 0);
-        ctx.drawImage(tempCanvas, 0, 0);
-      });
-
+      const combinedCanvas = createCombinedTexture();
       const tempTexture = new THREE.CanvasTexture(combinedCanvas);
       tempTexture.needsUpdate = true;
 
@@ -353,7 +360,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       controls.enableRotate = false;
     }
 
-    if (stage !== 'survey' && survey.editDrawingButton) {
+    if (stage !== 'area-survey' && survey.editDrawingButton) {
       survey.editDrawingButton.style.display = 'none';
     }
 
@@ -363,21 +370,25 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         controls.object.position.set(0, 1.0, 1.5);
         controls.update();
 
-        const canvasPanel = document.getElementById('canvas-panel');
-        if (canvasPanel && canvasPanel.contains(survey.editDrawingButton)) {
-          canvasPanel.removeChild(survey.editDrawingButton);
-        }
-
-        if (AppState.skinMesh && AppState.baseTextureTexture) {
-          AppState.skinMesh.material.map = AppState.baseTextureTexture;
-          AppState.skinMesh.material.needsUpdate = true;
-        }
-
         if (AppState.drawingInstances.length > 0) {
+          // Remove footer & buttons if this is after general survey (endpoint)
+          summary.summaryFooter.style.display = 'none';
           summary.changeModelButton.style.display = 'none';
+          summary.addNewInstanceButton.style.display = 'none';
+        } else {
+
+          const canvasPanel = document.getElementById('canvas-panel');
+          if (canvasPanel && canvasPanel.contains(survey.editDrawingButton)) {
+            canvasPanel.removeChild(survey.editDrawingButton);
+          }
+
+          if (AppState.skinMesh && AppState.baseTextureTexture) {
+            AppState.skinMesh.material.map = AppState.baseTextureTexture;
+            AppState.skinMesh.material.needsUpdate = true;
+          }
         }
 
-        summary.updateStatus();
+        summary.updateSummaryStatus();
         renderer.render(scene, camera);
         break;
       }
@@ -424,7 +435,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         break;
       }
 
-      case 'survey': {
+      case 'area-survey': {
         // Reset view
         controls.target.set(0, 1.0, 0);
         controls.object.position.set(0, 1.0, 1.5);
@@ -439,6 +450,28 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         survey.updateTitle();
         renderSurvey(survey.surveyInnerContainer);
         break;
+      }
+
+      case 'general-survey': {
+        // Reset view
+        controls.target.set(0, 1.0, 0);
+        controls.object.position.set(0, 1.0, 1.5);
+        controls.update();
+
+        const combinedCanvas = createCombinedTexture();
+        const tempTexture = new THREE.CanvasTexture(combinedCanvas);
+        tempTexture.needsUpdate = true;
+
+        if (AppState.skinMesh) {
+          AppState.skinMesh.material.map = tempTexture;
+          AppState.skinMesh.material.needsUpdate = true;
+        }
+
+        // Update survey title
+        survey.updateTitle('general');
+
+        // Render general survey
+        renderGeneralSurvey(survey.surveyInnerContainer);
       }
     }
 
@@ -551,7 +584,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       AppState.currentDrawingIndex = AppState.currentSurveyIndex;
       cleanupInteraction();
       disableCursorManagement();
-      goTo('survey');
+      goTo('area-survey');
       return;
     }
 
@@ -606,7 +639,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     hideDrawContinueModal();
     cleanupInteraction();
     disableCursorManagement();
-    goTo('survey');
+    goTo('area-survey');
   });
   modalReturnButton.addEventListener('click', () => {
     hideDrawContinueModal();
@@ -628,6 +661,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   // CAMERA & SURVEY MANAGEMENT
   // ============================================================================
 
+  // TODO: Re-enable below function once it is ready
   function focusCameraOnDrawing(drawingInstance) {
     if (!cameraUtils || !drawingInstance) {
       controls.target.set(0, 1.0, 0);
@@ -649,7 +683,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     applyCustomTheme(customTheme);
 
     if (!surveyInstance) {
-      surveyInstance = new SurveyKO.Model(surveyJson);
+      surveyInstance = new SurveyKO.Model(areaSurveyJson);
       survey.css = { ...survey.css, root: "sv-root-modern sv-root-plain" };
       surveyInstance.showTitle = false;
       surveyInstance.validationEnabled = false;
@@ -658,6 +692,32 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         if (options.value !== undefined && options.value !== null && options.value !== '') {
           options.error = null;
         }
+      });
+
+      surveyInstance.onValueChanged.add(function(survey, options) {
+        updateSurveyProgress();
+      });
+
+      surveyInstance.onAfterRenderQuestion.add(function (survey, options) {
+        if (options.question.name !== "intensityScale") return;
+        const questionEl = options.htmlElement;
+        const ratingContent = questionEl.querySelector(".sd-question__content");
+        if (!ratingContent) return;
+        const ratingRow = ratingContent.querySelector(".sd-rating");
+        if (!ratingRow) return;
+        const layoutRow = document.createElement("div");
+        layoutRow.classList.add('rating-layout-row');
+        const minLabel = document.createElement("div");
+        minLabel.innerHTML = "No pain<br>or symptom";
+        minLabel.classList.add('rating-layout-label');
+        const maxLabel = document.createElement("div");
+        maxLabel.innerHTML = "Worst pain<br>or symptom<br>imaginable";
+        maxLabel.classList.add('rating-layout-label');
+        ratingContent.removeChild(ratingRow);
+        layoutRow.appendChild(minLabel);
+        layoutRow.appendChild(ratingRow);
+        layoutRow.appendChild(maxLabel);
+        ratingContent.appendChild(layoutRow);
       });
     }
 
@@ -689,6 +749,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     survey.updateTitle();
     updateSurveyNavigationButtons();
+    updateSurveyProgress();
 
     container.innerHTML = '';
     surveyInstance.render(container);
@@ -706,6 +767,33 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     } else {
       survey.nextAreaButton.textContent = 'Move to General Questionnaire';
     }
+  }
+
+  function updateSurveyProgress() {
+    if (!surveyInstance) return;
+    
+    const allQuestions = surveyInstance.getAllQuestions();
+    const visibleQuestions = allQuestions.filter(q => q.isVisible);
+    const totalQuestions = visibleQuestions.length;
+    
+    let completedQuestions = 0;
+    visibleQuestions.forEach(question => {
+      const value = question.value;
+      
+      // Check if question is answered
+      if (value !== undefined && value !== null && value !== '') {
+        // For arrays (checkbox questions), check if at least one option is selected
+        if (Array.isArray(value)) {
+          if (value.length > 0) {
+            completedQuestions++;
+          }
+        } else {
+          completedQuestions++;
+        }
+      }
+    });
+    
+    survey.updateProgress(completedQuestions, totalQuestions);
   }
 
   function saveCurrentSurveyData() {
@@ -730,6 +818,86 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     return false;
   }
 
+  function renderGeneralSurvey(container) {
+  applyCustomTheme(customTheme);
+  
+  if (!surveyInstance) {
+    surveyInstance = new SurveyKO.Model(generalSurveyJson);
+    surveyInstance.showTitle = false;
+    surveyInstance.validationEnabled = false;
+
+    surveyInstance.onValidateQuestion.add(function(survey, options) {
+      if (options.value !== undefined && options.value !== null && options.value !== '') {
+        options.error = null;
+      }
+    });
+
+    surveyInstance.onValueChanged.add(function(survey, options) {
+      updateSurveyProgress();
+    });
+
+    surveyInstance.onAfterRenderQuestion.add(function(survey, options) {
+      if (options.question.name === 'medicationTable' && options.question.getType() === 'matrix') {
+        const descriptions = {
+          'over-the-counter': 'Examples: Advil (ibuprofen), Aleve (naproxen), Aspirin (ASA), Motrin (ibuprofen), Tylenol (acetaminophen)',
+          'non-steroidal-anti-inflammatory': 'Examples: Arthrotec, Celecoxib, Celebrex, Voltaren',
+          'muscle-relaxant': 'Examples: Flexeril, Robaxacet, Robaxin',
+          'narcotic-pain-medication': 'Examples: Demerol, MS Contin, Morphine, Oxycontin, Percocet, Talwin, Tylenol 3',
+          'anti-depressant': 'Examples: Celexa, Cipralex, Cymbalta, Elavil, Paxil, Prozac, Wellbutrin, Zoloft',
+          'neuroleptics': 'Examples: Lyrica, Neurontin, Gabapentin, Rivotril, Tegretol',
+          'cannabis': 'Examples: Smoked, Inhaled, Edible, Oil, Cream'
+        };
+
+        setTimeout(() => {
+          const tbody = options.htmlElement.querySelector('tbody');
+          if (!tbody) {
+            console.log('tbody not found');
+            return;
+          }
+          
+          const rows = tbody.querySelectorAll('tr.sd-table__row');
+          
+          // Match rows with question.visibleRows by index
+          options.question.visibleRows.forEach((questionRow, index) => {
+            // Extract row value from fullName (format: "sq_###_{row-value}")
+            const fullName = questionRow.fullName;
+            
+            // Extract the row value after the last underscore
+            const rowValue = fullName ? fullName.split('_').pop() : null;
+            const domRow = rows[index];
+                        
+            if (rowValue && descriptions[rowValue] && domRow) {
+              // Find the td with class that contains "row-text"
+              const textCell = domRow.querySelector('td.sd-table__cell--row-text');
+              
+              if (textCell && !textCell.querySelector('.medication-description')) {                
+                // Create description element
+                const desc = document.createElement('div');
+                desc.className = 'medication-description';
+                desc.style.cssText = 'font-size: 1rem; color: #6b7280; font-weight: normal; margin-top: 0.25rem; font-style: italic; line-height: 1.4; display: block;';
+                desc.textContent = descriptions[rowValue];
+                
+                // Append description to the text cell
+                textCell.appendChild(desc);
+              } 
+            }
+          });
+        }, 100);
+      }
+    });
+  }
+
+  // These should run every time the function is called
+  survey.prevAreaButton.style.display = 'none';
+  survey.nextAreaButton.textContent = 'Complete';
+  survey.editDrawingButton.style.display = 'none';
+
+  container.innerHTML = '';
+  surveyInstance.render(container);
+  updateSurveyProgress();
+  renderer.render(scene, camera);
+}
+
   function navigateToSurvey(index) {
     if (index < 0 || index >= AppState.drawingInstances.length) return;
 
@@ -744,22 +912,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     
     survey.updateTitle();
     renderSurvey(survey.surveyInnerContainer);
-  }
-
-  function completeAllSurveys() {
-    if(!saveCurrentSurveyData()) {
-      surveyInstance.validate();
-      return;
-    }
-
-    survey.surveyInnerContainer.textContent = "Survey Complete";
-
-    survey.editDrawingButton.style.display = 'none';
-    survey.prevAreaButton.style.display = 'none';
-    survey.nextAreaButton.style.display = 'none';
-
-    surveyInstance = null;
-    AppState.currentSurveyIndex = 0;
   }
 
   survey.editDrawingButton.addEventListener('click', () => {
@@ -787,15 +939,38 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         surveyInstance.validate();
         return;
       }
+
+      // console.log("surveyInstance.data: ", surveyInstance.data);
+      // Check if the submitted survey is general survey
+      if ("medicationTable" in surveyInstance.data) {
+        AppState.generalQuestionnaireResponse = { ...surveyInstance.data };
+        surveyInstance = null;
+      }
     }
 
     if (AppState.currentSurveyIndex < total-1) {
-      navigateToSurvey(AppState.currentSurveyIndex + 1);
+      navigateToSurvey(AppState.currentSurveyIndex + 1); // Move on to next area questionnaire
+    } else if (AppState.generalQuestionnaireResponse) {
+      goTo('summary'); // General questionnare submitted; moving to survey view
     } else {
-      completeAllSurveys();
+      moveToGeneralSurvey(); // Area questionnares completed; move to general questionnaire
     }
   });
 
+  function moveToGeneralSurvey() {
+    if(!saveCurrentSurveyData()) {
+      surveyInstance.validate();
+      return;
+    }
+
+    // Clear the area-specific survey instance
+    surveyInstance = null;
+    
+    // Go to general survey stage
+    goTo('general-survey');
+  }
+
+  // Initializing the view
   goTo('summary');
 
   window.cleanupApplication = () => {

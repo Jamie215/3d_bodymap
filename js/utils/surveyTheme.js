@@ -25,7 +25,6 @@ export const customTheme = {
     "--sjs-font-family": "'Inter', sans-serif",
     "--sjs-font-size": "20px",
     "--sjs-base-unit": "8px",
-    "--sjs-corner-radius": "var(--padding)",
   }
 };
 
