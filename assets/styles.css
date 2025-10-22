@@ -99,7 +99,6 @@ canvas {
   padding: 0.625rem 1rem;
   font-size: 0.95rem;
   transition: all 0.2s ease;
-  animation: slideInFromRight 0.3s ease-out;
 }
 
 :root[data-stage="area-survey"] #edit-drawing-button:hover {
@@ -1158,6 +1157,10 @@ input[type="range"]::-webkit-slider-thumb {
   color: #dc2626;
 }
 
+.sd-error .sv-string-viewer {
+  margin-left: 2rem !important;
+}
+
 .sd-question:not(.sd-question--error) .sd-question__erbox {
   display: none !important;
 }
@@ -1176,6 +1179,28 @@ input[type="range"]::-webkit-slider-thumb {
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
+}
+
+/* Target the parent item when the radio input is disabled */
+.sd-item:has(input[type="radio"]:disabled),
+.sd-radio__item:has(input[type="radio"]:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Target the label text */
+.sd-item:has(input[type="radio"]:disabled) .sd-item__control-label,
+.sd-radio__item:has(input[type="radio"]:disabled) .sd-selectbase__label {
+  color: #9ca3af !important;
+  cursor: not-allowed;
+}
+
+/* Target the custom radio circle/decorator */
+.sd-item:has(input[type="radio"]:disabled) .sd-item__decorator,
+.sd-radio__item:has(input[type="radio"]:disabled) .sd-radio__decorator {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* =========================
@@ -1302,25 +1327,6 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* =========================
-   Responsive - iPad Mini and larger tablets (768px+)
-========================= */
-@media (min-width: 768px) and (max-width: 1024px) {
-  /* Adjust survey page padding for tablets */
-  .sd-page {
-    padding: 1rem 1rem !important;
-  }
-  
-  #survey-header {
-    padding: 0.875rem 1.5rem;
-  }
-  
-  /* Slightly reduce question spacing on tablets */
-  .sd-row {
-    margin-bottom: 0.875rem !important;
-  }
-}
-
-/* =========================
    Responsive - Larger Desktops
 ========================= */
 /* @media (min-width: 1280px) {
@@ -1344,55 +1350,63 @@ input[type="range"]::-webkit-slider-thumb {
   .app-shell {
     grid-template-areas:
       "center"
-      "left"
-      "right"
       "footer";
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(60dvh, 1fr) auto auto auto;
+    grid-template-rows: 1fr auto;
+    height: 100dvh;
   }
 
-  .slot-left, .slot-right, .slot-canvas { 
-    min-height: 0; 
+  /* Hide left and right slots on mobile - content moves to drawers */
+  .slot-left, 
+  .slot-right { 
+    display: none !important;
   }
 
-  .slot-header, .slot-footer, .footer {
+  /* Hide header on mobile by default */
+  .slot-header {
+    display: none !important;
+  }
+
+  /* Canvas takes full height minus footer */
+  .slot-canvas { 
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* Footer positioning */
+  .slot-footer {
     position: static;
-    box-shadow: none;
-    padding: var(--padding);
-    width: auto;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-around;
-    flex-wrap: wrap;
-  }
-
-  :root[data-stage="drawing"] .slot-left,
-  :root[data-stage="drawing"] .slot-right { 
-    display: none !important; 
+    width: 100%;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
   }
 
   .footer { 
-    position: static; 
-    bottom: auto; 
-    width: auto; 
+    position: static;
+    width: 100%;
+    padding: var(--padding);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
   }
-  
-  /* Edit button adjustments for tablets */
-  :root[data-stage="area-survey"] #edit-drawing-button {
-    top: 0.75rem;
-    left: 0.75rem;
-    padding: 0.5rem 0.875rem;
-    font-size: 0.9rem;
+
+  /* Stage-specific overrides for mobile */
+  :root[data-stage="drawing"] .slot-header {
+    display: flex !important;
+    padding: 0.75rem;
   }
-  
-  :root[data-stage="area-survey"] #edit-drawing-button svg {
-    width: 16px;
-    height: 16px;
-  }
-  
-  #survey-header {
-    padding: 0.75rem 1.5rem;
+
+  :root[data-stage="summary"] .app-shell,
+  :root[data-stage="selection"] .app-shell,
+  :root[data-stage="area-survey"] .app-shell,
+  :root[data-stage="general-survey"] .app-shell {
+    grid-template-areas:
+      "center"
+      "footer";
+    grid-template-columns: 1fr;
   }
 
   /* FAB and Drawer for mobile navigation */

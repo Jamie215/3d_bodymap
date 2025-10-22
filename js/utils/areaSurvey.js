@@ -81,7 +81,17 @@ export const areaSurveyJson = {
           type: "radiogroup",
           name: "mainArea",
           title: "Is this your main area of pain or symptom?",
-          choices: ["Yes", "No"],
+          choices: [
+            {
+              value: "Yes",
+              text: "Yes",
+              enableIf: "{remainingMainAreaSlots} > 0 or {isCurrentlyMainArea} = true"
+            },
+            {
+              value: "No", 
+              text: "No"
+            }
+          ],
           isRequired: true
         },
         {

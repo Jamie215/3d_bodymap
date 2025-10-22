@@ -193,7 +193,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       if (AppState.currentDrawingIndex > 0) {
         navigateToDrawing(AppState.currentDrawingIndex - 1);
       } else {
-        // At index 0 after deletion - update UI and texture
+        // At index 0 after deletion - update navigation buttons and texture
         updateDrawingNavigationButtons();
         drawing.updateStatusBar();
         updateCurrentTexture();
@@ -223,14 +223,10 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       return;
     }
 
-    // if (!hasAnyValidDrawings()) {
-    //   showMoveToSurveyModal("Please draw at least one area before returning to the survey.", false);
-    //   return;
-    // }
-
     if (AppState.currentSurveyIndex >= AppState.drawingInstances.length) {
       AppState.currentSurveyIndex = AppState.drawingInstances.length - 1;
     }
+
     AppState.currentDrawingIndex = AppState.currentSurveyIndex;
     cleanupInteraction();
     disableCursorManagement();
@@ -304,6 +300,8 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         AppState.skinMesh.material.needsUpdate = true;
       }
 
+      if (cameraUtils) cameraUtils.resetView();
+
       const previewWidth = 400;
       const previewHeight = 350;
       const originalSize = renderer.getSize(new THREE.Vector2());
@@ -366,12 +364,19 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     switch (stage) {
       case 'summary': {
-        controls.target.set(0, 1.0, 0);
-        controls.object.position.set(0, 1.0, 1.5);
-        controls.update();
+        if (cameraUtils) cameraUtils.resetView();
 
+        // After submitting all surveys (endpoint)
         if (AppState.drawingInstances.length > 0) {
-          // Remove footer & buttons if this is after general survey (endpoint)
+
+          const combinedCanvas = createCombinedTexture();
+          const tempTexture = new THREE.CanvasTexture(combinedCanvas);
+          tempTexture.needsUpdate = true;
+
+          if (AppState.skinMesh) {
+            AppState.skinMesh.material.map = tempTexture;
+            AppState.skinMesh.material.needsUpdate = true;
+          }
           summary.summaryFooter.style.display = 'none';
           summary.changeModelButton.style.display = 'none';
           summary.addNewInstanceButton.style.display = 'none';
@@ -436,10 +441,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       }
 
       case 'area-survey': {
-        // Reset view
-        controls.target.set(0, 1.0, 0);
-        controls.object.position.set(0, 1.0, 1.5);
-        controls.update();
+        if (cameraUtils) cameraUtils.resetView();
 
         const canvasPanel = document.getElementById('canvas-panel');
         if (canvasPanel && !canvasPanel.contains(survey.editDrawingButton)) {
@@ -453,10 +455,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       }
 
       case 'general-survey': {
-        // Reset view
-        controls.target.set(0, 1.0, 0);
-        controls.object.position.set(0, 1.0, 1.5);
-        controls.update();
+        if (cameraUtils) cameraUtils.resetView();
 
         const combinedCanvas = createCombinedTexture();
         const tempTexture = new THREE.CanvasTexture(combinedCanvas);
@@ -499,7 +498,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   function updateDrawingNavigationButtons() {
     const current = AppState.currentDrawingIndex;
     const total = AppState.drawingInstances.length;
-    console.log("isEditingFromSurvey: ", AppState.isEditingFromSurvey);
 
     if (AppState.isEditingFromSurvey) {
       drawing.prevAreaButton.style.display = 'none';
@@ -592,7 +590,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     const total = AppState.drawingInstances.length;
     const currentIsEmpty = isDrawingBlank();
     
-    // Special case - on last drawing that's empty but others exist
+    // On last drawing that's empty but others exist
     if (current === total - 1 && currentIsEmpty && total > 1) {
       // Check if there are other valid drawings
       const originalIndex = AppState.currentDrawingIndex;
@@ -678,6 +676,10 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       controls.update();
     }
   }
+
+  function countMainAreas() {
+    return AppState.drawingInstances.filter(instance => instance.questionnaireData?.mainArea === "Yes").length;
+  }
   
   function renderSurvey(container) {
     applyCustomTheme(customTheme);
@@ -696,8 +698,12 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
       surveyInstance.onValueChanged.add(function(survey, options) {
         updateSurveyProgress();
+        if (options.name === 'mainArea') {
+          updateMainAreaQuestion();
+        }
       });
 
+      // Modifying style for rating scale
       surveyInstance.onAfterRenderQuestion.add(function (survey, options) {
         if (options.question.name !== "intensityScale") return;
         const questionEl = options.htmlElement;
@@ -705,6 +711,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         if (!ratingContent) return;
         const ratingRow = ratingContent.querySelector(".sd-rating");
         if (!ratingRow) return;
+        
         const layoutRow = document.createElement("div");
         layoutRow.classList.add('rating-layout-row');
         const minLabel = document.createElement("div");
@@ -734,12 +741,14 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
           question.clearErrors();
         }
       });
-      
       surveyInstance.validationEnabled = false;
     } else {
       surveyInstance.clear();
       surveyInstance.validationEnabled = false;
     }
+
+    // Update main area question based on current count
+    updateMainAreaQuestion();
 
     if (AppState.skinMesh && currentInstance) {
       AppState.skinMesh.material.map = currentInstance.texture;
@@ -782,7 +791,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       
       // Check if question is answered
       if (value !== undefined && value !== null && value !== '') {
-        // For arrays (checkbox questions), check if at least one option is selected
         if (Array.isArray(value)) {
           if (value.length > 0) {
             completedQuestions++;
@@ -796,11 +804,44 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     survey.updateProgress(completedQuestions, totalQuestions);
   }
 
+  function updateMainAreaQuestion() {
+    if (!surveyInstance) return;
+
+    const mainAreaQuestion = surveyInstance.getQuestionByName('mainArea');
+    if (!mainAreaQuestion) return;
+    
+    const currentInstance = AppState.drawingInstances[AppState.currentSurveyIndex];
+    const currentMainAreaValue = currentInstance.questionnaireData?.mainArea;
+    
+    // Count main areas excluding the current one if it was previously marked as "Yes"
+    let mainAreaCount = countMainAreas();
+    if (currentMainAreaValue === "Yes") {
+      mainAreaCount--; // Don't count current area if we're editing it
+    }
+
+    const remainingSlots = 3 - mainAreaCount;
+  
+    // Store the count in survey data for use in choicesEnableIf
+    surveyInstance.setVariable("remainingMainAreaSlots", remainingSlots);
+    surveyInstance.setVariable("isCurrentlyMainArea", currentMainAreaValue === "Yes");
+    
+    if (remainingSlots <= 0) {
+      // No slots remaining
+      mainAreaQuestion.title = "Is this your main area of pain or symptom? (Maximum 3 main areas reached)";
+      mainAreaQuestion.value = "No";
+    } else if (remainingSlots === 3) {
+      // All slots available
+      mainAreaQuestion.title = "Is this your main area of pain or symptom? (You can indicate up to 3 main areas)";
+    } else {
+      // Some slots remaining
+      mainAreaQuestion.title = `Is this your main area of pain or symptom? (${remainingSlots} main area${remainingSlots === 1 ? '' : 's'} remaining)`;
+    }
+  }
+
   function saveCurrentSurveyData() {
     if(!surveyInstance) return false;
 
     surveyInstance.validationEnabled = true;
-
     const hasErrors = surveyInstance.hasErrors();
     
     if (!hasErrors) {
@@ -827,6 +868,24 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     surveyInstance.validationEnabled = false;
 
     surveyInstance.onValidateQuestion.add(function(survey, options) {
+      // Skip custom validation for matrix questions
+      if (options.question.getType() === 'matrix') {
+        const medicationQuestion = survey.getQuestionByName('medicationTable');
+        const allRows = medicationQuestion.rows.map(r => r.value);
+        
+        // Check which rows are missing
+        let missingRows = [];
+        for (let row of allRows) {
+          if (!options.value || !options.value[row]) {
+            missingRows.push(row);
+          }
+        }
+                
+        if (missingRows.length > 0) {
+          options.error = `Please answer all rows in the medication table. Missing: ${missingRows.join(', ')}`;
+          return;
+        }
+      }
       if (options.value !== undefined && options.value !== null && options.value !== '') {
         options.error = null;
       }
@@ -836,6 +895,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       updateSurveyProgress();
     });
 
+    // Adding subtext for examples in medicationTable
     surveyInstance.onAfterRenderQuestion.add(function(survey, options) {
       if (options.question.name === 'medicationTable' && options.question.getType() === 'matrix') {
         const descriptions = {
@@ -859,10 +919,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
           
           // Match rows with question.visibleRows by index
           options.question.visibleRows.forEach((questionRow, index) => {
-            // Extract row value from fullName (format: "sq_###_{row-value}")
-            const fullName = questionRow.fullName;
-            
-            // Extract the row value after the last underscore
+            const fullName = questionRow.fullName;            
             const rowValue = fullName ? fullName.split('_').pop() : null;
             const domRow = rows[index];
                         
@@ -887,7 +944,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     });
   }
 
-  // These should run every time the function is called
   survey.prevAreaButton.style.display = 'none';
   survey.nextAreaButton.textContent = 'Complete';
   survey.editDrawingButton.style.display = 'none';
@@ -912,6 +968,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     
     survey.updateTitle();
     renderSurvey(survey.surveyInnerContainer);
+    updateMainAreaQuestion();
   }
 
   survey.editDrawingButton.addEventListener('click', () => {
@@ -929,21 +986,66 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     }
   });
 
-  survey.nextAreaButton.addEventListener('click', () => {
-    const total = AppState.drawingInstances.length;
+  survey.nextAreaButton.addEventListener('click', async () => {
+      const total = AppState.drawingInstances.length;
 
-    if (surveyInstance) {
+      if (surveyInstance) {      
       surveyInstance.validationEnabled = true;
-      
-      if (surveyInstance.hasErrors()) {
-        surveyInstance.validate();
+      surveyInstance.validate();
+            
+      const hasErrors = surveyInstance.hasErrors();      
+      if (hasErrors) {
+        
+        // Scroll to first question with error
+        setTimeout(() => {
+          const questions = surveyInstance.getAllQuestions();
+          const firstQuestionWithError = questions.find(q => q.errors && q.errors.length > 0);
+                    
+          if (firstQuestionWithError) {
+            const questionElement = document.getElementById(firstQuestionWithError.id);            
+            if (questionElement) {
+              questionElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+              });
+              
+              const firstInput = questionElement.querySelector('input:not(.sd-visuallyhidden), textarea, select');
+              if (firstInput) {
+                setTimeout(() => firstInput.focus(), 400);
+              }
+            }
+          }
+        }, 100);
+        
         return;
       }
 
-      // console.log("surveyInstance.data: ", surveyInstance.data);
+
       // Check if the submitted survey is general survey
       if ("medicationTable" in surveyInstance.data) {
         AppState.generalQuestionnaireResponse = { ...surveyInstance.data };
+
+        // Prepare complete sumbission data
+        const submissionData = await prepareSubmissionData();
+
+        // Show loading indicator
+        survey.nextAreaButton.disabled = true;
+        survey.nextAreaButton.textContent = 'Submitting...';
+
+        // Save to Firebase
+        const docId = await window.firebaseService.saveSubmission(submissionData);
+
+        // Re-enable button
+        survey.nextAreaButton.disabled = false;
+        survey.nextAreaButton.textContent = 'Complete';
+        
+        if (docId) {
+          console.log('All data submitted successfully!');
+        } else {
+          console.error('Failed to submit data');
+          alert('There was an error submitting your data. Please try again.');
+          return;
+        }
         surveyInstance = null;
       }
     }
@@ -956,6 +1058,97 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       moveToGeneralSurvey(); // Area questionnares completed; move to general questionnaire
     }
   });
+
+  // Helper function to prepare all submisison data
+  async function prepareSubmissionData() {
+    const combinedCanvas = createCombinedTexture();
+    const tempTexture = new THREE.CanvasTexture(combinedCanvas);
+    tempTexture.needsUpdate = true;
+
+    if (AppState.skinMesh) {
+      AppState.skinMesh.material.map = tempTexture;
+      AppState.skinMesh.material.needsUpdate = true;
+    }
+
+    const previewWidth = 400;
+    const previewHeight = 350;
+    const originalSize = renderer.getSize(new THREE.Vector2());
+    const originalPixelRatio = renderer.getPixelRatio();
+
+    renderer.setSize(previewWidth, previewHeight, false);
+    renderer.setPixelRatio(1);
+    renderer.render(scene, camera);
+    const snapshot = renderer.domElement.toDataURL('image/png');
+
+    renderer.setSize(originalSize.x, originalSize.y, false);
+    renderer.setPixelRatio(originalPixelRatio);
+
+    if (AppState.skinMesh) {
+      const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+      AppState.skinMesh.material.map = currentInstance.texture;
+      AppState.skinMesh.material.needsUpdate = true;
+    }
+
+    renderer.render(scene, camera);
+
+    const areas = AppState.drawingInstances.map((instance, index) => ({
+      areaNumber: index+1,
+      areaId: instance.id,
+      drawingImageData: instance.uvDrawingData,
+      questionnaireResponses: instance.questionnaireData,
+      drawnRegions: Array.from(instance.drawnRegionNames || [])
+    }));
+
+    const getDeviceType = () => {
+      const ua = navigator.userAgent;
+      if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+            return "Tablet";
+        }
+        if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
+            return "Mobile";
+        }
+        return "Desktop"; 
+    }
+
+    const getOS = () => {
+        const ua = navigator.userAgent;
+        if (/windows phone/i.test(ua)) return "Windows Phone";
+        if (/android/i.test(ua)) return "Android";
+        if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return "iOS";
+        if (/Mac/.test(ua)) return "macOS";
+        if (/Win/.test(ua)) return "Windows";
+        if (/Linux/.test(ua)) return "Linux";
+        return "Unknown";
+    };
+
+    const getBrowser = () => {
+        const ua = navigator.userAgent;
+        if (/Edg/.test(ua)) return "Edge";
+        if (/Chrome/.test(ua) && !/Edg/.test(ua)) return "Chrome";
+        if (/Safari/.test(ua) && !/Chrome/.test(ua)) return "Safari";
+        if (/Firefox/.test(ua)) return "Firefox";
+        if (/MSIE|Trident/.test(ua)) return "Internet Explorer";
+        return "Unknown";
+    };
+
+    return {
+      startTime: window.sessionStartTime || new Date().toISOString(),
+      completionTime: new Date().toISOString(),
+      durationSeconds: window.sessionStartTime ? 
+        Math.round((Date.now() - new Date(window.sessionStartTime).getTime()) / 1000) : null,
+      modelType: AppState.currentModelName,
+      combinedDrawing: snapshot,
+      totalAreas: areas.length,
+      areas: areas,
+      generalQuestionnaire: AppState.generalQuestionnaireResponse,
+      deviceInfo: {
+        deviceType: getDeviceType(),
+        operatingSystem: getOS(),
+        browser: getBrowser(),
+        userAgent: navigator.userAgent
+      }
+    }
+  }
 
   function moveToGeneralSurvey() {
     if(!saveCurrentSurveyData()) {

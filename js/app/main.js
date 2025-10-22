@@ -7,6 +7,8 @@ import { createSelectionView } from '../views/selectionView.js';
 import { createSummaryView } from '../views/summaryView.js';
 import { createSurveyViewElements } from '../views/surveyView.js';
 
+window.sessionStartTime = new Date().toISOString();
+
 // Grab predefined slots from index.html
 const slotHeader = document.querySelector('.slot-header');
 const slotLeft = document.querySelector('.slot-left');
@@ -261,3 +263,10 @@ window.addEventListener('resize', () => {
 
 // Some browsers already emit 'resize' on rotation; this is a cheap extra.
 window.addEventListener('orientationchange', reapplyCurrentStage);
+
+// Initialize Firebase when app loads
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.firebaseService) {
+        window.firebaseService.init();
+    }
+});
