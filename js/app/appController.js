@@ -656,7 +656,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   });
 
   // ============================================================================
-  // CAMERA & SURVEY MANAGEMENT
+  // SURVEY MANAGEMENT
   // ============================================================================
 
   // TODO: Re-enable below function once it is ready
@@ -743,7 +743,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       });
       surveyInstance.validationEnabled = false;
     } else {
-      surveyInstance.clear();
       surveyInstance.validationEnabled = false;
     }
 
@@ -775,6 +774,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       survey.nextAreaButton.textContent = "Next Area Questionnaire →";
     } else {
       survey.nextAreaButton.textContent = 'Move to General Questionnaire';
+      survey.nextAreaButton.style.background = '#005486';
     }
   }
 

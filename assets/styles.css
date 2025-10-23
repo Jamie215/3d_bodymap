@@ -661,6 +661,11 @@ input[type="range"]::-webkit-slider-thumb {
   color: #ffffff; 
 }
 
+.button-success:hover { 
+  background: #7EA695 !important; 
+  color: #ffffff; 
+}
+
 .button-prev-nav {
   background: #ffffff;
   color: var(--primary-color);

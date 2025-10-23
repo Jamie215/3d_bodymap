@@ -10,6 +10,7 @@ const colourPalette = d3.schemeObservable10;
 let idToRegionMap = null;
 let regionToIdMap = null;
 
+// Load region-to-ID mappings to AppState
 export async function initializeRegionMappings() {
     try {
         const response = await fetch('../../assets/region_id_mapping.json');
@@ -32,13 +33,13 @@ export async function initializeRegionMappings() {
     }
 }
 
+// Get the regionID for a specific vertex
 function getVertexRegion(regionIDAttr, vertexIndex) {
-    // Get the regionID for this vertex
     const regionID = regionIDAttr.getX(vertexIndex);
-
     return idToRegionMap[regionID] || null;
 }
 
+// Determine which anatomical region a 3D face belongs to
 function getDominantRegionForFace(regionIDAttr, vertexA, vertexB, vertexC) {
     const regionA = getVertexRegion(regionIDAttr, vertexA);
     const regionB = getVertexRegion(regionIDAttr, vertexB);
@@ -61,6 +62,7 @@ function getDominantRegionForFace(regionIDAttr, vertexA, vertexB, vertexC) {
     );
 }
 
+// Create mapping between UV texture coordinates and anatomical regions
 export function buildGlobalUVMap(geometry, canvasWidth, canvasHeight) {
     const indexAttr = geometry.index;
     const uvAttr = geometry.attributes.uv;
@@ -93,6 +95,7 @@ export function buildGlobalUVMap(geometry, canvasWidth, canvasHeight) {
     return {globalUVMap, globalPixelRegionMap, faceRegionMap};
 }
 
+// Convert UV coordinates to pixel coordinates
 function uvToPixel(uvAttr, vertexIndex, canvasWidth, canvasHeight) {
     const u = uvAttr.getX(vertexIndex);
     const v = uvAttr.getY(vertexIndex);
@@ -101,8 +104,8 @@ function uvToPixel(uvAttr, vertexIndex, canvasWidth, canvasHeight) {
     return { x, y };
 }
 
+// Fill traingle area in UV space with region data
 function rasterizeTriangle(p0, p1, p2, canvasWidth, canvasHeight, globalUVMap, globalPixelRegionMap, dominantRegion) {
-    // Paint-fill in the region of interest
     const minX = Math.max(0, Math.min(p0.x, p1.x, p2.x));
     const maxX = Math.min(canvasWidth - 1, Math.max(p0.x, p1.x, p2.x));
     const minY = Math.max(0, Math.min(p0.y, p1.y, p2.y));
@@ -129,6 +132,7 @@ function rasterizeTriangle(p0, p1, p2, canvasWidth, canvasHeight, globalUVMap, g
     }
 }
 
+// Check if the point is in a triangle
 function pointInTriangle(p, a, b, c) {
     const area = 0.5 * (-b.y * c.x + a.y * (-b.x + c.x) + a.x * (b.y - c.y) + b.x * c.y);
     const s = (1 / (2 * area)) * (a.y * c.x - a.x * c.y + (c.y - a.y) * p.x + (a.x - c.x) * p.y);
@@ -137,6 +141,7 @@ function pointInTriangle(p, a, b, c) {
     return s >= 0 && t >= 0 && u >= 0;
 }
 
+// Draw or erase a specific UV coordinate
 export function drawAtUV(uv, canvas, context, radius, isErasing=false, hitRegion=null) { 
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     const cx = Math.floor(uv.x * canvas.width);
@@ -193,6 +198,7 @@ export function drawAtUV(uv, canvas, context, radius, isErasing=false, hitRegion
     }
  }
 
+// Main drawing function
 export function drawAtPointer(camera, pointer, isErasing = false) { 
     if (!AppState.skinMesh) {
         console.warn("Doesn't have a skinmesh");
@@ -231,6 +237,7 @@ export function drawAtPointer(camera, pointer, isErasing = false) {
     }
 }
 
+// Process a raycast hit to draw/erase on texture
 function processHit(hit, isErasing) {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     const { canvas, context, texture } = currentInstance;
@@ -250,6 +257,7 @@ function processHit(hit, isErasing) {
     texture.needsUpdate = true;
 }
 
+// Track which regions have been drawn on
 function updateRegionMapFromHit(hit, instance, regionName) {
     const x = Math.round(hit.uv.x * instance.canvas.width);
     const y = Math.round((1 - hit.uv.y) * instance.canvas.height);
@@ -267,6 +275,7 @@ function updateRegionMapFromHit(hit, instance, regionName) {
     instance.regionPixelMap[regionName].add(key);
 }
 
+// Remove pixel from region tracking when erasing
 function eraseFromRegionMap(hit, instance, radius, regionName) {
     const x = Math.round(hit.uv.x * instance.canvas.width);
     const y = Math.round((1 - hit.uv.y) * instance.canvas.height);
@@ -292,6 +301,7 @@ function eraseFromRegionMap(hit, instance, radius, regionName) {
     }
 }
 
+// Update painting colors for drawing instances
 export function updateInstanceColors() {
     AppState.drawingInstances.forEach((instance, index) => {
         const newColor = colourPalette[index % colourPalette.length];
@@ -307,6 +317,7 @@ export function updateInstanceColors() {
     });
 }
 
+// 
 function redrawInstanceWithNewColor(instance) {
     const { canvas, context, colour } = instance;
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);

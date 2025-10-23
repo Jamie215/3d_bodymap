@@ -194,7 +194,7 @@ export const areaSurveyJson = {
           title: "Was the onset of your current problem related to:",
           choices: [
             "Physical trauma (e.g., motor vehicle collision, fall, extreme exertion, workplace injury, etc.)",
-            "A common physical actiity (e.g., exercise, putting on socks, typical lifting activities, etc.)",
+            "A common physical activity (e.g., exercise, putting on socks, typical lifting activities, etc.)",
             "Arthritis",
             "No clear event or cause"
           ],
