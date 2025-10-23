@@ -168,16 +168,6 @@ export function drawAtUV(uv, canvas, context, radius, isErasing=false, hitRegion
         context.fillStyle = currentInstance.colour;
     }
 
-    // Check if the center pixel exists
-    for (let dx = -10; dx <= 10; dx++) {
-        for (let dy = -10; dy <= 10; dy++) {
-            const testKey = `${cx + dx},${cy + dy}`;
-            if (AppState.globalUVMap.has(testKey)) {
-                break;
-            }
-        }
-    }
-
     for (let py = 0; py < canvas.height; py++) {
         for (let px = 0; px < canvas.width; px++) {
             const offset = (py * canvas.width + px) * 4;
@@ -186,7 +176,7 @@ export function drawAtUV(uv, canvas, context, radius, isErasing=false, hitRegion
 
             const key = `${px},${py}`;
             if (!AppState.globalUVMap.has(key)) {
-                console.warn("Not within globalUVMap");
+                // console.warn("Not within globalUVMap");
                 continue;
             }
             if (isErasing && baseCtx) {
@@ -375,7 +365,6 @@ export function addNewDrawingInstance() {
         questionnaireData: null,
         uvDrawingData: null,
         colour: colourPalette[AppState.drawingInstances.length % colourPalette.length],
-        initialized: false // boolean for whether or not the drawingView has come from surveyView
     };
 
     // Change the 10th colour from the colourPalette
@@ -444,23 +433,4 @@ export function updateCurrentDrawing() {
     currentInstance.drawnRegionNames = new Set(
         Object.keys(pixelMap).filter(group => pixelMap[group].size > 0)
     );
-}
-
-function getOrdinal(n) {
-  let ord = 'th';
-
-  if (n % 10 == 1 && n % 100 != 11)
-  {
-    ord = 'st';
-  }
-  else if (n % 10 == 2 && n % 100 != 12)
-  {
-    ord = 'nd';
-  }
-  else if (n % 10 == 3 && n % 100 != 13)
-  {
-    ord = 'rd';
-  }
-
-  return ord;
 }

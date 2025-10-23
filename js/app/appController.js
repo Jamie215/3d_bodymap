@@ -743,6 +743,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       });
       surveyInstance.validationEnabled = false;
     } else {
+      surveyInstance.clear();
       surveyInstance.validationEnabled = false;
     }
 
