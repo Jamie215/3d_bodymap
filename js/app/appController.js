@@ -398,10 +398,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         break;
       }
       case 'drawing': {
-        const canvasPanel = document.getElementById('canvas-panel');
-        if (canvasPanel && canvasPanel.contains(survey.editDrawingButton)) {
-          canvasPanel.removeChild(survey.editDrawingButton);
-        }
         enableInteraction(renderer, camera, controls);
         setupCursorManagement();
         controls.enableZoom = true;

@@ -41,10 +41,14 @@ export function createDrawingViewElements(controls) {
     const bgColour = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.075)`;
 
     if (AppState.isEditingFromSurvey) {
-      statusBar.innerHTML = `<span style="font-size: var(--h2-font-size); background-color: ${bgColour}; color: ${colour}; font-weight: 600;">You are editing Area #${current}</span>`;
+      statusBar.innerHTML = `<div style="display: flex; justify-content: center; margin-top: 4px;">
+          <span style="font-size: var(--min-font-size); color: ${colour}; background-color: ${bgColour}; padding: 0.5rem 1rem; border-radius: 3rem; font-weight: 600; width: fit-content;">You are drawing Area #${current}</span>
+        </div>`;
     } else {
-      statusBar.innerHTML = `<span style="font-size: var(--h2-font-size)">Add ONE of your main areas of pain or symptom at a time. Click "Add Next Area" to add the next one</span>
-        <span style="font-size: var(--min-font-size); color: ${colour}; background-color: ${bgColour}; display: inline-block; margin-top: 4px; font-weight: 600;">You are drawing Area #${current}</span>
+      statusBar.innerHTML = `<span style="font-size: var(--h2-font-size); font-weight: 600;">Add ONE of your main areas of pain or symptom at a time. Click "Add Next Area" to add the next one.</span>
+        <div style="display: flex; justify-content: center; margin-top: 4px;">
+          <span style="font-size: var(--min-font-size); color: ${colour}; background-color: ${bgColour}; padding: 0.5rem 1rem; border-radius: 3rem; font-weight: 600; width: fit-content;">You are drawing Area #${current}</span>
+        </div>
         `;
     }
   }

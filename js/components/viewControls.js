@@ -39,7 +39,7 @@ export function createViewControls(controls, viewControlsPanel) {
         }
 
         if (orientation === 'Front') {
-            img.classList.add('front-icon');
+            img.style.transform = 'scale(1.1)';
         }
         
         // Add text label below the icon
@@ -123,10 +123,10 @@ export function createViewControls(controls, viewControlsPanel) {
     });
 
     // Assemble panel
+    viewToolsContainer.appendChild(regionSelector);
+    viewToolsContainer.appendChild(divider);
     viewToolsContainer.appendChild(directionHeader);
     viewToolsContainer.appendChild(orientationContainer);
-    viewToolsContainer.appendChild(divider);
-    viewToolsContainer.appendChild(regionSelector);
     viewToolsContainer.appendChild(zoomInstruction);
     viewToolsContainer.appendChild(resetViewButton);
     viewControlsPanel.appendChild(viewToolsContainer);
