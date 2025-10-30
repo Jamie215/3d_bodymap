@@ -977,11 +977,12 @@ input[type="range"]::-webkit-slider-thumb {
     width: 100%;
   }
 
-  :root[data-stage="drawing"] .slot-footer .button-success{
+  :root[data-stage="drawing"] .slot-footer .button-success {
     position: static !important;
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
   }
 
-  
   :root[data-stage="drawing"] #canvas-panel {
     display: flex;
     justify-content: center;
@@ -991,7 +992,7 @@ input[type="range"]::-webkit-slider-thumb {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 820px) {
   .footer {
     justify-content: center;
     flex-wrap: wrap;
