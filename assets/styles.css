@@ -20,10 +20,10 @@
   --space-2xl: 3rem;      /* 48px */
   
   /* Typography */
-  --min-font-size: clamp(1rem, calc(1.15rem + 0.2vw), 1.25rem);
+  --min-font-size: clamp(0.75rem, calc(0.8rem + 0.2vw), 1.25rem);
   --title-font-size: clamp(1.5rem, calc(1.9rem + 0.6vw), 2rem);
-  --h2-font-size: calc(1.25rem + 0.25vw);
-  --h2-line-height: 1.2;
+  --h2-font-size: calc(1rem + 0.25vw);
+  --h2-line-height: 1;
   
   /* Standardized shadows for consistency */
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
@@ -42,7 +42,7 @@
 
   /* Others */
    --border-radius: 8px;
-  --padding: 1rem;
+  --padding: calc(1rem + 0.1vw);
 }
 
 /* =========================
@@ -578,6 +578,14 @@ canvas {
   .vertical-slider-container {
     height: 10rem;
     padding: var(--space-xl) 0 var(--space-sm) 0;
+  }
+
+  :root[data-stage="drawing"] .slot-header {
+    padding: var(--space-xs) var(--space-md);
+  }
+
+  :root[data-stage="drawing"] .instruction {
+    font-size: 0.9rem;
   }
 }
 
