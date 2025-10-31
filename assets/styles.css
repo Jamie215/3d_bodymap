@@ -20,7 +20,7 @@
   --space-2xl: 3rem;      /* 48px */
   
   /* Typography */
-  --min-font-size: clamp(0.75rem, calc(0.8rem + 0.2vw), 1.25rem);
+  --min-font-size: clamp(0.75rem, calc(0.9rem + 0.2vw), 1.25rem);
   --title-font-size: clamp(1.5rem, calc(1.9rem + 0.6vw), 2rem);
   --h2-font-size: calc(1rem + 0.25vw);
   --h2-line-height: 1;
@@ -586,6 +586,11 @@ canvas {
 
   :root[data-stage="drawing"] .instruction {
     font-size: 0.9rem;
+  }
+
+  :root[data-stage="drawing"] .drawing-tools-container, .view-tools-container {
+    gap: var(--space-xs) !important;
+    padding: var(--space-sm) !important;
   }
 }
 
@@ -1253,7 +1258,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 #summary-status-panel p {
-  font-size: var(--min-font-size);
+  font-size: var(--h2-font-size);
   margin-bottom: var(--space-md);
 }
 
