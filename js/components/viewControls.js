@@ -4,62 +4,6 @@ export function createViewControls(controls, viewControlsPanel) {
     const viewToolsContainer = document.createElement('div');
     viewToolsContainer.classList.add('view-tools-container');
 
-    // Direction change section
-    const directionHeader = document.createElement('span');
-    directionHeader.textContent = 'Change the Direction My Body is Facing';
-
-    // Create orientation buttons container
-    const orientationContainer = document.createElement('div');
-    orientationContainer.classList.add('orientation-button-container');
-
-    // Create the four orientation buttons
-    const orientationMap = {
-        Front: { icon: 'front.svg' },
-        Back: { icon: 'back.svg' },
-        Right: { icon: 'side.svg', flip: true},
-        Left: { icon: 'side.svg'}
-    };
-
-    Object.entries(orientationMap).forEach(([orientation, config]) => {
-        const button = document.createElement('button');
-        button.classList.add('orientation-button');
-
-        const contentContainer = document.createElement('div');
-        contentContainer.style.display = 'flex';
-        contentContainer.style.flexDirection = 'column';
-        contentContainer.style.alignItems = 'center';
-        
-        const img = document.createElement('img');
-        img.src = `./assets/rotation_svg/${config.icon}`;
-        img.alt = orientation;
-        
-        // Apply flip transform for the right side (which uses the same side.svg)
-        if (config.flip) {
-            img.style.transform = 'scaleX(-1)';
-        }
-
-        if (orientation === 'Front') {
-            img.style.transform = 'scale(1.1)';
-        }
-        
-        // Add text label below the icon
-        const label = document.createElement('span');
-        label.classList.add('orientation-button-text');
-        label.textContent = orientation;
-        
-        contentContainer.appendChild(img);
-        contentContainer.appendChild(label);
-        button.appendChild(contentContainer);
-        button.addEventListener('click', () => {
-            if (AppState.cameraUtils) {
-                AppState.cameraUtils.reorientCamera(orientation);
-            } else {
-                console.warn('CameraUtils not initialized');
-            }
-        });
-        orientationContainer.appendChild(button);
-    });
-
     // Divider 
     const divider = document.createElement('hr');
     divider.classList.add('divider');
@@ -125,9 +69,100 @@ export function createViewControls(controls, viewControlsPanel) {
     // Assemble panel
     viewToolsContainer.appendChild(regionSelector);
     viewToolsContainer.appendChild(divider);
-    viewToolsContainer.appendChild(directionHeader);
-    viewToolsContainer.appendChild(orientationContainer);
     viewToolsContainer.appendChild(zoomInstruction);
     viewToolsContainer.appendChild(resetViewButton);
     viewControlsPanel.appendChild(viewToolsContainer);
+}
+
+export function createCanvasRotationControls(canvasPanel) {
+    // Create container for rotation controls
+    const rotationControlsContainer = document.createElement('div');
+    rotationControlsContainer.id = 'canvas-rotation-controls';
+    rotationControlsContainer.className = 'canvas-rotation-controls';
+    
+    // Create left rotation button
+    const leftRotateBtn = document.createElement('button');
+    leftRotateBtn.className = 'canvas-rotate-btn rotate-left';
+    leftRotateBtn.setAttribute('aria-label', 'Rotate model left');
+    leftRotateBtn.innerHTML = `
+        <svg fill="#024dbd" width="256px" height="256px" viewBox="0 0 24 24" id="curve-arrow-left-7" data-name="Flat Color" xmlns="http://www.w3.org/2000/svg" class="icon flat-color" stroke="#024dbd" stroke-width="2.4" transform="rotate(45)"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path id="primary" d="M21.32,5.05a1,1,0,0,0-1.27.63A12.14,12.14,0,0,1,8.51,14H5.41l1.3-1.29a1,1,0,0,0-1.42-1.42l-3,3a1,1,0,0,0,0,1.42l3,3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42L5.41,16h3.1A14.14,14.14,0,0,0,22,6.32,1,1,0,0,0,21.32,5.05Z" style="fill: #024dbd;"></path></g></svg>
+    `;
+    
+    // Create right rotation button  
+    const rightRotateBtn = document.createElement('button');
+    rightRotateBtn.className = 'canvas-rotate-btn rotate-right';
+    rightRotateBtn.setAttribute('aria-label', 'Rotate model right');
+    rightRotateBtn.innerHTML = `
+        <svg fill="#024dbd" width="256px" height="256px" viewBox="0 0 24 24" id="curve-arrow-left-7" data-name="Flat Color" xmlns="http://www.w3.org/2000/svg" class="icon flat-color" stroke="#024dbd" stroke-width="2.4" transform="rotate(-45)matrix(-1, 0, 0, 1, 0, 0)"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path id="primary" d="M21.32,5.05a1,1,0,0,0-1.27.63A12.14,12.14,0,0,1,8.51,14H5.41l1.3-1.29a1,1,0,0,0-1.42-1.42l-3,3a1,1,0,0,0,0,1.42l3,3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42L5.41,16h3.1A14.14,14.14,0,0,0,22,6.32,1,1,0,0,0,21.32,5.05Z" style="fill: #024dbd;"></path></g></svg>
+    `;
+    
+    // Track current rotation angle
+    let currentRotationAngle = 0;
+    
+    // Function to rotate the camera smoothly
+    function rotateCamera(direction) {
+        if (!AppState.cameraUtils) {
+            console.warn('CameraUtils not initialized');
+            return;
+        }
+        
+        const rotationDegrees = direction === 'left' ? -90 : 90;
+        currentRotationAngle += rotationDegrees;
+        
+        // Normalize angle to 0-360 range
+        currentRotationAngle = ((currentRotationAngle % 360) + 360) % 360;
+        
+        // Map angle to orientation
+        const orientationMap = {
+            0: 'Front',
+            90: 'Right',
+            180: 'Back',
+            270: 'Left'
+        };
+        
+        const orientation = orientationMap[currentRotationAngle];
+        if (orientation) {
+            AppState.cameraUtils.reorientCamera(orientation);
+        }
+        
+        // Visual feedback
+        const button = direction === 'left' ? leftRotateBtn : rightRotateBtn;
+        button.classList.add('clicked');
+        setTimeout(() => button.classList.remove('clicked'), 200);
+    }
+    
+    // Add event listeners
+    leftRotateBtn.addEventListener('click', () => rotateCamera('left'));
+    rightRotateBtn.addEventListener('click', () => rotateCamera('right'));
+    
+    // Add touch event handling for mobile
+    [leftRotateBtn, rightRotateBtn].forEach(btn => {
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            btn.classList.add('touched');
+        });
+        
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            btn.classList.remove('touched');
+            btn.click();
+        });
+    });
+    
+    // Append buttons to container
+    rotationControlsContainer.appendChild(leftRotateBtn);
+    rotationControlsContainer.appendChild(rightRotateBtn);
+    
+    // Return container and utility functions
+    return {
+        container: rotationControlsContainer,
+        resetRotation: () => {
+            currentRotationAngle = 0;
+        },
+        cleanup: () => {
+            leftRotateBtn.removeEventListener('click', () => rotateCamera('left'));
+            rightRotateBtn.removeEventListener('click', () => rotateCamera('right'));
+            rotationControlsContainer.remove();
+        }
+    };
 }

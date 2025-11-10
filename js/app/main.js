@@ -3,6 +3,7 @@ import { initApp } from './appController.js';
 import { initDrawContinueModal, initDrawResetModal, initDeleteEmptyModal } from '../components/modal.js';
 import { createScene } from '../utils/scene.js';
 import { createDrawingViewElements } from '../views/drawingView.js';
+import { createCanvasRotationControls } from '../components/viewControls.js';
 import { createSelectionView } from '../views/selectionView.js';
 import { createSummaryView } from '../views/summaryView.js';
 import { createSurveyViewElements } from '../views/surveyView.js';
@@ -22,6 +23,10 @@ const slotFooter = document.querySelector('.slot-footer');
 
 const canvasPanel = slotCanvas.querySelector('#canvas-panel');
 const { scene, camera, renderer, controls } = createScene(canvasPanel);
+
+// Create canvas rotation controls
+const rotationControls = createCanvasRotationControls(canvasPanel);
+canvasPanel.appendChild(rotationControls.container);
 
 // Create views
 let selectionViewModelHandler = null;

@@ -266,7 +266,7 @@ function showLoadingProgress(percentage = 0) {
             
             .progress-percentage {
                 font-weight: 600;
-                color: #0277BD;
+                color: var(--primary-color);
             }
             
             .loading-dots {
@@ -309,7 +309,7 @@ function updateLoadingProgress(percentage, mbLoaded = null) {
         progressBar.style.width = '50%';
         progressBar.style.animation = 'pulse 1.5s infinite';
         progressText.innerHTML = `
-            <span class="progress-percentage">${mbLoaded} %</span> loaded
+            <span class="progress-percentage">${mbLoaded} MB</span> loaded
             <span class="loading-dots">...</span>`;
     }
 }

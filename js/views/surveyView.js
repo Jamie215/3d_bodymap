@@ -89,7 +89,7 @@ export function createSurveyViewElements() {
   const prevAreaButton = document.createElement('button');
   prevAreaButton.id = 'previous-drawing'
   prevAreaButton.textContent = '← Previous Area Questionnaire';
-  prevAreaButton.classList.add('button', 'button-prev-nav');
+  prevAreaButton.classList.add('button', 'button-survey-prev-nav');
 
   const nextAreaButton = document.createElement('button');
   nextAreaButton.id = 'next-drawing';

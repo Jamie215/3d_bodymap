@@ -11,6 +11,8 @@
   --panel-background: #ffffff;
   --dark-blue: #024dbd;
   --red: rgb(161, 12, 12);
+  --green: #88b4a2;
+  --green-hover: #69a08a;
   
   /* Spacing scale */
   --space-2xs: 0.25rem;   /* 4px */
@@ -128,7 +130,7 @@ canvas {
       "left center right"
       "footer footer footer";
     /* Use flexible units instead of fixed 30rem/20rem */
-    grid-template-columns: minmax(280px, 350px) 1fr minmax(280px, 320px);
+    grid-template-columns: minmax(280px, 350px) 1fr minmax(280px, 350px);
     grid-template-rows: auto 1fr auto;
   }
 }
@@ -418,7 +420,7 @@ canvas {
   top: var(--space-2xl);
   z-index: var(--z-dropdown);
   padding: var(--space-sm) var(--space-md);
-  font-size: 0.95rem;
+  font-size: 1.3rem;
   background: transparent;
   color: var(--dark-blue);
   min-height: 44px;
@@ -927,7 +929,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .button-success { 
-  background: #88b4a2; 
+  background: var(--green); 
   color: #ffffff; 
 }
 
@@ -953,6 +955,26 @@ input[type="range"]::-webkit-slider-thumb {
 .return-button:hover {
   color: var(--primary-color);
   background-color: unset !important;
+}
+
+.button-survey-nav {
+  background-color: var(--green) !important;
+}
+
+.button-survey-nav:hover {
+  background-color: var(--green-hover) !important;
+}
+
+.button-survey-prev-nav {
+  background-color: white !important;
+  color: var(--green) !important;
+  border: 3px solid var(--green);
+}
+
+.button-survey-prev-nav:hover {
+  background-color: white !important;
+  color: var(--green-hover) !important;
+  border: 3px solid var(--green-hover);
 }
 
 /* Footer */
@@ -1340,7 +1362,7 @@ input[type="range"]::-webkit-slider-thumb {
   overflow: hidden;
   background: var(--panel-background);
   scrollbar-width: thin;
-  scrollbar-color: var(--primary-color) transparent;
+  scrollbar-color: #cccccc transparent;
 }
 
 #survey-panel::-webkit-scrollbar {
@@ -1371,7 +1393,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 #survey-title {
-  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-size: clamp(1.25rem, 2.3vw, 2.2rem);
   font-weight: 800;
   color: var(--secondary-color);
   margin: 0;
@@ -1596,8 +1618,8 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .sd-rating__item--selected {
-  background: var(--primary-color) !important;
-  border-color: var(--primary-color) !important;
+  background: #2AA3E6 !important;
+  border-color:#2AA3E6 !important;
 }
 
 .rating-layout-row {
@@ -1819,14 +1841,14 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 #modal-continue { 
-  background: #88b4a2; 
+  background: var(--green); 
   color: white;
-  border-color: #88b4a2;
+  border-color: var(--green);
 }
 
 #modal-continue:hover { 
-  background: #69a08a !important; 
-  border-color: #69a08a;
+  background: var(--green-hover) !important; 
+  border-color: var(--green-hover);
 }
 
 #modal-reset-confirm,
@@ -1988,4 +2010,162 @@ input[type="range"]::-webkit-slider-thumb {
   .button {
     display: none !important;
   }
+}
+
+.canvas-rotation-controls {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    pointer-events: none;
+    z-index: 10;
+    display: none; /* Hidden by default, shown only in drawing stage */
+}
+
+/* Show controls only in drawing stage */
+[data-stage="drawing"] .canvas-rotation-controls {
+    display: block;
+}
+
+.canvas-rotate-btn {
+    position: absolute;
+    margin-left: 3vw;
+    margin-right: 3vw;
+    width: clamp(48px, 53px, 58px);
+    height: clamp(48px, 53px, 58px);
+    border: none;
+    border-radius: 50%;
+    color: var(--primary-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+    opacity: 0.5;
+}
+
+.canvas-rotate-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    box-shadow: var(--shadow-lg);
+    background: white;
+}
+
+.canvas-rotate-btn:active,
+.canvas-rotate-btn.clicked {
+    transform: scale(0.95);
+    box-shadow: var(--shadow-sm);
+}
+
+.canvas-rotate-btn.touched {
+    background: var(--primary-color);
+    color: white;
+    opacity: 1;
+}
+
+.canvas-rotate-btn svg {
+    width: clamp(40px, 45px, 50px);
+    height: 40px;
+    pointer-events: none;
+}
+
+.canvas-rotate-btn.rotate-left {
+    left: 20px;
+}
+
+.canvas-rotate-btn.rotate-right {
+    right: 20px;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+    .canvas-rotate-btn {
+        width: 48px;
+        height: 48px;
+        opacity: 0.9;
+    }
+    
+    .canvas-rotate-btn.rotate-left {
+        left: 12px;
+    }
+    
+    .canvas-rotate-btn.rotate-right {
+        right: 12px;
+    }
+    
+    .canvas-rotate-btn svg {
+        width: 22px;
+        height: 22px;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .canvas-rotate-btn.rotate-left {
+        left: 16px;
+    }
+    
+    .canvas-rotate-btn.rotate-right {
+        right: 16px;
+    }
+}
+
+/* Animation for rotation feedback */
+@keyframes rotate-pulse {
+    0% {
+        transform: scale(1) rotate(0deg);
+    }
+    50% {
+        transform: scale(1.15) rotate(5deg);
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+.canvas-rotate-btn.clicked {
+    animation: rotate-pulse 0.3s ease-out;
+}
+
+/* Accessibility improvements */
+.canvas-rotate-btn:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .canvas-rotate-btn {
+        transition: opacity 0.2s ease;
+    }
+    
+    .canvas-rotate-btn.clicked {
+        animation: none;
+    }
+}
+
+/* Hide rotation controls on other stages */
+[data-stage="summary"] .canvas-rotation-controls,
+[data-stage="selection"] .canvas-rotation-controls,
+[data-stage="area-survey"] .canvas-rotation-controls,
+[data-stage="general-survey"] .canvas-rotation-controls {
+    display: none;
+}
+
+/* Position adjustment when drawers are open (mobile) */
+[data-viewport="mobile"] .drawer.open ~ .app-shell .canvas-rotation-controls {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Style adjustments for landscape mode on mobile */
+[data-viewport="mobile"][data-orientation="landscape"] .canvas-rotate-btn {
+    width: 40px;
+    height: 40px;
+}
+
+[data-viewport="mobile"][data-orientation="landscape"] .canvas-rotate-btn svg {
+    width: 20px;
+    height: 20px;
 }
