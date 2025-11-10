@@ -137,14 +137,14 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     const isLastInstance = AppState.drawingInstances.length === 1;
     
     const messages = {
-      navigatePrev: 'This drawing area is empty. If you proceed, this area will be deleted and you will navigate to the previous area.',
-      navigateNext: 'This drawing area is empty. If you proceed, this area will be deleted and you will navigate to the next area.',
-      addNew: 'This drawing area is empty. Please draw before adding new area.',
-      returnToSurvey: isLastInstance? 'This drawing area is empty. If you proceed, this area will be deleted and you will return to the summary view.':'This drawing area is empty. If you proceed, this area will be deleted and you will return to the survey.',
-      moveToSurvey: 'This drawing area is empty. If you proceed, this area will be deleted.'
+      navigatePrev: "You haven't made a drawing yet. If you proceed, this area will be deleted and you will navigate to the previous area.",
+      navigateNext: "You haven't made a drawing yet. If you proceed, this area will be deleted and you will navigate to the next area.",
+      addNew: "You haven't made a drawing yet. Please make one before adding another area.",
+      returnToSurvey: isLastInstance? "You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the summary view.":"You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the survey.",
+      moveToSurvey: "You haven't made a drawing yet. If you proceed, this area will be deleted."
     };
     
-    showDeleteEmptyModal(messages[actionType] || 'This drawing area is empty and will be deleted if you proceed.');
+    showDeleteEmptyModal(messages[actionType] || "You haven't made a drawing yet. If you proceed, this area will be deleted.");
     return true;
   }
 
@@ -680,6 +680,12 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   function renderSurvey(container) {
     applyCustomTheme(customTheme);
 
+    container.classList.remove('survey-animated');
+    
+    // Set initial hidden state
+    container.style.opacity = '0';
+    container.style.transform = 'translateX(50px)';
+
     if (!surveyInstance) {
       surveyInstance = new SurveyKO.Model(areaSurveyJson);
       survey.css = { ...survey.css, root: "sv-root-modern sv-root-plain" };
@@ -697,6 +703,12 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         if (options.name === 'mainArea') {
           updateMainAreaQuestion();
         }
+      });
+
+      surveyInstance.onAfterRenderSurvey.add(function(survey, options) {
+        setTimeout(() => {
+            container.classList.add('survey-animated');
+        }, 50);
       });
 
       // Modifying style for rating scale
@@ -858,6 +870,11 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
   function renderGeneralSurvey(container) {
   applyCustomTheme(customTheme);
+  container.classList.remove('survey-animated');
+    
+  // Set initial hidden state
+  container.style.opacity = '0';
+  container.style.transform = 'translateX(50px)';
   
   if (!surveyInstance) {
     surveyInstance = new SurveyKO.Model(generalSurveyJson);
@@ -890,6 +907,12 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     surveyInstance.onValueChanged.add(function(survey, options) {
       updateSurveyProgress();
+    });
+
+    surveyInstance.onAfterRenderSurvey.add(function(survey, options) {
+      setTimeout(() => {
+          container.classList.add('survey-animated');
+      }, 50);
     });
 
     // Adding subtext for examples in medicationTable

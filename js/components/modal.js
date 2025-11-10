@@ -88,7 +88,7 @@ export function initDeleteEmptyModal(container) {
   deleteEmptyText = document.createElement('h2');
   deleteEmptyText.id = 'delete-empty-text';
 
-  deleteEmptyReturnButton = createButton('delete-empty-return', 'Return to Drawing');
+  deleteEmptyReturnButton = createButton('delete-empty-return', 'Okay');
   deleteEmptyContinueButton = createButton('delete-empty-continue', 'Delete & Proceed');
   
   const buttonGroup = createButtonGroup(deleteEmptyReturnButton, deleteEmptyContinueButton);
@@ -142,7 +142,7 @@ export function showDeleteEmptyModal(text) {
   deleteEmptyText.textContent = text;
   deleteEmptyModalEl.style.display = 'flex';
 
-  if (text=='This drawing area is empty. Please draw before adding new area.') {
+  if (text=="You haven't made a drawing yet. Please make one before adding another area.") {
     deleteEmptyContinueButton.style.display = 'none';
   } else {
     deleteEmptyContinueButton.style.display = 'flex';

@@ -9,6 +9,8 @@
   --secondary-color: #333333;
   --background-color: #f0f0f0;
   --panel-background: #ffffff;
+  --dark-blue: #024dbd;
+  --red: rgb(161, 12, 12);
   
   /* Spacing scale */
   --space-2xs: 0.25rem;   /* 4px */
@@ -413,26 +415,21 @@ canvas {
 /* Edit Drawing Button */
 :root[data-stage="area-survey"] #edit-drawing-button {
   position: absolute !important;
-  top: var(--space-md);
-  left: var(--space-md);
+  top: var(--space-2xl);
   z-index: var(--z-dropdown);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow-sm);
-  border: 2px solid var(--primary-color);
   padding: var(--space-sm) var(--space-md);
   font-size: 0.95rem;
-  transition: all 0.2s ease;
-  min-height: 44px; /* Touch-friendly */
+  background: transparent;
+  color: var(--dark-blue);
+  min-height: 44px;
   display: flex;
   align-items: center;
+  border: none;
 }
 
 :root[data-stage="area-survey"] #edit-drawing-button:hover {
-  background: var(--primary-color);
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  color: var(--primary-color);
+    background-color: unset !important;
 }
 
 :root[data-stage="area-survey"] #edit-drawing-button svg {
@@ -545,7 +542,7 @@ canvas {
 
 /* Primary drawing button */
 .drawing-tools-container .button-primary {
-  box-shadow: 0 2px 4px rgba(2, 119, 189, 0.2);
+  box-shadow: 0 2px 4px var(--dark-blue);
 }
 
 .drawing-tools-container .button-primary:hover {
@@ -949,9 +946,13 @@ input[type="range"]::-webkit-slider-thumb {
   padding-left: 0; 
   font-weight: bold; 
   background: transparent; 
-  color: var(--primary-color); 
-  border-color: transparent; 
+  color: var(--dark-blue); 
   max-width: 15rem;
+}
+
+.return-button:hover {
+  color: var(--primary-color);
+  background-color: unset !important;
 }
 
 /* Footer */
@@ -1218,15 +1219,16 @@ input[type="range"]::-webkit-slider-thumb {
 
 #change-model-button {
   pointer-events: auto;
+  padding: var(--space-sm) var(--space-md);
   background: transparent;
-  color: var(--primary-color);
-  display: flex; 
-  align-items: center;
+  font-size: 0.95rem;
+  color: var(--dark-blue);
   z-index: var(--z-footer);
 }
 
 #change-model-button:hover { 
-  background: var(--primary-color); 
+  color: var(--primary-color);
+  background-color: unset !important;
 }
 
 #change-model-button svg { 
@@ -1323,6 +1325,12 @@ input[type="range"]::-webkit-slider-thumb {
 /* =========================
    Survey Panel & Header
 ========================= */
+.survey-animated {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
 #survey-panel { 
   width: 100%; 
   padding: 0; /* Remove all padding */
@@ -1364,7 +1372,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 #survey-title {
   font-size: clamp(1.25rem, 2vw, 1.5rem);
-  font-weight: 600;
+  font-weight: 800;
   color: var(--secondary-color);
   margin: 0;
   text-align: center;
@@ -1486,6 +1494,23 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 0.95rem !important;
   margin-top: 0.25rem !important;
 }
+
+/* If matrix question should be displayed with frozen header */
+/* .sd-table {
+  display: block;
+  max-height: 500px;
+  overflow-y: auto;
+  overscroll-behavior: auto;
+}
+
+.sd-matrix__table thead {
+  position: sticky ;
+  top: 0;
+  z-index: 10;
+  background-color: white;
+  opacity: 1;
+  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+} */
 
 /* Matrix row text styling - ensure proper spacing and alignment */
 .sd-matrix__row-text {
@@ -1793,19 +1818,28 @@ input[type="range"]::-webkit-slider-thumb {
   transform: none;
 }
 
-#modal-continue,
-#modal-reset-confirm,
-#delete-empty-continue { 
+#modal-continue { 
   background: #88b4a2; 
   color: white;
   border-color: #88b4a2;
 }
 
-#modal-continue:hover,
-#modal-reset-confirm:hover,
-#delete-empty-continue:hover { 
+#modal-continue:hover { 
   background: #69a08a !important; 
   border-color: #69a08a;
+}
+
+#modal-reset-confirm,
+#delete-empty-continue { 
+  background: white !important; 
+  color: var(--red);
+  border: 2px solid var(--red) !important;
+}
+
+#modal-reset-confirm:hover,
+#delete-empty-continue:hover { 
+  background: var(--red) !important; 
+  color: white;
 }
 
 #modal-return,

@@ -5,7 +5,7 @@ export const customTheme = {
   headerView: "advanced",
   cssVariables: {
     // Brand Colors
-    "--sjs-primary-backcolor": "var(--primary-color)", // #0277BD
+    "--sjs-primary-backcolor": "#2AA3E6",
     "--sjs-primary-backcolor-dark": "#005f99",         // hover state
     "--sjs-primary-backcolor-light": "rgba(2, 119, 189, 0.1)",
     "--sjs-primary-forecolor": "#ffffff",
@@ -23,7 +23,7 @@ export const customTheme = {
 
     // Font & Spacing
     "--sjs-font-family": "'Inter', sans-serif",
-    "--sjs-font-size": "20px",
+    "--sjs-font-size": "22px",
     "--sjs-base-unit": "8px",
   }
 };

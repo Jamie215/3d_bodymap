@@ -69,7 +69,7 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
 
     // Only show loading spinner if not cancelled
     if (!thisRequest.cancelled) {
-        showLoadingSpinner();
+        showLoadingProgress(0);
     }
 
     return new Promise((resolve, reject) => {
@@ -77,7 +77,7 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
             path,
             (gltf) => {
                 if (thisRequest.cancelled) return;
-                hideLoadingSpinner();
+                hideLoadingProgress();
 
                 // Clean up previous model
                 if (AppState.model) {
@@ -159,10 +159,22 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                 
                 resolve(skinMesh);
             },
-            undefined,
+            (xhr) => {
+                if (thisRequest.cancelled) return;
+                
+                // Calculate progress percentage
+                if (xhr.lengthComputable) {
+                    const percentComplete = (xhr.loaded / xhr.total) * 100;
+                    updateLoadingProgress(percentComplete);
+                } else {
+                    // If we can't determine exact progress, show bytes loaded
+                    const mbLoaded = (xhr.loaded / 1024 / 1024).toFixed(2);
+                    updateLoadingProgress(null, mbLoaded);
+                }
+            },
             (err) => {
                 if (thisRequest.cancelled) return;
-                hideLoadingSpinner();
+                hideLoadingProgress();
                 console.error("Model loading error: ", err);
                 reject(err);
             }
@@ -170,39 +182,150 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
     });
 }
 
-function showLoadingSpinner() {
-    // Remove any existing spinner first
-    hideLoadingSpinner();
+function showLoadingProgress(percentage = 0) {
+    // Remove any existing progress indicator first
+    hideLoadingProgress();
     
-    const spinner = document.createElement('div');
-    spinner.id = 'loading-container';
-    spinner.innerHTML = `
+    const progressContainer = document.createElement('div');
+    progressContainer.id = 'loading-progress-container';
+    progressContainer.innerHTML = `
         <style>
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.6; }
+            }
+            
+            #loading-progress-container {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 1000;
+                background: rgba(255, 255, 255, 0.95);
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+                min-width: 300px;
+            }
+            
+            .progress-title {
+                color: #333;
+                font-family: Inter, sans-serif;
+                font-size: 18px;
+                font-weight: 600;
+                margin-bottom: 15px;
+                text-align: center;
+            }
+            
+            .progress-bar-container {
+                width: 100%;
+                height: 24px;
+                background: #e0e0e0;
+                border-radius: 12px;
+                overflow: hidden;
+                position: relative;
+            }
+            
+            .progress-bar {
+                height: 100%;
+                background: linear-gradient(90deg, #0277BD, #029ffd);
+                border-radius: 12px;
+                transition: width 0.3s ease;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .progress-bar::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                right: 0;
+                background: linear-gradient(
+                    90deg,
+                    rgba(255, 255, 255, 0),
+                    rgba(255, 255, 255, 0.3),
+                    rgba(255, 255, 255, 0)
+                );
+                animation: shimmer 2s infinite;
+            }
+            
+            @keyframes shimmer {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(100%); }
+            }
+            
+            .progress-text {
+                color: #666;
+                font-family: Inter, sans-serif;
+                font-size: 14px;
+                text-align: center;
+                margin-top: 10px;
+            }
+            
+            .progress-percentage {
+                font-weight: 600;
+                color: #0277BD;
+            }
+            
+            .loading-dots {
+                display: inline-block;
+                animation: pulse 1.5s infinite;
+            }
         </style>
-        <div style="
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            display: flex; flex-direction: column; align-items: center;
-            z-index: 1000;">
-            <div style="
-                width: 50px; height: 50px;
-                border: 5px solid rgba(255,255,255,0.3);
-                border-top: 5px solid #0277BD;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;"></div>
-            <div style="
-                margin-top: 15px; color: #333;
-                font-family: Inter, sans-serif; font-size: 18px; font-weight: bold;">
-                Loading...
-            </div>
+        <div class="progress-title">Loading 3D Model</div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar" style="width: ${percentage}%"></div>
+        </div>
+        <div class="progress-text" id="progress-text">
+            <span class="progress-percentage">${percentage.toFixed(1)}%</span> complete
         </div>`;
-    document.body.appendChild(spinner);
+    
+    document.body.appendChild(progressContainer);
 }
 
-function hideLoadingSpinner() {
-    const el = document.getElementById('loading-container');
-    if (el) document.body.removeChild(el);
+function updateLoadingProgress(percentage, mbLoaded = null) {
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    
+    if (!progressBar || !progressText) return;
+    
+    if (percentage !== null) {
+        // We have a percentage
+        progressBar.style.width = `${percentage}%`;
+        
+        if (percentage >= 100) {
+            progressText.innerHTML = `
+                <span class="progress-percentage">Loading</span>
+                <span class="loading-dots">...</span>`;
+        } else {
+            progressText.innerHTML = `
+                <span class="progress-percentage">${percentage.toFixed(1)}%</span> complete`;
+        }
+    } else if (mbLoaded !== null) {
+        // We only have bytes loaded (no total size available)
+        // Show indeterminate progress with MB loaded
+        progressBar.style.width = '50%';
+        progressBar.style.animation = 'pulse 1.5s infinite';
+        progressText.innerHTML = `
+            <span class="progress-percentage">${mbLoaded} %</span> loaded
+            <span class="loading-dots">...</span>`;
+    }
+}
+
+function hideLoadingProgress() {
+    const el = document.getElementById('loading-progress-container');
+    if (el) {
+        // Add a fade-out animation before removing
+        el.style.transition = 'opacity 0.3s';
+        el.style.opacity = '0';
+        setTimeout(() => {
+            if (el.parentNode) {
+                document.body.removeChild(el);
+            }
+        }, 300);
+    }
 }
 
 export function cleanupAllModels() {

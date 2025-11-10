@@ -81,6 +81,7 @@ export const generalSurveyJson = {
             "12 weeks to less than 1 year",
             "Greater than 1 year"
           ],
+          visibleIf: "{medicationTable.narcotic-pain-medication} == 'baseline' or {medicationTable.narcotic-pain-medication} == 'breakthrough'",
           isRequired: true
         },
         {
