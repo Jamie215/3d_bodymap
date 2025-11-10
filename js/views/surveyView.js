@@ -17,16 +17,10 @@ export function createSurveyViewElements() {
   // Create the title element that will show "Area #X Questionnaire"
   const surveyTitle = document.createElement('h2');
   surveyTitle.id = 'survey-title';
-  surveyTitle.style.width = '100%';
-  surveyTitle.style.textAlign = 'center';
-  surveyTitle.style.margin = '0';
-  surveyTitle.style.padding = '1rem 0';
 
   // Create progress bar
   const progressContainer = document.createElement('div');
   progressContainer.id = 'survey-progress-container';
-  progressContainer.style.width = '100%';
-  progressContainer.style.padding = '0 2rem 0.75rem 2rem';
 
   const progressBar = document.createElement('div');
   progressBar.id = 'survey-progress-bar';

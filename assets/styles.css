@@ -1387,15 +1387,15 @@ input[type="range"]::-webkit-slider-thumb {
 
 #survey-header {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 1rem;
   background: white;
   border-bottom: 2px solid #e5e7eb;
-  margin-bottom: 0;
-  flex-shrink: 0; /* Prevent header from shrinking */
+  flex-shrink: 0;
   position: sticky;
-  top: 0;
+  gap: 1rem;
   z-index: var(--z-sticky);
 }
 
@@ -1404,18 +1404,17 @@ input[type="range"]::-webkit-slider-thumb {
   font-weight: 800;
   color: var(--secondary-color);
   margin: 0;
-  text-align: center;
   width: 100%;
+  text-align: left;
 }
 
 /* Survey Progress Bar */
 #survey-progress-container {
   display: flex;
+  width: 100%;
   flex-direction: column;
-  align-items: center;
   margin-top: auto;
   gap: 0.5rem;
-  padding: 0 2rem 0.75rem 2rem;
 }
 
 #survey-progress-bar {
@@ -1439,7 +1438,7 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 0.875rem;
   font-weight: 500;
   color: #6b7280;
-  text-align: center;
+  text-align: left;
 }
 
 /* =========================
@@ -1710,11 +1709,11 @@ input[type="range"]::-webkit-slider-thumb {
   }
   
   #survey-title {
-    font-size: 1.125rem;
+    font-size: 1.8rem;
   }
 
   #survey-progress-container {
-    padding: 0 1rem 0.5rem 1rem !important;
+    padding: 0 !important;
   }
   
   #survey-progress-bar {
