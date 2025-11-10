@@ -971,6 +971,13 @@ input[type="range"]::-webkit-slider-thumb {
   border: 3px solid var(--green);
 }
 
+.button-survey-prev-nav:disabled:hover {
+  background-color: #ccc !important;
+  color: #888 !important;
+  border: 1px solid #bbb !important;
+    cursor: not-allowed !important;
+}
+
 .button-survey-prev-nav:hover {
   background-color: white !important;
   color: var(--green-hover) !important;
