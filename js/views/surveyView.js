@@ -65,9 +65,37 @@ export function createSurveyViewElements() {
     }
   }
 
+  function initializeProgressSegments(total) {
+    // Clear existing segments
+    progressBar.innerHTML = '';
+    
+    // Create individual segments
+    for (let i = 0; i < total; i++) {
+      const segment = document.createElement('div');
+      segment.className = 'progress-segment';
+      segment.dataset.index = i;
+      progressBar.appendChild(segment);
+    }
+  }
+
   function updateProgress(completed, total) {
-    const percentage = total > 0 ? (completed/total)*100 : 0;
-    progressFill.style.width = `${percentage}%`;
+    // Initialize segments if total changed
+    const currentSegments = progressBar.querySelectorAll('.progress-segment').length;
+    if (currentSegments !== total) {
+      initializeProgressSegments(total);
+    }
+    
+    // Update segment states
+    const segments = progressBar.querySelectorAll('.progress-segment');
+    segments.forEach((segment, index) => {
+      if (index < completed) {
+        segment.classList.add('completed');
+      } else {
+        segment.classList.remove('completed');
+      }
+    });
+    
+    // Update text
     progressText.textContent = `${completed} of ${total} Questions Completed`;
   }
 
@@ -100,7 +128,7 @@ export function createSurveyViewElements() {
     surveyPanel,
     surveyInnerContainer,
     surveyFooter,
-    editDrawingButton, // Return it separately to be added to canvas panel
+    editDrawingButton,
     prevAreaButton,
     nextAreaButton,
     updateTitle,
