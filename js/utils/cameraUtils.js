@@ -6,6 +6,7 @@ export default class CameraUtils {
         this.camera = camera;
         this.controls = controls;
         this.mesh = mesh;
+        this.rotationAngle = 0;
         
         // Focus state
         this.focusCenter = null;
@@ -135,7 +136,8 @@ export default class CameraUtils {
     setFocus(regionName, center, boundingBox) {
         const size = new THREE.Vector3();
         boundingBox.getSize(size);
-        
+
+        this.rotationAngle = 0;
         this.focusedRegionName = regionName;
         this.focusCenter = center.clone();
         this.focusRadius = Math.max(size.x, size.y, size.z) / 2;
@@ -157,6 +159,7 @@ export default class CameraUtils {
         this.focusRadius = null;
         this.optimalDistance = null;
         this.focusedRegionName = null;
+        this.rotationAngle = 0;
         
         // Reset to default limits
         this.controls.minDistance = 0.5;

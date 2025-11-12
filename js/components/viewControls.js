@@ -96,21 +96,24 @@ export function createCanvasRotationControls(canvasPanel) {
         <svg fill="#024dbd" width="40px" height="40px" viewBox="0 0 24 24" id="curve-arrow-left-7" data-name="Flat Color" xmlns="http://www.w3.org/2000/svg" class="icon flat-color" stroke="#024dbd" stroke-width="2.4"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path id="primary" d="M21.32,5.05a1,1,0,0,0-1.27.63A12.14,12.14,0,0,1,8.51,14H5.41l1.3-1.29a1,1,0,0,0-1.42-1.42l-3,3a1,1,0,0,0,0,1.42l3,3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42L5.41,16h3.1A14.14,14.14,0,0,0,22,6.32,1,1,0,0,0,21.32,5.05Z" style="fill: #024dbd;"></path></g></svg>
     `;
     
-    // Track current rotation angle
-    let currentRotationAngle = 0;
-    
+
     // Function to rotate the camera smoothly
     function rotateCamera(direction) {
         if (!AppState.cameraUtils) {
             console.warn('CameraUtils not initialized');
             return;
         }
+
+        // Track current rotation angle
+        let currentRotationAngle = AppState.cameraUtils.rotationAngle;
         
         const rotationDegrees = direction === 'left' ? -90 : 90;
         currentRotationAngle += rotationDegrees;
         
         // Normalize angle to 0-360 range
         currentRotationAngle = ((currentRotationAngle % 360) + 360) % 360;
+
+        AppState.cameraUtils.rotationAngle = currentRotationAngle;
         
         // Map angle to orientation
         const orientationMap = {
@@ -121,6 +124,7 @@ export function createCanvasRotationControls(canvasPanel) {
         };
         
         const orientation = orientationMap[currentRotationAngle];
+        console.log("orientation: ", orientation);
         if (orientation) {
             AppState.cameraUtils.reorientCamera(orientation);
         }
