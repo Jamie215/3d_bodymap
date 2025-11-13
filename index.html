@@ -9,6 +9,7 @@
 </head>
 <body>
     <div class="app-shell">
+        <header class="slot-header"></header>
         <aside class="slot-left"></aside>
         <main class="slot-canvas">
             <div id="canvas-panel">
@@ -26,6 +27,9 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="./js/services/firebaseService.js"></script>
     <script type="module" src="./js/app/main.js"></script>
 </body>
 </html>

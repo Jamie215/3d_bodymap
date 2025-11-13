@@ -48,7 +48,7 @@ export function createSummaryView() {
 
   return {
     root: modelSummaryView,
-    updateStatus: updateSummaryStatus,
+    updateSummaryStatus,
     summaryStatusPanel,
     summaryFooter,
     changeModelButton,

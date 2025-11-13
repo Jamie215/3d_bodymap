@@ -4,168 +4,169 @@ export function createViewControls(controls, viewControlsPanel) {
     const viewToolsContainer = document.createElement('div');
     viewToolsContainer.classList.add('view-tools-container');
 
-    // View Controls Title
-    const title = document.createElement('h2');
-    title.textContent = 'Adjust My Body View';
+    // Divider 
+    const divider = document.createElement('hr');
+    divider.classList.add('divider');
+
+    // Body Region Selector
+    const regionSelector = document.createElement('div');
+    regionSelector.classList.add('panel-selection');
+    const selectorText = document.createElement('span');
+    selectorText.textContent = "Select Where to Focus";
+    const dropdown = document.createElement('select');
+    dropdown.classList.add('region-dropdown');
+    const regions = [
+        'Entire Body',
+        'Head', 
+        'Left Arm', 
+        'Left Hand',
+        'Right Arm', 
+        'Right Hand', 
+        'Left Leg', 
+        'Left Foot', 
+        'Right Leg', 
+        'Right Foot'
+    ]
+    regionSelector.appendChild(selectorText);
+    regionSelector.appendChild(dropdown);
+    
+    function createDropdownOptions(dropdown, text) {
+        let option = document.createElement('option');
+        option.text = text;
+        dropdown.add(option);
+    }
+
+    for (let i=0; i< regions.length; i++) {
+        createDropdownOptions(dropdown, regions[i])
+    }
+
+    regionSelector.appendChild(selectorText);
+    regionSelector.appendChild(dropdown);
 
     // Zoom instruction
     const zoomInstruction = document.createElement('div');
     zoomInstruction.classList.add('instruction');
     zoomInstruction.innerHTML = `
-        <span><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
-            viewBox="0 0 16 16" fill="none" stroke="currentColor"
-            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-            aria-hidden="true" style="vertical-align:-3px;">
-            <circle cx="6.5" cy="6.5" r="4.75"/>
-            <!-- vertical double-headed arrow -->
-            <line x1="6.5" y1="4.5" x2="6.5" y2="8.5"/>
-            <polyline points="5.5 5.5 6.5 4.5 7.5 5.5"/>
-            <polyline points="5.5 7.5 6.5 8.5 7.5 7.5"/>
-            <line x1="10.5" y1="10.5" x2="14" y2="14"/>  <!-- handle -->
-        </svg>
-        Zoom in or out by:<br><ul><li>Scroll mouse wheel</li><li>Pinch with two fingers on a touchpad or touchscreen</li></ul></span>
+        <svg class="zoom-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                        <path d="M11 8v6"></path>
+                        <path d="M8 11h6"></path>
+                    </svg>
+        <span>Scroll your mouse or pinch the screen to zoom in or out</span>
     `;
-
-    // Pan instruction
-    const panInstruction = document.createElement('div');
-    panInstruction.classList.add('instruction');
-    panInstruction.innerHTML = `
-        <span><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <!-- Up -->
-            <polygon points="8,1 11,4 5,4"/>
-            <!-- Down -->
-            <polygon points="8,15 5,12 11,12"/>
-            <!-- Left -->
-            <polygon points="1,8 4,5 4,11"/>
-            <!-- Right -->
-            <polygon points="15,8 12,11 12,5"/>
-            <!-- Center dot -->
-            <circle cx="8" cy="8" r="1.3"/>
-        </svg>Move my body using the on-screen arrows</span>
-    `;
-
-    // Divider 
-    const divider = document.createElement('hr');
-    divider.classList.add('divider');
-
-    // Direction change section
-    const directionHeader = document.createElement('h2');
-    directionHeader.textContent = 'My Body is Facing:';
-
-    // Create orientation buttons container
-    const orientationContainer = document.createElement('div');
-    orientationContainer.classList.add('orientation-button-container');
-
-    // Create the four orientation buttons
-    const orientationMap = {
-        Front: { icon: 'front.svg' },
-        Back: { icon: 'back.svg' },
-        Right: { icon: 'side.svg', flip: true},
-        Left: { icon: 'side.svg'}
-    };
-
-    Object.entries(orientationMap).forEach(([orientation, config]) => {
-        const button = document.createElement('button');
-        button.classList.add('orientation-button');
-
-        const contentContainer = document.createElement('div');
-        contentContainer.style.display = 'flex';
-        contentContainer.style.flexDirection = 'column';
-        contentContainer.style.alignItems = 'center';
-        
-        const img = document.createElement('img');
-        img.src = `./assets/rotation_svg/${config.icon}`;
-        img.alt = orientation;
-        
-        // Apply flip transform for the right side (which uses the same side.svg)
-        if (config.flip) {
-            img.style.transform = 'scaleX(-1)';
-        }
-
-        if (orientation === 'Front') {
-            img.classList.add('front-icon');
-        }
-        
-        // Add text label below the icon
-        const label = document.createElement('span');
-        label.classList.add('orientation-button-text');
-        label.textContent = orientation;
-        
-        contentContainer.appendChild(img);
-        contentContainer.appendChild(label);
-        button.appendChild(contentContainer);
-        button.addEventListener('click', () => reorientCamera(orientation, controls));
-        orientationContainer.appendChild(button);
-    });
 
     // Reset View Button
     const resetViewButton = document.createElement('button');
     resetViewButton.classList.add('reset-view-button');
-    resetViewButton.textContent = 'Reset My Body View';
+    resetViewButton.textContent = 'Reset the View';
     resetViewButton.addEventListener('click', () => {
-        const pivot  = (AppState.viewPivot && AppState.viewPivot.clone()) || new THREE.Vector3(0, 1, 0);
-        const radius = AppState.viewRadius || 1.0;
-        controls.target.copy(pivot);
-        // Put camera “front” at a comfortable distance
-        const camera = controls.object;
-        const dist = Math.max(controls.minDistance || 0, radius * 1.5);
-        camera.position.copy(pivot).add(new THREE.Vector3(0, 0, dist));
-        camera.lookAt(pivot);
-        camera.updateProjectionMatrix();
-        controls.update();
+        if (AppState.cameraUtils) {
+            AppState.cameraUtils.resetView();
+        }
     });
 
     // Assemble panel
-    viewToolsContainer.appendChild(title);
-    viewToolsContainer.appendChild(zoomInstruction);
-    viewToolsContainer.appendChild(panInstruction);
+    viewToolsContainer.appendChild(regionSelector);
     viewToolsContainer.appendChild(divider);
-    viewToolsContainer.appendChild(directionHeader);
-    viewToolsContainer.appendChild(orientationContainer);
+    viewToolsContainer.appendChild(zoomInstruction);
     viewToolsContainer.appendChild(resetViewButton);
     viewControlsPanel.appendChild(viewToolsContainer);
 }
 
-// Camera reorientation logic
-function reorientCamera(direction, controls) {
-    const camera = controls.object;
+export function createCanvasRotationControls(canvasPanel) {
+    // Create container for rotation controls
+    const rotationControlsContainer = document.createElement('div');
+    rotationControlsContainer.id = 'canvas-rotation-controls';
+    rotationControlsContainer.className = 'canvas-rotation-controls';
+    
+    // Create left rotation button
+    const leftRotateBtn = document.createElement('button');
+    leftRotateBtn.className = 'canvas-rotate-btn rotate-left';
+    leftRotateBtn.setAttribute('aria-label', 'Rotate model left');
+    leftRotateBtn.innerHTML = `
+        <svg fill="#024dbd" width="40px" height="40px" viewBox="0 0 24 24" id="curve-arrow-left-7" data-name="Flat Color" xmlns="http://www.w3.org/2000/svg" class="icon flat-color" stroke="#024dbd" stroke-width="2.4"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path id="primary" d="M21.32,5.05a1,1,0,0,0-1.27.63A12.14,12.14,0,0,1,8.51,14H5.41l1.3-1.29a1,1,0,0,0-1.42-1.42l-3,3a1,1,0,0,0,0,1.42l3,3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42L5.41,16h3.1A14.14,14.14,0,0,0,22,6.32,1,1,0,0,0,21.32,5.05Z" style="fill: #024dbd;"></path></g></svg>
+    `;
+    
+    // Create right rotation button  
+    const rightRotateBtn = document.createElement('button');
+    rightRotateBtn.className = 'canvas-rotate-btn rotate-right';
+    rightRotateBtn.setAttribute('aria-label', 'Rotate model right');
+    rightRotateBtn.innerHTML = `
+        <svg fill="#024dbd" width="40px" height="40px" viewBox="0 0 24 24" id="curve-arrow-left-7" data-name="Flat Color" xmlns="http://www.w3.org/2000/svg" class="icon flat-color" stroke="#024dbd" stroke-width="2.4"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path id="primary" d="M21.32,5.05a1,1,0,0,0-1.27.63A12.14,12.14,0,0,1,8.51,14H5.41l1.3-1.29a1,1,0,0,0-1.42-1.42l-3,3a1,1,0,0,0,0,1.42l3,3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42L5.41,16h3.1A14.14,14.14,0,0,0,22,6.32,1,1,0,0,0,21.32,5.05Z" style="fill: #024dbd;"></path></g></svg>
+    `;
+    
 
-    // Use the centralized pivot & radius
-    const pivot  = (AppState.viewPivot && AppState.viewPivot.clone()) || controls.target.clone();
-    const radius = AppState.viewRadius || 1.0;
+    // Function to rotate the camera smoothly
+    function rotateCamera(direction) {
+        if (!AppState.cameraUtils) {
+            console.warn('CameraUtils not initialized');
+            return;
+        }
 
-    // Reset orbit axis to stop cutting through the mesh
-    controls.target.copy(pivot);
+        // Track current rotation angle
+        let currentRotationAngle = AppState.cameraUtils.rotationAngle;
+        
+        const rotationDegrees = direction === 'left' ? -90 : 90;
+        currentRotationAngle += rotationDegrees;
+        
+        // Normalize angle to 0-360 range
+        currentRotationAngle = ((currentRotationAngle % 360) + 360) % 360;
 
-    // Safe distance: not less than current zoom, minDistance, or ~1.2× radius
-    const currDist = camera.position.distanceTo(pivot);
-    const safeDist = Math.max(currDist, controls.minDistance || 0, radius * 1.2);
-
-    // Pick a direction, relative to model's world rotation if available
-    const root = AppState.modelRoot || AppState.model || AppState.skinMesh || null;
-    const qWorld = new THREE.Quaternion();
-    if (root) root.getWorldQuaternion(qWorld);
-
-    const dirMap = {
-        Front: new THREE.Vector3( 0, 0,  1),
-        Back:  new THREE.Vector3( 0, 0, -1),
-        Left:  new THREE.Vector3( 1, 0,  0),
-        Right: new THREE.Vector3(-1, 0,  0),
-    };
-    const dir = dirMap[direction].clone().applyQuaternion(qWorld).normalize();
-
-    // Move camera & look at pivot
-    camera.position.copy(pivot).addScaledVector(dir, safeDist);
-    camera.lookAt(pivot);
-
-    // Keep near/far reasonable to avoid near-plane slicing
-    const suggestedNear = Math.max(0.01, radius / 200);
-    const suggestedFar  = Math.max(safeDist + radius * 4, camera.far);
-    if (camera.near !== suggestedNear || camera.far !== suggestedFar) {
-        camera.near = suggestedNear;
-        camera.far  = suggestedFar;
-        camera.updateProjectionMatrix();
+        AppState.cameraUtils.rotationAngle = currentRotationAngle;
+        
+        // Map angle to orientation
+        const orientationMap = {
+            0: 'Front',
+            90: 'Right',
+            180: 'Back',
+            270: 'Left'
+        };
+        
+        const orientation = orientationMap[currentRotationAngle];
+        console.log("orientation: ", orientation);
+        if (orientation) {
+            AppState.cameraUtils.reorientCamera(orientation);
+        }
+        
+        // Visual feedback
+        const button = direction === 'left' ? leftRotateBtn : rightRotateBtn;
+        button.classList.add('clicked');
+        setTimeout(() => button.classList.remove('clicked'), 200);
     }
-
-    controls.update();
+    
+    // Add event listeners
+    leftRotateBtn.addEventListener('click', () => rotateCamera('left'));
+    rightRotateBtn.addEventListener('click', () => rotateCamera('right'));
+    
+    // Add touch event handling for mobile
+    [leftRotateBtn, rightRotateBtn].forEach(btn => {
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            btn.classList.add('touched');
+        });
+        
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            btn.classList.remove('touched');
+            btn.click();
+        });
+    });
+    
+    // Append buttons to container
+    rotationControlsContainer.appendChild(leftRotateBtn);
+    rotationControlsContainer.appendChild(rightRotateBtn);
+    
+    // Return container and utility functions
+    return {
+        container: rotationControlsContainer,
+        resetRotation: () => {
+            currentRotationAngle = 0;
+        },
+        cleanup: () => {
+            leftRotateBtn.removeEventListener('click', () => rotateCamera('left'));
+            rightRotateBtn.removeEventListener('click', () => rotateCamera('right'));
+            rotationControlsContainer.remove();
+        }
+    };
 }

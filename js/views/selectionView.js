@@ -29,10 +29,10 @@ export function createSelectionView(onModelSelected) {
 
   const models = [
     { name: 'Type 1', file: './assets/female_young_avgheight2.glb' },
-    { name: 'Type 2', file: './assets/male_young_avgheight2.glb' }
+    { name: 'Type 2', file: './assets/male_young_avgheight.glb' }
   ];
 
-  let selectedModelPath = models[0].file;
+  let selectedModelPath = models[1].file;
 
   models.forEach(model => {
     const button = document.createElement('button');
@@ -59,7 +59,12 @@ export function createSelectionView(onModelSelected) {
       }
     });
 
+    // TODO: Update female model with region labelling
     if (model === models[0]) {
+      button.disabled = true;
+    }
+
+    if (model === models[1]) {
       button.style.borderColor = 'var(--primary-color)';
     }
   });

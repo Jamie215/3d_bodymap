@@ -7,8 +7,8 @@ export function createDrawingControls(drawingControlsPanel) {
     drawingToolsContainer.classList.add('drawing-tools-container');
 
     // Title
-    const title = document.createElement('h2');
-    title.textContent = 'Drawing Controls';
+    // const title = document.createElement('h2');
+    // title.textContent = 'Drawing Controls';
 
     // Draw Button
     const drawButton = document.createElement('button');
@@ -58,9 +58,9 @@ export function createDrawingControls(drawingControlsPanel) {
     // Brush Size Slider
     const brushSizeSlider = document.createElement('input');
     brushSizeSlider.type = 'range';
-    brushSizeSlider.min = '5';
-    brushSizeSlider.max = '35';
-    brushSizeSlider.step = '5';
+    brushSizeSlider.min = '1';
+    brushSizeSlider.max = '31';
+    brushSizeSlider.step = '2';
     brushSizeSlider.value = AppState.brushRadius;
     brushSizeSlider.classList.add('vertical-slider');
 
@@ -108,8 +108,8 @@ export function createDrawingControls(drawingControlsPanel) {
                 }
 
                 currentInstance.texture.needsUpdate = true;
-                currentInstance.drawnBoneNames = new Set();
-                currentInstance.bonePixelMap = {};
+                // currentInstance.drawnBoneNames = new Set();
+                // currentInstance.bonePixelMap = {};
                 currentInstance.questionnaireData = null;
                 currentInstance.texture.needsUpdate = true;
                 hideDrawResetModal();
@@ -123,7 +123,7 @@ export function createDrawingControls(drawingControlsPanel) {
     });
 
     // Assemble the container
-    drawingToolsContainer.appendChild(title);
+    // drawingToolsContainer.appendChild(title);
     drawingToolsContainer.appendChild(drawButton);
     drawingToolsContainer.appendChild(eraseButton);
     drawingToolsContainer.appendChild(resetDrawingButton);
