@@ -28,11 +28,24 @@ export const customTheme = {
   }
 };
 
+export const matrixStyles = `
+  .sd-table__cell.sd-table__cell--header {
+    width: 20% !important;
+}`;
+
 export function applyCustomTheme(theme) {
   const vars = theme?.cssVariables || {};
   const root = document.documentElement;
 
   for (const [key, value] of Object.entries(vars)) {
     root.style.setProperty(key, value);
+  }
+
+  // Inject matrix styles if not already present
+  if (!document.getElementById('matrix-custom-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'matrix-custom-styles';
+    styleEl.textContent = matrixStyles;
+    document.head.appendChild(styleEl);
   }
 }

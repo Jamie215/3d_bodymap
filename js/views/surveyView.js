@@ -1,4 +1,4 @@
-// surveyView.js - Updated version
+// surveyView.js - Updated for new workflow
 import AppState from '../app/state.js';
 
 export function createSurveyViewElements() {
@@ -57,11 +57,11 @@ export function createSurveyViewElements() {
       const current = AppState.currentSurveyIndex + 1;
       const titleText = `Area #${current} Questionnaire`;
       surveyTitle.textContent = titleText;
-    }
 
-    // Also update the surveyJson title if it exists
-    if (window.surveyInstance) {
-      window.surveyInstance.title = titleText;
+      // Also update the surveyJson title if it exists
+      if (window.surveyInstance) {
+        window.surveyInstance.title = titleText;
+      }
     }
   }
 
@@ -108,20 +108,96 @@ export function createSurveyViewElements() {
   surveyFooter.id = 'footer-survey';
   surveyFooter.classList.add('footer');
 
-  const prevAreaButton = document.createElement('button');
-  prevAreaButton.id = 'previous-drawing'
-  prevAreaButton.textContent = '← Previous Area Questionnaire';
-  prevAreaButton.classList.add('button', 'button-survey-prev-nav');
-
-  const nextAreaButton = document.createElement('button');
-  nextAreaButton.id = 'next-drawing';
-  nextAreaButton.textContent = 'Next Area Questionnaire';
-  nextAreaButton.classList.add('button', 'button-primary', 'button-survey-nav');
+  const completeButton = document.createElement('button');
+  completeButton.id = 'survey-complete';
+  completeButton.textContent = 'Complete & Return to Summary';
+  completeButton.classList.add('button', 'button-success');
 
   surveyPanel.appendChild(surveyHeader);
   surveyPanel.appendChild(surveyInnerContainer);
-  surveyFooter.appendChild(prevAreaButton);
-  surveyFooter.appendChild(nextAreaButton);
+  surveyFooter.appendChild(completeButton);
+
+  // Add styles for progress bar and footer
+  const style = document.createElement('style');
+  style.textContent = `
+    #survey-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color, #e5e7eb);
+    }
+
+    #survey-title {
+      margin: 0 0 0.75rem 0;
+      font-size: var(--h2-font-size, 1.25rem);
+    }
+
+    #survey-progress-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    #survey-progress-bar {
+      display: flex;
+      gap: 4px;
+      height: 8px;
+      background: var(--surface-color, #f3f4f6);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-segment {
+      flex: 1;
+      background: var(--border-color, #e5e7eb);
+      border-radius: 2px;
+      transition: background-color 0.3s ease;
+    }
+
+    .progress-segment.completed {
+      background: var(--success-color, #10b981);
+    }
+
+    #survey-progress-text {
+      font-size: 0.85rem;
+      color: var(--text-secondary, #6b7280);
+    }
+
+    #footer-survey {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    #survey-inner {
+      padding: 1rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* Animation for survey appearance */
+    .survey-animated {
+      opacity: 1 !important;
+      transform: translateX(0) !important;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    @media (max-width: 480px) {
+      #footer-survey {
+        flex-direction: column;
+      }
+
+      #footer-survey button {
+        width: 100%;
+      }
+    }
+  `;
+
+  // Only add styles if not already present
+  if (!document.getElementById('survey-view-styles')) {
+    style.id = 'survey-view-styles';
+    document.head.appendChild(style);
+  }
 
   return {
     root: surveyView,
@@ -129,8 +205,7 @@ export function createSurveyViewElements() {
     surveyInnerContainer,
     surveyFooter,
     editDrawingButton,
-    prevAreaButton,
-    nextAreaButton,
+    completeButton,
     updateTitle,
     updateProgress
   };

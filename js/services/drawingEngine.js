@@ -25,7 +25,6 @@ export async function initializeRegionMappings() {
 
         AppState.regionToIdMap = regionToIdMap;
         AppState.idToRegionMap = idToRegionMap;
-        
     } catch (error) {
         console.error("Failed to load vertex group mappings", error);
         idToRegionMap = { 0 : "unassigned" };
@@ -240,8 +239,16 @@ function processHit(hit, isErasing) {
 
     if (!isErasing) {
         updateRegionMapFromHit(hit, currentInstance, hitRegion);
+
+        if (!currentInstance.coloredFaces) {
+            currentInstance.coloredFaces = new Set();
+        }
+        currentInstance.coloredFaces.add(hit.faceIndex);
     } else {
         eraseFromRegionMap(hit, currentInstance, AppState.brushRadius, hitRegion);
+        if (currentInstance.coloredFaces) {
+            currentInstance.coloredFaces.delete(hit.faceIndex);
+        }
     }
 
     texture.needsUpdate = true;
@@ -270,6 +277,8 @@ function eraseFromRegionMap(hit, instance, radius, regionName) {
     const x = Math.round(hit.uv.x * instance.canvas.width);
     const y = Math.round((1 - hit.uv.y) * instance.canvas.height);
 
+    if (!instance.regionPixelMap) return;
+
     for (let dx = -radius; dx <= radius; dx++) {
         for (let dy = -radius; dy <= radius; dy++) {
             if (dx * dx + dy * dy > radius * radius) continue;
@@ -279,12 +288,17 @@ function eraseFromRegionMap(hit, instance, radius, regionName) {
             if (px < 0 || py < 0 || px >= instance.canvas.width || py >= instance.canvas.height) continue;
 
             const eraseKey = `${px},${py}`;
-            const pixelSet = instance.regionPixelMap?.[regionName];
-            if (pixelSet) {
-                pixelSet.delete(eraseKey);
-                if (pixelSet.size === 0) {
-                    delete instance.regionPixelMap[regionName];
-                    instance.drawnRegionNames.delete(regionName);
+            
+            // Check ALL regions for this pixel, not just the hit region
+            // This ensures pixels are properly removed even at region boundaries
+            for (const region of Object.keys(instance.regionPixelMap)) {
+                const pixelSet = instance.regionPixelMap[region];
+                if (pixelSet && pixelSet.has(eraseKey)) {
+                    pixelSet.delete(eraseKey);
+                    if (pixelSet.size === 0) {
+                        delete instance.regionPixelMap[region];
+                        instance.drawnRegionNames.delete(region);
+                    }
                 }
             }
         }
@@ -362,11 +376,17 @@ export function addNewDrawingInstance() {
         texture: textureBundle.texture,
         drawnRegionNames: new Set(),
         regionPixelMap: {},
+        coloredFaces: new Set(),
         questionnaireData: null,
         uvDrawingData: null,
         colour: colourPalette[AppState.drawingInstances.length % colourPalette.length],
     };
 
+    // Change the 5th colour from the colourPalette
+    if (AppState.drawingInstances.length % colourPalette.length === 4) {
+        newInstance.colour = '#03831c';
+    }
+    
     // Change the 10th colour from the colourPalette
     if (AppState.drawingInstances.length % colourPalette.length === 9) {
         newInstance.colour = '#333399';

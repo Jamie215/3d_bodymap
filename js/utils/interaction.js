@@ -180,11 +180,11 @@ export function setupCursorManagement() {
     cursorSizeEl.style.height = `${size}px`;
   };
   cursorHandlers.mousedown = () => { cursorSizeEl.style.opacity = '0.8'; };
-  cursorHandlers.mouseup   = ()   => { cursorSizeEl.style.opacity = '0.4'; };
+  cursorHandlers.mouseup = () => { cursorSizeEl.style.opacity = '0.4'; };
 
   const brushSlider = document.querySelector('.vertical-slider');
-  const drawBtn     = document.querySelector('.button-primary');
-  const eraseBtn    = document.querySelector('.button-secondary');
+  const drawBtn = document.getElementById('draw-button');
+  const eraseBtn = document.getElementById('erase-button');
 
   // Attach listeners
   canvasPanel.addEventListener('mousemove', cursorHandlers.mousemove, { passive: true });
@@ -276,5 +276,27 @@ function handlePointerDown(camera, controls) {
     } else {
         console.warn('No intersection detected');
         controls.enabled = true;
+    }
+}
+
+export function syncEraserState() {
+    const drawBtn = document.getElementById('draw-button');
+    const eraseBtn = document.getElementById('erase-button');
+    const brushSizeLabel = document.querySelector('.drawing-tools-container h2');
+    
+    if (!drawBtn || !eraseBtn) return;
+    
+    if (AppState.isErasing) {
+        eraseBtn.classList.remove('button-secondary');
+        eraseBtn.classList.add('button-primary');
+        drawBtn.classList.remove('button-primary');
+        drawBtn.classList.add('button-secondary');
+        if (brushSizeLabel) brushSizeLabel.textContent = 'Eraser Size';
+    } else {
+        drawBtn.classList.remove('button-secondary');
+        drawBtn.classList.add('button-primary');
+        eraseBtn.classList.remove('button-primary');
+        eraseBtn.classList.add('button-secondary');
+        if (brushSizeLabel) brushSizeLabel.textContent = 'Brush Size';
     }
 }

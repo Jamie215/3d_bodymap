@@ -1,8 +1,10 @@
-// appController.js
+// appController.js - Updated for new workflow
+// New workflow: Summary → Draw ONE area → Area Survey → Summary (repeat or proceed) → General Survey → Summary (done)
+
 import { loadModel, cleanupAllModels } from '../services/modelLoader.js';
 import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance, buildGlobalUVMap, initializeRegionMappings, updateInstanceColors } from '../services/drawingEngine.js';
 import texturePool from '../utils/textureManager.js';
-import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement } from '../utils/interaction.js';
+import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement, syncEraserState } from '../utils/interaction.js';
 import { applyCustomTheme, customTheme } from '../utils/surveyTheme.js';
 import { areaSurveyJson } from '../utils/areaSurvey.js';
 import { generalSurveyJson } from '../utils/generalSurvey.js';
@@ -11,10 +13,13 @@ import SurveyKO from "https://cdn.skypack.dev/survey-knockout";
 import AppState from './state.js';
 import eventManager from './eventManager.js';
 import CameraUtils from '../utils/cameraUtils.js';
+import coverageCalculator from '../utils/coverageUtils.js';
 
 export function initApp({ scene, camera, renderer, controls, views, registerModelSelectionHandler, setStage }) {
   const { summary, selection, drawing, survey } = views;
-  const { continueButton: modalContinueButton, returnButton: modalReturnButton } = getModalElements("continue");
+  
+  // Get modal elements - now includes returnToSummaryButton
+  const { continueButton: modalContinueButton, returnButton: modalReturnButton, returnToSummaryButton: modalReturnToSummaryButton } = getModalElements("continue");
   const { deleteEmptyReturnButton, deleteEmptyContinueButton } = getModalElements("deleteEmpty");
   
   let cameraUtils = null;
@@ -44,13 +49,15 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     AppState.globalPixelRegionMap = globalPixelRegionMap;
     AppState.faceRegionMap = faceRegionMap;
 
+    coverageCalculator.initialize(AppState.skinMesh);
+
     summary.addNewInstanceButton.disabled = false;
     selection.addNewInstanceButton.disabled = false;
     renderer.render(scene, camera);
   };
 
   registerModelSelectionHandler(handleModelSelection);
-  const initialModel = { name: 'Type 2', file: './assets/male_young_avgheight.glb' };
+  const initialModel = { name: 'Type 1', file: './assets/female.glb' };
   handleModelSelection(initialModel);
 
   function animate() {
@@ -111,22 +118,16 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     }
   }
 
-  function navigateToDrawing(index) {
-    if (index < 0 || index >= AppState.drawingInstances.length) return;
-
+  // After drawing, go directly to area specific survey
+  function proceedToAreaSurvey() {
     updateCurrentDrawing();
-    AppState.currentDrawingIndex = index;
-    updateDrawingNavigationButtons();
-    drawing.updateStatusBar();
-
-    const currentInstance = AppState.drawingInstances[index];
-    if (AppState.skinMesh && currentInstance) {
-      AppState.skinMesh.material.map = currentInstance.texture;
-      AppState.skinMesh.material.needsUpdate = true;
-      currentInstance.texture.needsUpdate = true;
-    }
-
-    renderer.render(scene, camera);
+    
+    // Set survey index to current drawing
+    AppState.currentSurveyIndex = AppState.currentDrawingIndex;
+    
+    cleanupInteraction();
+    disableCursorManagement();
+    goTo('area-survey');
   }
 
   function handleEmptyDrawing(actionType, actionData = {}) {
@@ -137,11 +138,13 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     const isLastInstance = AppState.drawingInstances.length === 1;
     
     const messages = {
-      navigatePrev: "You haven't made a drawing yet. If you proceed, this area will be deleted and you will navigate to the previous area.",
-      navigateNext: "You haven't made a drawing yet. If you proceed, this area will be deleted and you will navigate to the next area.",
-      addNew: "You haven't made a drawing yet. Please make one before adding another area.",
-      returnToSurvey: isLastInstance? "You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the summary view.":"You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the survey.",
-      moveToSurvey: "You haven't made a drawing yet. If you proceed, this area will be deleted."
+      returnToSummary: isLastInstance 
+        ? "You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the home view."
+        : "You haven't made a drawing yet. If you proceed, this area will be deleted.",
+      proceedToSurvey: "You haven't made a drawing yet. Please draw an area before continuing to the questionnaire.",
+      returnFromEdit: isLastInstance
+        ? "You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the home view."
+        : "You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the survey."
     };
     
     showDeleteEmptyModal(messages[actionType] || "You haven't made a drawing yet. If you proceed, this area will be deleted.");
@@ -152,99 +155,37 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     if (!pendingAction) return;
 
     const currentIndex = AppState.currentDrawingIndex;
-    deleteDrawingInstance(currentIndex);
-    
     const action = pendingAction.type;
     pendingAction = null;
 
     switch (action) {
-      case 'navigatePrev':
-        handleNavigationAfterDelete('prev');
+      case 'returnToSummary':
+        deleteDrawingInstance(currentIndex);
+        goTo('summary');
         break;
         
-      case 'navigateNext':
-        handleNavigationAfterDelete('next');
+      case 'returnFromEdit':
+        deleteDrawingInstance(currentIndex);
+        if (AppState.drawingInstances.length === 0) {
+          AppState.isEditingFromSurvey = false;
+          goTo('summary');
+        } else {
+          // Return to survey for previous area if available
+          if (AppState.currentSurveyIndex >= AppState.drawingInstances.length) {
+            AppState.currentSurveyIndex = AppState.drawingInstances.length - 1;
+          }
+          AppState.currentDrawingIndex = AppState.currentSurveyIndex;
+          AppState.isEditingFromSurvey = false;
+          goTo('area-survey');
+        }
         break;
         
-      case 'addNew':
-        handleAddNewAfterDelete();
-        break;
-        
-      case 'returnToSurvey':
-        handleReturnToSurveyAfterDelete();
-        break;
-        
-      case 'moveToSurvey':
-        handleMoveToSurveyAfterDelete();
+      case 'proceedToSurvey':
+        // Don't delete, just show message - this case shouldn't delete
         break;
     }
     
     renderer.render(scene, camera);
-  }
-
-  function handleNavigationAfterDelete(direction) {
-    if (AppState.drawingInstances.length === 0) {
-      AppState.isEditingFromSurvey = false;
-      goTo('summary');
-      return;
-    }
-
-    if (direction === 'prev') {
-      if (AppState.currentDrawingIndex > 0) {
-        navigateToDrawing(AppState.currentDrawingIndex - 1);
-      } else {
-        // At index 0 after deletion - update navigation buttons and texture
-        updateDrawingNavigationButtons();
-        drawing.updateStatusBar();
-        updateCurrentTexture();
-      }
-    } else {
-      // After deletion, currentDrawingIndex already points to next item
-      updateDrawingNavigationButtons();
-      drawing.updateStatusBar();
-      updateCurrentTexture();
-    }
-  }
-
-  function handleAddNewAfterDelete() {
-    if (AppState.drawingInstances.length === 0) {
-      goTo('summary');
-      return;
-    }
-    addNewDrawingInstance();
-    navigateToDrawing(AppState.drawingInstances.length - 1);
-  }
-
-  function handleReturnToSurveyAfterDelete() {
-    AppState.isEditingFromSurvey = false;
-    
-    if (AppState.drawingInstances.length === 0) {
-      goTo('summary');
-      return;
-    }
-
-    if (AppState.currentSurveyIndex >= AppState.drawingInstances.length) {
-      AppState.currentSurveyIndex = AppState.drawingInstances.length - 1;
-    }
-
-    AppState.currentDrawingIndex = AppState.currentSurveyIndex;
-    cleanupInteraction();
-    disableCursorManagement();
-    goTo('area-survey');
-  }
-
-  function handleMoveToSurveyAfterDelete() {
-    if (AppState.drawingInstances.length === 0) {
-      showMoveToSurveyModal("Please draw at least one area before continuing.", false);
-      return;
-    }
-
-    if (!hasAnyValidDrawings()) {
-      showMoveToSurveyModal("Please draw at least one area before continuing.", false);
-      return;
-    }
-
-    showPreviewAndConfirmModal();
   }
 
   function updateCurrentTexture() {
@@ -285,54 +226,26 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       ctx.drawImage(tempCanvas, 0, 0);
     });
 
-    // Return the combined texture
-    return combinedCanvas
+    return combinedCanvas;
   }
 
-  function showPreviewAndConfirmModal() {
-    setTimeout(() => {
-      const combinedCanvas = createCombinedTexture();
-      const tempTexture = new THREE.CanvasTexture(combinedCanvas);
-      tempTexture.needsUpdate = true;
+  // Generate preview image of current drawing
+  function generateDrawingPreview() {
+    const previewWidth = 400;
+    const previewHeight = 350;
+    const originalSize = renderer.getSize(new THREE.Vector2());
+    const originalPixelRatio = renderer.getPixelRatio();
 
-      if (AppState.skinMesh) {
-        AppState.skinMesh.material.map = tempTexture;
-        AppState.skinMesh.material.needsUpdate = true;
-      }
+    renderer.setSize(previewWidth, previewHeight, false);
+    renderer.setPixelRatio(1);
+    renderer.render(scene, camera);
+    const preview = renderer.domElement.toDataURL('image/png');
 
-      if (cameraUtils) cameraUtils.resetView();
+    renderer.setSize(originalSize.x, originalSize.y, false);
+    renderer.setPixelRatio(originalPixelRatio);
+    renderer.render(scene, camera);
 
-      const previewWidth = 400;
-      const previewHeight = 350;
-      const originalSize = renderer.getSize(new THREE.Vector2());
-      const originalPixelRatio = renderer.getPixelRatio();
-
-      renderer.setSize(previewWidth, previewHeight, false);
-      renderer.setPixelRatio(1);
-      renderer.render(scene, camera);
-      const dataURL = renderer.domElement.toDataURL('image/png');
-
-      renderer.setSize(originalSize.x, originalSize.y, false);
-      renderer.setPixelRatio(originalPixelRatio);
-
-      if (AppState.skinMesh) {
-        const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-        AppState.skinMesh.material.map = currentInstance.texture;
-        AppState.skinMesh.material.needsUpdate = true;
-      }
-
-      renderer.render(scene, camera);
-
-      const originalIndex = AppState.currentDrawingIndex;
-      const totalAreas = AppState.drawingInstances.filter((instance, idx) => {
-        AppState.currentDrawingIndex = idx;
-        const blank = isDrawingBlank();
-        return !blank;
-      }).length;
-      AppState.currentDrawingIndex = originalIndex;
-
-      showMoveToSurveyModal(`You have drawn ${totalAreas} area${totalAreas > 1? 's':''}.\nDoes this represent your intended pain/symptom area${totalAreas > 1? 's':''}?`, true, dataURL);
-    }, 100);
+    return preview;
   }
 
   // ============================================================================
@@ -366,9 +279,11 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       case 'summary': {
         if (cameraUtils) cameraUtils.resetView();
 
-        // After submitting all surveys (endpoint)
-        if (AppState.drawingInstances.length > 0) {
-
+        // Check if session is completed (general questionnaire submitted)
+        const isSessionComplete = AppState.generalQuestionnaireResponse !== null;
+        
+        if (isSessionComplete && AppState.drawingInstances.length > 0) {
+          // Session completed - show combined texture, hide controls
           const combinedCanvas = createCombinedTexture();
           const tempTexture = new THREE.CanvasTexture(combinedCanvas);
           tempTexture.needsUpdate = true;
@@ -380,8 +295,23 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
           summary.summaryFooter.style.display = 'none';
           summary.changeModelButton.style.display = 'none';
           summary.addNewInstanceButton.style.display = 'none';
-        } else {
+        } else if (AppState.drawingInstances.length > 0) {
+          // Areas logged but not yet submitted - show combined texture
+          const combinedCanvas = createCombinedTexture();
+          const tempTexture = new THREE.CanvasTexture(combinedCanvas);
+          tempTexture.needsUpdate = true;
 
+          if (AppState.skinMesh) {
+            AppState.skinMesh.material.map = tempTexture;
+            AppState.skinMesh.material.needsUpdate = true;
+          }
+          
+          // Show controls for adding more or proceeding
+          summary.summaryFooter.style.display = 'flex';
+          summary.changeModelButton.style.display = 'inline-flex';
+          summary.addNewInstanceButton.style.display = 'inline-flex';
+        } else {
+          // No drawings yet - show base texture
           const canvasPanel = document.getElementById('canvas-panel');
           if (canvasPanel && canvasPanel.contains(survey.editDrawingButton)) {
             canvasPanel.removeChild(survey.editDrawingButton);
@@ -391,15 +321,22 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
             AppState.skinMesh.material.map = AppState.baseTextureTexture;
             AppState.skinMesh.material.needsUpdate = true;
           }
+          
+          summary.summaryFooter.style.display = 'flex';
+          summary.changeModelButton.style.display = 'inline-flex';
+          summary.addNewInstanceButton.style.display = 'inline-flex';
         }
 
         summary.updateSummaryStatus();
         renderer.render(scene, camera);
         break;
       }
+      
       case 'drawing': {
         enableInteraction(renderer, camera, controls);
         setupCursorManagement();
+        syncEraserState();
+
         controls.enableZoom = true;
 
         if (AppState.skinMesh && AppState.drawingInstances.length > 0) {
@@ -437,7 +374,9 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       }
 
       case 'area-survey': {
-        if (cameraUtils) cameraUtils.resetView();
+        const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+        cameraUtils.focusOnDrawing(currentInstance.drawnRegionNames);
+        coverageCalculator.logCoverage(currentInstance);
 
         const canvasPanel = document.getElementById('canvas-panel');
         if (canvasPanel && !canvasPanel.contains(survey.editDrawingButton)) {
@@ -462,117 +401,123 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
           AppState.skinMesh.material.needsUpdate = true;
         }
 
-        // Update survey title
         survey.updateTitle('general');
-
-        // Render general survey
         renderGeneralSurvey(survey.surveyInnerContainer);
+        break;
       }
     }
 
     renderer.render(scene, camera);
   }
 
-  summary.changeModelButton.addEventListener('click', () => goTo('selection'))
+  // ============================================================================
+  // SUMMARY VIEW HANDLERS
+  // ============================================================================
+  
+  summary.changeModelButton.addEventListener('click', () => goTo('selection'));
+  
   summary.addNewInstanceButton.addEventListener('click', () => {
     AppState.isEditingFromSurvey = false;
     addNewDrawingInstance();
     goTo('drawing');
   });
 
-  selection.returnSummaryButton.addEventListener('click', () => goTo('summary'))
+  summary.summaryDoneButton.addEventListener('click', () => {
+    if (AppState.drawingInstances.length === 0) {
+      alert('Please add at least one pain or symptom area before proceeding.');
+      return;
+    }
+    
+    // Check all areas have completed questionnaires
+    const incompleteAreas = AppState.drawingInstances.filter(
+      instance => !instance.questionnaireData || Object.keys(instance.questionnaireData).length === 0
+    );
+    
+    if (incompleteAreas.length > 0) {
+      alert(`Please complete the questionnaire for all areas before proceeding. ${incompleteAreas.length} area(s) remaining.`);
+      return;
+    }
+    
+    goTo('general-survey');
+  });
+
+  // Edit callback - allows user to edit an existing area's drawing or questionnaire
+  summary.setEditCallback((index) => {
+    AppState.currentDrawingIndex = index;
+    AppState.currentSurveyIndex = index;
+    goTo('area-survey');
+  });
+
+  // Delete callback - allows user to remove a logged area
+  summary.setDeleteCallback((index) => {
+    const areaNum = index + 1;
+    if (confirm(`Are you sure you want to delete Area #${areaNum}? This will remove both the drawing and questionnaire responses.`)) {
+      deleteDrawingInstance(index);
+      summary.updateSummaryStatus();
+      
+      // Update the texture display
+      if (AppState.drawingInstances.length > 0) {
+        const combinedCanvas = createCombinedTexture();
+        const tempTexture = new THREE.CanvasTexture(combinedCanvas);
+        tempTexture.needsUpdate = true;
+
+        if (AppState.skinMesh) {
+          AppState.skinMesh.material.map = tempTexture;
+          AppState.skinMesh.material.needsUpdate = true;
+        }
+      } else {
+        // No more drawings - show base texture
+        if (AppState.skinMesh && AppState.baseTextureTexture) {
+          AppState.skinMesh.material.map = AppState.baseTextureTexture;
+          AppState.skinMesh.material.needsUpdate = true;
+        }
+      }
+      
+      renderer.render(scene, camera);
+    }
+  });
+
+  // ============================================================================
+  // SELECTION VIEW HANDLERS
+  // ============================================================================
+  
+  selection.returnSummaryButton.addEventListener('click', () => goTo('summary'));
+  
   selection.addNewInstanceButton.addEventListener('click', () => {
     AppState.isEditingFromSurvey = false;
     addNewDrawingInstance();
     goTo('drawing');
-  })
+  });
 
   // ============================================================================
-  // DRAWING NAVIGATION
+  // DRAWING NAVIGATION - UPDATED FOR NEW WORKFLOW
   // ============================================================================
 
   function updateDrawingNavigationButtons() {
-    const current = AppState.currentDrawingIndex;
-    const total = AppState.drawingInstances.length;
+    const current = AppState.currentDrawingIndex + 1;
 
     if (AppState.isEditingFromSurvey) {
-      drawing.prevAreaButton.style.display = 'none';
-      drawing.nextAreaButton.style.display = 'none';
-      drawing.drawingNavContainer.style.display = 'none';
-      drawing.drawingFooter.style.justifyContent = 'center';
+      // Editing from survey - show only "Done Editing" button
       drawing.continueButton.textContent = 'Done Editing';
       drawing.continueButton.classList.add("button-drawing-center");
+      drawing.continueButton.classList.remove('button-success');
+      drawing.continueButton.classList.add('button-primary');
     } else {
-      drawing.prevAreaButton.style.display = 'inline-block';
-      drawing.nextAreaButton.style.display = 'inline-block';
-      drawing.drawingNavContainer.style.display = 'flex';
-      drawing.drawingFooter.style.display = 'flex';
-      drawing.drawingFooter.style.justifyContent = 'flex-end';
-      drawing.prevAreaButton.disabled = current === 0;
-      
-      if (current < total - 1) {
-        drawing.nextAreaButton.textContent = 'Next Area →';
-      } else {
-        drawing.nextAreaButton.textContent = '+ Add Next Area';
-      }
-      
-      drawing.continueButton.textContent = "I've Added All Areas";
-      drawing.continueButton.classList.remove('button-primary');
-      drawing.continueButton.classList.remove('button-drawing-center');
-      drawing.continueButton.classList.add('button-success');
+      // Normal drawing mode - show "Done Drawing" button
+      drawing.continueButton.textContent = 'Done Drawing';
+      drawing.continueButton.classList.remove('button-success');
+      drawing.continueButton.classList.add('button-primary');
+      drawing.continueButton.classList.add("button-drawing-center");
     }
   }
 
-  // Previous button logic
-  drawing.prevAreaButton.addEventListener('click', () => {
-    const current = AppState.currentDrawingIndex;
-    const total = AppState.drawingInstances.length;
-    const isEmpty = isDrawingBlank();
-    
-    // If on last drawing and it's empty, just navigate without modal
-    if (current === total - 1 && isEmpty) {
-      deleteDrawingInstance(current);
-      if (AppState.drawingInstances.length === 0) {
-        goTo('summary');
-        return;
-      }
-      navigateToDrawing(AppState.currentDrawingIndex);
-      return;
-    }
-    
-    // For non-last drawings, show modal if empty
-    if (isEmpty && current !== total - 1) {
-      if (handleEmptyDrawing('navigatePrev')) return;
-    }
-    
-    // Normal navigation
-    updateCurrentDrawing();
-    navigateToDrawing(current - 1);
-  });
-
-  // Next button logic
-  drawing.nextAreaButton.addEventListener('click', () => {
-    const current = AppState.currentDrawingIndex;
-    const total = AppState.drawingInstances.length;
-
-    if (current === total - 1) {
-      // On last drawing - adding new area
-      if (handleEmptyDrawing('addNew')) return;
-      updateCurrentDrawing();
-      addNewDrawingInstance();
-      navigateToDrawing(AppState.drawingInstances.length - 1);
-    } else {
-      // Navigating to existing next drawing
-      if (handleEmptyDrawing('navigateNext')) return;
-      updateCurrentDrawing();
-      navigateToDrawing(current + 1);
-    }
-  });
-  
-  // Continue button logic
+  // "Done Drawing" button logic - shows confirmation modal with 3 options
   drawing.continueButton.addEventListener('click', () => {
     if (AppState.isEditingFromSurvey) {
-      if (handleEmptyDrawing('returnToSurvey')) return;
+      // Editing from survey - return to survey
+      if (isDrawingBlank()) {
+        if (handleEmptyDrawing('returnFromEdit')) return;
+      }
       updateCurrentDrawing();
       AppState.isEditingFromSurvey = false;
       AppState.currentDrawingIndex = AppState.currentSurveyIndex;
@@ -582,64 +527,57 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       return;
     }
 
-    const current = AppState.currentDrawingIndex;
-    const total = AppState.drawingInstances.length;
-    const currentIsEmpty = isDrawingBlank();
-    
-    // On last drawing that's empty but others exist
-    if (current === total - 1 && currentIsEmpty && total > 1) {
-      // Check if there are other valid drawings
-      const originalIndex = AppState.currentDrawingIndex;
-      const hasOtherValidDrawings = AppState.drawingInstances.some((instance, idx) => {
-        if (idx === current) return false; // Skip current empty one
-        AppState.currentDrawingIndex = idx;
-        const blank = isDrawingBlank();
-        return !blank;
-      });
-      AppState.currentDrawingIndex = originalIndex;
-      
-      if (hasOtherValidDrawings) {
-        // Delete the empty last one and show preview
-        deleteDrawingInstance(current);
-        updateCurrentDrawing();
-        showPreviewAndConfirmModal();
-        return;
-      }
-    }
-    
-    // First drawing is empty
-    if (current === 0 && currentIsEmpty && total === 1) {
-      showMoveToSurveyModal("Please draw at least one area before continuing.", false);
-      return;
-    }
-    
-    // For non-last empty drawings, show deletion modal
-    if (currentIsEmpty && current !== total - 1) {
-      if (handleEmptyDrawing('moveToSurvey')) return;
-    }
+    // Normal drawing mode - generate preview and show confirmation modal
+    const previewDataURL = generateDrawingPreview();
+    const hasDrawing = !isDrawingBlank();
 
-    // Normal flow - check if any valid drawings exist
-    if (!hasAnyValidDrawings()) {
-      showMoveToSurveyModal("Please draw at least one area before continuing.", false);
-      return;
+    if (hasDrawing) {
+      // Has drawing - show modal with all 3 buttons
+      showMoveToSurveyModal(
+        'Does this represent your intended pain/symptom area?',
+        true,           // canProceed = true (show "Yes, Proceed" button)
+        previewDataURL, // Show the drawing preview
+        true            // showReturnToSummary = true
+      );
+    } else {
+      // No drawing - show modal without "Yes, Proceed" button
+      showMoveToSurveyModal(
+        'There is no drawing to proceed with.',
+        false,          // canProceed = false (hide "Yes, Proceed" button)
+        previewDataURL, // Still show the (blank) preview
+        true            // showReturnToSummary = true
+      );
     }
-
-    updateCurrentDrawing();
-    showPreviewAndConfirmModal();
   });
 
-  modalContinueButton.addEventListener('click', () => {
-    AppState.currentSurveyIndex = 0;
+  // ============================================================================
+  // CONFIRMATION MODAL HANDLERS (3 buttons)
+  // ============================================================================
+
+  // "Return to Summary" - delete current drawing and go to summary
+  modalReturnToSummaryButton.addEventListener('click', () => {
     hideDrawContinueModal();
+    deleteDrawingInstance(AppState.currentDrawingIndex);
     cleanupInteraction();
     disableCursorManagement();
-    goTo('area-survey');
+    goTo('summary');
   });
+
+  // "Return to My Drawing" - just close the modal
   modalReturnButton.addEventListener('click', () => {
     hideDrawContinueModal();
-    updateCurrentDrawing();
-    drawing.updateStatusBar();
+    // User continues drawing
   });
+
+  // "Yes, Proceed" - save drawing and go to area survey
+  modalContinueButton.addEventListener('click', () => {
+    hideDrawContinueModal();
+    proceedToAreaSurvey();
+  });
+
+  // ============================================================================
+  // DELETE EMPTY MODAL HANDLERS
+  // ============================================================================
 
   deleteEmptyReturnButton.addEventListener('click', () => {
     hideDeleteEmptyModal();
@@ -652,26 +590,8 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   });
 
   // ============================================================================
-  // SURVEY MANAGEMENT
+  // SURVEY MANAGEMENT - UPDATED FOR NEW WORKFLOW
   // ============================================================================
-
-  // TODO: Re-enable below function once it is ready
-  function focusCameraOnDrawing(drawingInstance) {
-    if (!cameraUtils || !drawingInstance) {
-      controls.target.set(0, 1.0, 0);
-      controls.object.position.set(0, 1.0, 1.75);
-      controls.update();
-      return
-    }
-
-    if (drawingInstance.drawnRegionNames && drawingInstance.drawnRegionNames.size > 0) {
-      cameraUtils.focusOnDrawing(drawingInstance.drawnRegionNames);
-    } else {
-      controls.target.set(0,1,0);
-      controls.object.position.set(0,1,1.75);
-      controls.update();
-    }
-  }
 
   function countMainAreas() {
     return AppState.drawingInstances.filter(instance => instance.questionnaireData?.mainArea === "Yes").length;
@@ -681,8 +601,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     applyCustomTheme(customTheme);
 
     container.classList.remove('survey-animated');
-    
-    // Set initial hidden state
     container.style.opacity = '0';
     container.style.transform = 'translateX(50px)';
 
@@ -755,7 +673,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       surveyInstance.validationEnabled = false;
     }
 
-    // Update main area question based on current count
     updateMainAreaQuestion();
 
     if (AppState.skinMesh && currentInstance) {
@@ -774,17 +691,12 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     renderer.render(scene, camera);
   }
 
+  // UPDATED: Survey navigation buttons for new workflow
   function updateSurveyNavigationButtons() {
-    const total = AppState.drawingInstances.length;
-
-    survey.prevAreaButton.disabled = AppState.currentSurveyIndex === 0;
-
-    if (AppState.currentSurveyIndex < total-1) {
-      survey.nextAreaButton.textContent = "Next Area Questionnaire →";
-    } else {
-      survey.nextAreaButton.textContent = 'Move to General Questionnaire';
-      survey.nextAreaButton.style.background = '#005486';
-    }
+    // In new workflow, we only show "Complete" button to return to summary
+    survey.completeButton.textContent = 'Complete & Return to Summary';
+    survey.completeButton.style.background = '';
+    survey.completeButton.classList.add('button-success');
   }
 
   function updateSurveyProgress() {
@@ -798,7 +710,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     visibleQuestions.forEach(question => {
       const value = question.value;
       
-      // Check if question is answered
       if (value !== undefined && value !== null && value !== '') {
         if (Array.isArray(value)) {
           if (value.length > 0) {
@@ -822,27 +733,22 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     const currentInstance = AppState.drawingInstances[AppState.currentSurveyIndex];
     const currentMainAreaValue = currentInstance.questionnaireData?.mainArea;
     
-    // Count main areas excluding the current one if it was previously marked as "Yes"
     let mainAreaCount = countMainAreas();
     if (currentMainAreaValue === "Yes") {
-      mainAreaCount--; // Don't count current area if we're editing it
+      mainAreaCount--;
     }
 
     const remainingSlots = 3 - mainAreaCount;
   
-    // Store the count in survey data for use in choicesEnableIf
     surveyInstance.setVariable("remainingMainAreaSlots", remainingSlots);
     surveyInstance.setVariable("isCurrentlyMainArea", currentMainAreaValue === "Yes");
     
     if (remainingSlots <= 0) {
-      // No slots remaining
       mainAreaQuestion.title = "Is this your main area of pain or symptom? (Maximum 3 main areas reached)";
       mainAreaQuestion.value = "No";
     } else if (remainingSlots === 3) {
-      // All slots available
       mainAreaQuestion.title = "Is this your main area of pain or symptom? (You can indicate up to 3 main areas)";
     } else {
-      // Some slots remaining
       mainAreaQuestion.title = `Is this your main area of pain or symptom? (${remainingSlots} main area${remainingSlots === 1 ? '' : 's'} remaining)`;
     }
   }
@@ -868,129 +774,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     return false;
   }
 
-  function renderGeneralSurvey(container) {
-  applyCustomTheme(customTheme);
-  container.classList.remove('survey-animated');
-    
-  // Set initial hidden state
-  container.style.opacity = '0';
-  container.style.transform = 'translateX(50px)';
-  
-  if (!surveyInstance) {
-    surveyInstance = new SurveyKO.Model(generalSurveyJson);
-    surveyInstance.showTitle = false;
-    surveyInstance.validationEnabled = false;
-
-    surveyInstance.onValidateQuestion.add(function(survey, options) {
-      // Skip custom validation for matrix questions
-      if (options.question.getType() === 'matrix') {
-        const medicationQuestion = survey.getQuestionByName('medicationTable');
-        const allRows = medicationQuestion.rows.map(r => r.value);
-        
-        // Check which rows are missing
-        let missingRows = [];
-        for (let row of allRows) {
-          if (!options.value || !options.value[row]) {
-            missingRows.push(row);
-          }
-        }
-                
-        if (missingRows.length > 0) {
-          options.error = `Please answer all rows in the medication table. Missing: ${missingRows.join(', ')}`;
-          return;
-        }
-      }
-      if (options.value !== undefined && options.value !== null && options.value !== '') {
-        options.error = null;
-      }
-    });
-
-    surveyInstance.onValueChanged.add(function(survey, options) {
-      updateSurveyProgress();
-    });
-
-    surveyInstance.onAfterRenderSurvey.add(function(survey, options) {
-      setTimeout(() => {
-          container.classList.add('survey-animated');
-      }, 50);
-    });
-
-    // Adding subtext for examples in medicationTable
-    surveyInstance.onAfterRenderQuestion.add(function(survey, options) {
-      if (options.question.name === 'medicationTable' && options.question.getType() === 'matrix') {
-        const descriptions = {
-          'over-the-counter': 'Examples: Advil (ibuprofen), Aleve (naproxen), Aspirin (ASA), Motrin (ibuprofen), Tylenol (acetaminophen)',
-          'non-steroidal-anti-inflammatory': 'Examples: Arthrotec, Celecoxib, Celebrex, Voltaren',
-          'muscle-relaxant': 'Examples: Flexeril, Robaxacet, Robaxin',
-          'narcotic-pain-medication': 'Examples: Demerol, MS Contin, Morphine, Oxycontin, Percocet, Talwin, Tylenol 3',
-          'anti-depressant': 'Examples: Celexa, Cipralex, Cymbalta, Elavil, Paxil, Prozac, Wellbutrin, Zoloft',
-          'neuroleptics': 'Examples: Lyrica, Neurontin, Gabapentin, Rivotril, Tegretol',
-          'cannabis': 'Examples: Smoked, Inhaled, Edible, Oil, Cream'
-        };
-
-        setTimeout(() => {
-          const tbody = options.htmlElement.querySelector('tbody');
-          if (!tbody) {
-            console.log('tbody not found');
-            return;
-          }
-          
-          const rows = tbody.querySelectorAll('tr.sd-table__row');
-          
-          // Match rows with question.visibleRows by index
-          options.question.visibleRows.forEach((questionRow, index) => {
-            const fullName = questionRow.fullName;            
-            const rowValue = fullName ? fullName.split('_').pop() : null;
-            const domRow = rows[index];
-                        
-            if (rowValue && descriptions[rowValue] && domRow) {
-              // Find the td with class that contains "row-text"
-              const textCell = domRow.querySelector('td.sd-table__cell--row-text');
-              
-              if (textCell && !textCell.querySelector('.medication-description')) {                
-                // Create description element
-                const desc = document.createElement('div');
-                desc.className = 'medication-description';
-                desc.style.cssText = 'font-size: 1rem; color: #6b7280; font-weight: normal; margin-top: 0.25rem; font-style: italic; line-height: 1.4; display: block;';
-                desc.textContent = descriptions[rowValue];
-                
-                // Append description to the text cell
-                textCell.appendChild(desc);
-              } 
-            }
-          });
-        }, 100);
-      }
-    });
-  }
-
-  survey.prevAreaButton.style.display = 'none';
-  survey.nextAreaButton.textContent = 'Complete';
-  survey.editDrawingButton.style.display = 'none';
-
-  container.innerHTML = '';
-  surveyInstance.render(container);
-  updateSurveyProgress();
-  renderer.render(scene, camera);
-}
-
-  function navigateToSurvey(index) {
-    if (index < 0 || index >= AppState.drawingInstances.length) return;
-
-    if (surveyInstance) {
-      const currentInstance = AppState.drawingInstances[AppState.currentSurveyIndex];
-      const canvas = currentInstance.canvas;
-      currentInstance.questionnaireData = { ...surveyInstance.data };
-      currentInstance.uvDrawingData = canvas.toDataURL('image/png');
-    }
-
-    AppState.currentSurveyIndex = index;
-    
-    survey.updateTitle();
-    renderSurvey(survey.surveyInnerContainer);
-    updateMainAreaQuestion();
-  }
-
+  // Edit drawing button handler
   survey.editDrawingButton.addEventListener('click', () => {
     saveCurrentSurveyData();
 
@@ -998,88 +782,170 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     AppState.currentDrawingIndex = AppState.currentSurveyIndex;
 
     goTo('drawing');
-  })
-
-  survey.prevAreaButton.addEventListener('click', () => {
-    if (AppState.currentSurveyIndex >= 1 ) {
-      navigateToSurvey(AppState.currentSurveyIndex - 1);
-    }
   });
 
-  survey.nextAreaButton.addEventListener('click', async () => {
-      const total = AppState.drawingInstances.length;
-
-      if (surveyInstance) {      
-      surveyInstance.validationEnabled = true;
-      surveyInstance.validate();
+  // Returns to summary after completing area questionnaire
+  survey.completeButton.addEventListener('click', async () => {
+    if (!surveyInstance) return;
+    
+    surveyInstance.validationEnabled = true;
+    surveyInstance.validate();
+          
+    const hasErrors = surveyInstance.hasErrors();      
+    if (hasErrors) {
+      // Scroll to first question with error
+      setTimeout(() => {
+        const questions = surveyInstance.getAllQuestions();
+        const firstQuestionWithError = questions.find(q => q.errors && q.errors.length > 0);
+                  
+        if (firstQuestionWithError) {
+          const questionElement = document.getElementById(firstQuestionWithError.id);            
+          if (questionElement) {
+            questionElement.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center' 
+            });
             
-      const hasErrors = surveyInstance.hasErrors();      
-      if (hasErrors) {
-        
-        // Scroll to first question with error
-        setTimeout(() => {
-          const questions = surveyInstance.getAllQuestions();
-          const firstQuestionWithError = questions.find(q => q.errors && q.errors.length > 0);
-                    
-          if (firstQuestionWithError) {
-            const questionElement = document.getElementById(firstQuestionWithError.id);            
-            if (questionElement) {
-              questionElement.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center' 
-              });
-              
-              const firstInput = questionElement.querySelector('input:not(.sd-visuallyhidden), textarea, select');
-              if (firstInput) {
-                setTimeout(() => firstInput.focus(), 400);
-              }
+            const firstInput = questionElement.querySelector('input:not(.sd-visuallyhidden), textarea, select');
+            if (firstInput) {
+              setTimeout(() => firstInput.focus(), 400);
             }
           }
-        }, 100);
-        
-        return;
-      }
-
-
-      // Check if the submitted survey is general survey
-      if ("medicationTable" in surveyInstance.data) {
-        AppState.generalQuestionnaireResponse = { ...surveyInstance.data };
-
-        // Prepare complete sumbission data
-        const submissionData = await prepareSubmissionData();
-
-        // Show loading indicator
-        survey.nextAreaButton.disabled = true;
-        survey.nextAreaButton.textContent = 'Submitting...';
-
-        // Save to Firebase
-        const docId = await window.firebaseService.saveSubmission(submissionData);
-
-        // Re-enable button
-        survey.nextAreaButton.disabled = false;
-        survey.nextAreaButton.textContent = 'Complete';
-        
-        if (docId) {
-          console.log('All data submitted successfully!');
-        } else {
-          console.error('Failed to submit data');
-          alert('There was an error submitting your data. Please try again.');
-          return;
         }
-        surveyInstance = null;
-      }
+      }, 100);
+      
+      return;
     }
 
-    if (AppState.currentSurveyIndex < total-1) {
-      navigateToSurvey(AppState.currentSurveyIndex + 1); // Move on to next area questionnaire
-    } else if (AppState.generalQuestionnaireResponse) {
-      goTo('summary'); // General questionnare submitted; moving to survey view
-    } else {
-      moveToGeneralSurvey(); // Area questionnares completed; move to general questionnaire
+    // Check if this is the general survey being submitted
+    if ("medicationTable" in surveyInstance.data) {
+      AppState.generalQuestionnaireResponse = { ...surveyInstance.data };
+
+      // Prepare complete submission data
+      const submissionData = await prepareSubmissionData();
+
+      // Show loading indicator
+      survey.completeButton.disabled = true;
+      survey.completeButton.textContent = 'Submitting...';
+
+      // Save to Firebase
+      const docId = await window.firebaseService.saveSubmission(submissionData);
+
+      // Re-enable button
+      survey.completeButton.disabled = false;
+      survey.completeButton.textContent = 'Complete & Return to Summary';
+      
+      if (docId) {
+        console.log('All data submitted successfully!');
+        surveyInstance = null;
+        goTo('summary');
+      } else {
+        console.error('Failed to submit data');
+        alert('There was an error submitting your data. Please try again.');
+      }
+      return;
+    }
+
+    // Area survey completed - save and return to summary
+    if (saveCurrentSurveyData()) {
+      surveyInstance = null; // Clear survey instance
+      goTo('summary');
     }
   });
 
-  // Helper function to prepare all submisison data
+  function renderGeneralSurvey(container) {
+    applyCustomTheme(customTheme);
+    container.classList.remove('survey-animated');
+    container.style.opacity = '0';
+    container.style.transform = 'translateX(50px)';
+    
+    if (!surveyInstance) {
+      surveyInstance = new SurveyKO.Model(generalSurveyJson);
+      surveyInstance.showTitle = false;
+      surveyInstance.validationEnabled = false;
+
+      surveyInstance.onValidateQuestion.add(function(survey, options) {
+        if (options.question.getType() === 'matrix') {
+          const medicationQuestion = survey.getQuestionByName('medicationTable');
+          const allRows = medicationQuestion.rows.map(r => r.value);
+          
+          let missingRows = [];
+          for (let row of allRows) {
+            if (!options.value || !options.value[row]) {
+              missingRows.push(row);
+            }
+          }
+                  
+          if (missingRows.length > 0) {
+            options.error = `Please answer all rows in the medication table. Missing: ${missingRows.join(', ')}`;
+            return;
+          }
+        }
+        if (options.value !== undefined && options.value !== null && options.value !== '') {
+          options.error = null;
+        }
+      });
+
+      surveyInstance.onValueChanged.add(function(survey, options) {
+        updateSurveyProgress();
+      });
+
+      surveyInstance.onAfterRenderSurvey.add(function(survey, options) {
+        setTimeout(() => {
+            container.classList.add('survey-animated');
+        }, 50);
+      });
+
+      // Adding subtext for examples in medicationTable
+      surveyInstance.onAfterRenderQuestion.add(function(survey, options) {
+        if (options.question.name === 'medicationTable' && options.question.getType() === 'matrix') {
+          const descriptions = {
+            'over-the-counter': 'e.g.,: Advil (ibuprofen), Aleve (naproxen), Aspirin (ASA), Motrin (ibuprofen), Tylenol (acetaminophen)',
+            'non-steroidal-anti-inflammatory': 'e.g.,: Arthrotec, Celecoxib, Celebrex, Voltaren',
+            'muscle-relaxant': 'e.g.,: Flexeril, Robaxacet, Robaxin',
+            'narcotic-pain-medication': 'e.g.,: Demerol, MS Contin, Morphine, Oxycontin, Percocet, Talwin, Tylenol 3',
+            'anti-depressant': 'e.g.,: Celexa, Cipralex, Cymbalta, Elavil, Paxil, Prozac, Wellbutrin, Zoloft',
+            'neuroleptics': 'e.g.,: Lyrica, Neurontin, Gabapentin, Rivotril, Tegretol',
+            'cannabis': 'e.g.,: Smoked, Inhaled, Edible, Oil, Cream'
+          };
+
+          setTimeout(() => {
+            const tbody = options.htmlElement.querySelector('tbody');
+            if (!tbody) return;
+            
+            const rows = tbody.querySelectorAll('tr.sd-table__row');
+            
+            options.question.visibleRows.forEach((questionRow, index) => {
+              const fullName = questionRow.fullName;            
+              const rowValue = fullName ? fullName.split('_').pop() : null;
+              const domRow = rows[index];
+                          
+              if (rowValue && descriptions[rowValue] && domRow) {
+                const textCell = domRow.querySelector('td.sd-table__cell--row-text');
+                
+                if (textCell && !textCell.querySelector('.medication-description')) {                
+                  const desc = document.createElement('div');
+                  desc.className = 'medication-description';
+                  desc.style.cssText = 'font-size: 1rem; color: #6b7280; font-weight: normal; margin-top: 0.25rem; font-style: italic; line-height: 1.4; display: block;';
+                  desc.textContent = descriptions[rowValue];
+                  textCell.appendChild(desc);
+                } 
+              }
+            });
+          }, 100);
+        }
+      });
+    }
+
+    survey.editDrawingButton.style.display = 'none';
+
+    container.innerHTML = '';
+    surveyInstance.render(container);
+    updateSurveyProgress();
+    renderer.render(scene, camera);
+  }
+
+  // Helper function to prepare all submission data
   async function prepareSubmissionData() {
     const combinedCanvas = createCombinedTexture();
     const tempTexture = new THREE.CanvasTexture(combinedCanvas);
@@ -1111,13 +977,22 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     renderer.render(scene, camera);
 
-    const areas = AppState.drawingInstances.map((instance, index) => ({
-      areaNumber: index+1,
-      areaId: instance.id,
-      drawingImageData: instance.uvDrawingData,
-      questionnaireResponses: instance.questionnaireData,
-      drawnRegions: Array.from(instance.drawnRegionNames || [])
-    }));
+    const areas = AppState.drawingInstances.map((instance, index) => {
+    const coverage = coverageCalculator.calculateCoverage(instance);
+    
+    return {
+        areaNumber: index + 1,
+        areaId: instance.id,
+        drawingImageData: instance.uvDrawingData,
+        questionnaireResponses: instance.questionnaireData,
+        drawnRegions: Array.from(instance.drawnRegionNames || []),
+        coverage: coverage ? {
+            overallPercentage: coverage.overall.percentage,
+            coloredArea: coverage.overall.coloredArea,
+            regionBreakdown: coverage.regions
+        } : null
+    };
+});
 
     const getDeviceType = () => {
       const ua = navigator.userAgent;
@@ -1170,20 +1045,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     }
   }
 
-  function moveToGeneralSurvey() {
-    if(!saveCurrentSurveyData()) {
-      surveyInstance.validate();
-      return;
-    }
-
-    // Clear the area-specific survey instance
-    surveyInstance = null;
-    
-    // Go to general survey stage
-    goTo('general-survey');
-  }
-
-  // Initializing the view
+  // Initialize the view
   goTo('summary');
 
   window.cleanupApplication = () => {

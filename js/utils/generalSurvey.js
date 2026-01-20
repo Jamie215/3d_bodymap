@@ -10,7 +10,7 @@ export const generalSurveyJson = {
           type: "radiogroup",
           name: "stressful",
           title: "At the time of your problem onset, was it a stressful time in your life?",
-          choices: ["Yes", "No"],
+          choices: ["Yes", "No", "Prefer not to answer"],
           isRequired: true
         },
         {
