@@ -108,7 +108,7 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                     if (child.name === 'Hair') {
                         child.material = child.material.clone();
                         child.material.transparent = true;
-                        child.material.opacity = 0.4;
+                        child.material.opacity = 0.5;
                         child.material.needsUpdate = true;
                     }
 
@@ -118,10 +118,15 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                         const textureId = `model-${name}-skin`;
                         const { canvas, context, threeTexture } = texturePool.getTexture(textureId);
                         
-                        child.material = child.material.clone();
-                        child.material.map = threeTexture;
-                        child.material.transparent = true;
-                        child.material.opacity = 0.75;
+                        // Use MeshLambertMaterial - softer lighting, good balance
+                        child.material = new THREE.MeshLambertMaterial({
+                            map: threeTexture,
+                            transparent: true,
+                            opacity: 1.0,
+                            color: 0xdddddd,  // Light gray base tint
+                            emissive: 0x333333,  // Slight self-illumination to lift shadows
+                            emissiveIntensity: 1.0
+                        });
                         child.material.needsUpdate = true;
                         child.userData = { 
                             canvas, 
@@ -136,7 +141,7 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                     if (['Top', 'Shorts'].includes(child.name)) {
                         child.material = child.material.clone();
                         child.material.transparent = true;
-                        child.material.opacity = 0.6;
+                        child.material.opacity = 0.5;
                         child.material.needsUpdate = true;
                     }
                 });

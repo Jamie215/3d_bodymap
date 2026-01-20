@@ -6,12 +6,9 @@ export function createDrawingControls(drawingControlsPanel) {
     const drawingToolsContainer = document.createElement('div');
     drawingToolsContainer.classList.add('drawing-tools-container');
 
-    // Title
-    // const title = document.createElement('h2');
-    // title.textContent = 'Drawing Controls';
-
     // Draw Button
     const drawButton = document.createElement('button');
+    drawButton.id = 'draw-button';
     drawButton.classList.add('button', 'button-primary', 'button-draw-control');
     drawButton.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -22,6 +19,7 @@ export function createDrawingControls(drawingControlsPanel) {
 
     // Erase Button
     const eraseButton = document.createElement('button');
+    eraseButton.id = 'erase-button';
     eraseButton.classList.add('button', 'button-secondary', 'button-draw-control');
     eraseButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -107,9 +105,10 @@ export function createDrawingControls(drawingControlsPanel) {
                     ctx.drawImage(AppState.baseTextureCanvas, 0, 0);
                 }
 
-                currentInstance.texture.needsUpdate = true;
-                // currentInstance.drawnBoneNames = new Set();
-                // currentInstance.bonePixelMap = {};
+                // Reset current drawing instance data
+                currentInstance.drawnRegionNames = new Set();
+                currentInstance.regionPixelMap = {};
+                currentInstance.coloredFaces = new Set();
                 currentInstance.questionnaireData = null;
                 currentInstance.texture.needsUpdate = true;
                 hideDrawResetModal();
@@ -123,7 +122,6 @@ export function createDrawingControls(drawingControlsPanel) {
     });
 
     // Assemble the container
-    // drawingToolsContainer.appendChild(title);
     drawingToolsContainer.appendChild(drawButton);
     drawingToolsContainer.appendChild(eraseButton);
     drawingToolsContainer.appendChild(resetDrawingButton);

@@ -1,13 +1,14 @@
 // main.js
 import { initApp } from './appController.js';
-import { initDrawContinueModal, initDrawResetModal, initDeleteEmptyModal } from '../components/modal.js';
+import { initDrawContinueModal, initDrawResetModal, initDeleteEmptyModal, initRegionSelectorModal } from '../components/modal.js';
 import { createScene } from '../utils/scene.js';
 import { createDrawingViewElements } from '../views/drawingView.js';
-import { createCanvasRotationControls } from '../components/viewControls.js';
+import { createCanvasRotationControls, setupRegionSelectorForDrawing } from '../components/viewControls.js';
 import { createSelectionView } from '../views/selectionView.js';
 import { createSummaryView } from '../views/summaryView.js';
 import { createSurveyViewElements } from '../views/surveyView.js';
 import { getResponsiveManager } from '../utils/responsiveManager.js';
+import AppState from './state.js';
 
 window.sessionStartTime = new Date().toISOString();
 
@@ -22,11 +23,41 @@ const slotCanvas = document.querySelector('.slot-canvas');
 const slotFooter = document.querySelector('.slot-footer');
 
 const canvasPanel = slotCanvas.querySelector('#canvas-panel');
-const { scene, camera, renderer, controls } = createScene(canvasPanel);
 
-// Create canvas rotation controls
-const rotationControls = createCanvasRotationControls(canvasPanel);
-canvasPanel.appendChild(rotationControls.container);
+// === NEW: Create dedicated toolbar structure ===
+// Replace overlay with a proper toolbar that takes dedicated space
+const canvasToolbar = document.createElement('div');
+canvasToolbar.id = 'canvas-toolbar';
+
+// Create a wrapper for the actual canvas content
+const canvasContent = document.createElement('div');
+canvasContent.id = 'canvas-content';
+
+// Move existing canvas-overlay (if present) or create canvas wrapper
+const existingOverlay = canvasPanel.querySelector('#canvas-overlay');
+if (existingOverlay) {
+  existingOverlay.remove(); // Remove the old overlay approach
+}
+
+// Get any existing children (like the Three.js canvas) and move them to canvasContent
+const existingChildren = Array.from(canvasPanel.children);
+existingChildren.forEach(child => {
+  // Skip rotation controls if they exist (we'll add them after)
+  if (child.id !== 'canvas-rotation-controls') {
+    canvasContent.appendChild(child);
+  }
+});
+
+// Restructure canvas panel: toolbar first, then content
+canvasPanel.appendChild(canvasToolbar);
+canvasPanel.appendChild(canvasContent);
+
+// Now create the scene inside the canvas content wrapper
+const { scene, camera, renderer, controls } = createScene(canvasContent);
+
+// Create canvas rotation controls and add to canvas content (not panel)
+const rotationControls = createCanvasRotationControls(canvasContent);
+canvasContent.appendChild(rotationControls.container);
 
 // Create views
 let selectionViewModelHandler = null;
@@ -39,12 +70,16 @@ const selection = createSelectionView(model => {
 const drawing = createDrawingViewElements(controls);
 const survey = createSurveyViewElements();
 
-// Initialize modals
+// Initialize modals (must be done before setStage is called)
 initDrawContinueModal(document.body);
 initDrawResetModal(document.body);
 initDeleteEmptyModal(document.body);
+initRegionSelectorModal(document.body);
 
-// Improved ResizeObserver with debouncing
+// Track if this is the first time entering drawing stage (to show modal)
+let isFirstDrawingEntry = true;
+
+// Improved ResizeObserver with debouncing - now observe canvasContent
 let resizeTimeout = null;
 const ro = new ResizeObserver(entries => {
   // Clear any pending resize
@@ -61,10 +96,10 @@ const ro = new ResizeObserver(entries => {
     renderer.render(scene, camera);
   }, 100);
 });
-ro.observe(canvasPanel);
+ro.observe(canvasContent); // Observe the content area, not the panel
 
 (() => {
-  const rect = canvasPanel.getBoundingClientRect();
+  const rect = canvasContent.getBoundingClientRect();
   if (rect.width > 0 && rect.height > 0) {
     renderer.setSize(rect.width, rect.height, false);
     camera.aspect = rect.width / rect.height;
@@ -197,16 +232,13 @@ function setStage(stage) {
   slotRight.innerHTML = '';
   slotFooter.innerHTML = '';
 
-  // If changeModelButton exists on canvas, remove it first
-  const canvasOverlay = canvasPanel.querySelector('#canvas-overlay');
-  const changeModelButton = canvasOverlay.querySelector('#change-model-button');
-  if (changeModelButton) {
-    canvasOverlay.removeChild(changeModelButton);
-  }
+  // === NEW: Clear the canvas toolbar instead of manipulating overlay ===
+  canvasToolbar.innerHTML = '';
 
   switch (stage) {
     case 'summary':
-      canvasOverlay.appendChild(summary.changeModelButton);
+      // Add change model button to the dedicated toolbar
+      canvasToolbar.appendChild(summary.changeModelButton);
       slotRight.appendChild(summary.summaryStatusPanel);
       slotFooter.appendChild(summary.summaryFooter);
 
@@ -221,79 +253,55 @@ function setStage(stage) {
         slotFooter.insertBefore(toggleBtn, slotFooter.firstChild);
       }
       break;
+
     case 'selection':
       slotRight.appendChild(selection.modelSelectionPanel);
       slotFooter.appendChild(selection.selectionFooter);
       break;
+
     case 'drawing':
-      if (shouldUseMobileUI()) {
-        slotHeader.appendChild(drawing.statusBar);
-        const { leftFab, rightFab } = ensureFooterFabs(slotFooter);
-        const drawers = ensureDrawers();
-        drawers.leftContent.replaceChildren(drawing.viewControlsPanel);
-        drawers.rightContent.replaceChildren(drawing.drawingControlsPanel);
-        slotFooter.appendChild(drawing.drawingFooter);
+      // Both mobile and desktop use the same basic layout now
+      // Mobile: toolbar is horizontal below header (via CSS)
+      // Desktop: toolbar is vertical in slot-left
+      
+      // Header: Status bar
+      slotHeader.appendChild(drawing.headerContent);
+      
+      // Left: Drawing controls (CSS handles horizontal/vertical display)
+      slotLeft.appendChild(drawing.drawingControlsPanel);
+      
+      // Footer: Change View (left) + Done Drawing (right)
+      slotFooter.appendChild(drawing.drawingFooter);
+      
+      // Setup region selector - adds button to footerLeft
+      setupRegionSelectorForDrawing(drawing.footerLeft, isFirstDrawingEntry && !AppState.isEditingFromSurvey);
 
-        // Setup drawer event handlers
-        const setupDrawerHandlers = () => {
-          drawers.leftCloseBtn.onclick = () => closeDrawers(drawers);
-          drawers.rightCloseBtn.onclick = () => closeDrawers(drawers);
-          drawers.scrim.onclick = () => closeDrawers(drawers);
-
-          leftFab.onclick = () => {
-            const wasOpen = drawers.leftDrawer.classList.contains('open');
-            closeDrawers(drawers);
-            if (!wasOpen) {
-              drawers.lastFocusedElement = leftFab;
-              drawers.leftDrawer.classList.add('open');
-              drawers.scrim.classList.add('is-visible');
-              drawers.scrim.setAttribute('aria-hidden', 'false');
-              drawers.leftDrawer.setAttribute('tabindex', '-1');
-              drawers.leftDrawer.focus();
-            }
-          };
-
-          rightFab.onclick = () => {
-            const wasOpen = drawers.rightDrawer.classList.contains('open');
-            closeDrawers(drawers);
-            if (!wasOpen) {
-              drawers.lastFocusedElement = rightFab;
-              drawers.rightDrawer.classList.add('open');
-              drawers.scrim.classList.add('is-visible');
-              drawers.scrim.setAttribute('aria-hidden', 'false');
-              drawers.rightDrawer.setAttribute('tabindex', '-1');
-              drawers.rightDrawer.focus();
-            }
-          };
-        };
-        setupDrawerHandlers();
-
-      } else {
-        slotHeader.appendChild(drawing.statusBar);
-        slotLeft.appendChild(drawing.viewControlsPanel);
-        slotRight.appendChild(drawing.drawingControlsPanel);
-        slotFooter.appendChild(drawing.drawingFooter);
-
-        const scrim = document.body.querySelector('.drawer-scrim');
-        const l = document.body.querySelector('.drawer.left');
-        const r = document.body.querySelector('.drawer.right');
-        scrim?.classList.remove('is-visible');
-        l?.classList.remove('open');
-        r?.classList.remove('open');
-      }
+      // Close any open drawers from other stages
+      const scrim = document.body.querySelector('.drawer-scrim');
+      const l = document.body.querySelector('.drawer.left');
+      const r = document.body.querySelector('.drawer.right');
+      scrim?.classList.remove('is-visible');
+      l?.classList.remove('open');
+      r?.classList.remove('open');
+      
+      // Mark that we've entered drawing stage at least once
+      isFirstDrawingEntry = false;
       break;
+
     case 'area-survey':
       slotRight.appendChild(survey.surveyPanel);
       slotFooter.appendChild(survey.surveyFooter);
       
-      // Add edit button to canvas on tablet+
+      // Add edit button to canvas toolbar on tablet+
       if (!responsive.is('isMobile')) {
-        canvasOverlay.appendChild(survey.editDrawingButton);
+        canvasToolbar.appendChild(survey.editDrawingButton);
       }
       break;
+
     case 'general-survey':
       slotRight.appendChild(survey.surveyPanel);
       slotFooter.appendChild(survey.surveyFooter);
+      break;
   }
 }
 
@@ -307,6 +315,10 @@ initApp({
   setStage,
   registerModelSelectionHandler: handler => {
     selectionViewModelHandler = handler;
+  },
+  // Expose a way to reset the first drawing entry flag (e.g., when starting a new session)
+  resetFirstDrawingEntry: () => {
+    isFirstDrawingEntry = true;
   }
 });
 

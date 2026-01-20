@@ -171,27 +171,183 @@ canvas {
   }
 }
 
-/* Canvas container */
+/* =========================
+   Canvas Panel - NEW STRUCTURE
+   Uses flex column with dedicated toolbar
+========================= */
 #canvas-panel {
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   flex: 1 1 auto;
-  min-width: 0; 
+  min-width: 0;
   min-height: 0;
-  padding: 0; /* Set to 0 by default to prevent resize flash */
+  padding: 0;
   width: 100%;
   height: 100%;
   position: relative;
-  container-type: size; /* Enable container queries */
-  transition: none; /* Prevent any transition on canvas */
+  container-type: size;
+  transition: none;
 }
 
+/* Canvas toolbar - dedicated space for buttons */
+#canvas-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--background-color);
+  border-bottom: 1px solid #e5e7eb;
+  min-height: 0;
+  z-index: var(--z-sticky);
+}
+
+/* Hide toolbar when empty */
+#canvas-toolbar:empty {
+  display: none;
+  padding: 0;
+  min-height: 0;
+  border-bottom: none;
+}
+
+/* Canvas content - takes remaining space for Three.js */
+#canvas-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Ensure Three.js canvas fills the content area */
+#canvas-content canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
 
 /* Add padding only when needed for specific stages */
 :root[data-stage="summary"] #canvas-panel,
 :root[data-stage="selection"] #canvas-panel {
   padding: var(--space-md);
+}
+
+/* =========================
+   Canvas Toolbar Button Styles
+========================= */
+
+/* Change Model Button - in toolbar */
+#canvas-toolbar #change-model-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  font-size: 0.95rem;
+  color: var(--dark-blue);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  min-height: 44px;
+}
+
+#canvas-toolbar #change-model-button:hover {
+  background-color: rgba(2, 119, 189, 0.08);
+  border-color: var(--primary-color);
+}
+
+#canvas-toolbar #change-model-button svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* Edit Drawing Button - in toolbar */
+#canvas-toolbar #edit-drawing-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  font-size: 0.95rem;
+  color: var(--dark-blue);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  min-height: 44px;
+}
+
+#canvas-toolbar #edit-drawing-button:hover {
+  background-color: rgba(2, 119, 189, 0.08);
+  border-color: var(--primary-color);
+}
+
+#canvas-toolbar #edit-drawing-button svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-right: 0;
+}
+
+/* Stage-specific toolbar visibility */
+:root[data-stage="summary"] #canvas-toolbar:not(:empty) {
+  display: flex;
+}
+
+:root[data-stage="selection"] #canvas-toolbar {
+  display: none;
+}
+
+:root[data-stage="drawing"] #canvas-toolbar {
+  display: none;
+}
+
+:root[data-stage="area-survey"] #canvas-toolbar:not(:empty) {
+  display: flex;
+}
+
+:root[data-stage="general-survey"] #canvas-toolbar {
+  display: none;
+}
+
+/* Responsive toolbar adjustments */
+@media (max-width: 767px) {
+  #canvas-toolbar {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  
+  #canvas-toolbar #change-model-button,
+  #canvas-toolbar #edit-drawing-button {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 400px) {
+  #canvas-toolbar #change-model-button span,
+  #canvas-toolbar #edit-drawing-button span {
+    display: none;
+  }
+  
+  #canvas-toolbar #change-model-button,
+  #canvas-toolbar #edit-drawing-button {
+    padding: var(--space-sm);
+  }
+}
+
+@media (min-width: 768px) {
+  #canvas-toolbar {
+    padding: var(--space-sm) var(--space-lg);
+  }
 }
 
 /* =========================
@@ -305,17 +461,20 @@ canvas {
 
 :root[data-stage="drawing"] .slot-header {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   padding: var(--space-sm) var(--space-md);
 }
 
-:root[data-stage="drawing"] .slot-canvas,
-:root[data-stage="drawing"] .slot-footer { 
+:root[data-stage="drawing"] .slot-canvas { 
   display: flex; 
   justify-content: center; 
   align-items: center;
   position: relative;
+}
+
+:root[data-stage="drawing"] .slot-footer { 
+  display: none; /* Hidden on desktop */
 }
 
 :root[data-stage="drawing"] #canvas-panel {
@@ -324,20 +483,319 @@ canvas {
   padding: 0 !important;
 }
 
-/* Drawing - Desktop */
+/* Drawing - Desktop 2-column layout (left panel + canvas) */
 @media (min-width: 1024px) {
-  :root[data-stage="drawing"] .slot-header {
-    padding-top: var(--space-md);
+  :root[data-stage="drawing"] .app-shell {
+    grid-template-areas:
+      "header header"
+      "left center"
+      "footer footer";
+    grid-template-columns: minmax(140px, 180px) 1fr;
+    grid-template-rows: auto 1fr auto;
   }
   
-  :root[data-stage="drawing"] .slot-left,
-  :root[data-stage="drawing"] .slot-right {
+  :root[data-stage="drawing"] .slot-header {
+    padding: var(--space-sm) var(--space-md);
+  }
+  
+  :root[data-stage="drawing"] .slot-left {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     align-items: stretch;
     overflow: hidden;
+    padding: var(--space-sm);
+  }
+  
+  :root[data-stage="drawing"] .slot-right {
+    display: none;
+  }
+  
+  :root[data-stage="drawing"] .slot-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+  }
+}
+
+/* Drawing - Tablet layout - also show horizontal toolbar */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root[data-stage="drawing"] .app-shell {
+    grid-template-areas:
+      "header"
+      "toolbar"
+      "center"
+      "footer";
+    grid-template-rows: auto auto 1fr auto;
+  }
+  
+  :root[data-stage="drawing"] .slot-left {
+    grid-area: toolbar;
+    display: flex !important;
+    padding: var(--space-xs) var(--space-md);
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: var(--panel-background);
+    border-bottom: 1px solid #e5e7eb;
+    min-height: 56px;
+  }
+  
+  :root[data-stage="drawing"] .slot-right {
+    display: none;
+  }
+  
+  :root[data-stage="drawing"] .slot-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: var(--space-md);
+  }
+  
+  /* Horizontal toolbar for tablet */
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container {
+    flex-direction: row;
+    gap: var(--space-md);
+    padding: var(--space-xs) var(--space-md);
+    max-height: none;
+    overflow: visible;
+    width: 100%;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-wrap: nowrap;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+  
+  /* Hide dividers and section headers */
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .divider,
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 {
+    display: none;
+  }
+  
+  /* Horizontal brush slider for tablet */
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 140px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section label {
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section input[type="range"] {
+    width: 100px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e5e7eb;
+    border-radius: 2px;
+  }
+  
+  /* Override vertical slider to be horizontal on tablet */
+  :root[data-stage="drawing"] .slot-left .vertical-slider-container {
+    height: auto !important;
+    width: auto !important;
+    padding: 0 !important;
+    flex-direction: row !important;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  
+  :root[data-stage="drawing"] .slot-left .vertical-slider {
+    transform: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 80px !important;
+    height: 6px !important;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .size-indicator {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    font-size: 0.9rem;
+    min-width: 28px;
+    text-align: center;
+  }
+  
+  /* Tablet button sizing - row layout */
+  :root[data-stage="drawing"] .slot-left .button-draw-control {
+    flex-direction: row !important;
+    width: auto;
+    min-width: auto;
+    min-height: 40px;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8rem;
+    gap: var(--space-xs);
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control svg {
+    width: 18px;
+    height: 18px;
+    order: 0;
+    margin: 0;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control span {
+    order: 1;
+    white-space: nowrap;
+  }
+}
+
+/* Drawing - Mobile/Portrait layout - toolbar below header */
+@media (max-width: 767px) {
+  :root[data-stage="drawing"] .app-shell {
+    grid-template-areas:
+      "header"
+      "toolbar"
+      "center"
+      "footer";
+    grid-template-rows: auto auto 1fr auto;
+  }
+  
+  :root[data-stage="drawing"] .slot-left {
+    grid-area: toolbar;
+    display: flex !important;
+    padding: var(--space-xs) var(--space-sm);
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: var(--panel-background);
+    border-bottom: 1px solid #e5e7eb;
+    min-height: 60px;
+    justify-content: space-between;
+  }
+  
+  :root[data-stage="drawing"] .slot-right {
+    display: none;
+  }
+  
+  :root[data-stage="drawing"] .slot-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+  }
+  
+  /* Horizontal toolbar styles */
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container {
+    flex-direction: row;
+    gap: var(--space-md);
+    padding: var(--space-xs) var(--space-md);
+    max-height: none;
+    overflow: visible;
+    width: 100%;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-wrap: nowrap;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+  
+  /* Hide dividers and labels in horizontal mode */
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .divider,
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 {
+    display: none;
+  }
+  
+  /* Show brush size as horizontal slider */
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 90px;
+    max-width: 120px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section label {
+    display: none; /* Hide label on mobile */
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section input[type="range"] {
+    width: 60px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e5e7eb;
+    border-radius: 2px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section .brush-size-value {
+    font-size: 0.7rem;
+    min-width: 20px;
+    text-align: center;
+  }
+  
+  /* Override vertical slider to be horizontal on mobile */
+  :root[data-stage="drawing"] .slot-left .vertical-slider-container {
+    height: auto !important;
+    width: auto !important;
+    padding: 0 !important;
+    flex-direction: row !important;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  
+  :root[data-stage="drawing"] .slot-left .vertical-slider {
+    transform: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 60px !important;
+    height: 6px !important;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .size-indicator {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    font-size: 0.8rem;
+    min-width: 24px;
+    text-align: center;
+  }
+  
+  /* Row layout buttons - icon left, text right */
+  :root[data-stage="drawing"] .slot-left .button-draw-control {
+    flex-direction: row !important;
+    width: auto;
+    min-width: auto;
+    max-width: none;
+    min-height: 40px;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.7rem;
+    gap: var(--space-xs);
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control svg {
+    width: 18px;
+    height: 18px;
+    order: 0; /* Icon on left */
+    margin: 0;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control span {
+    order: 1; /* Text on right */
+    white-space: nowrap;
   }
 }
 
@@ -414,42 +872,8 @@ canvas {
   }
 }
 
-/* Edit Drawing Button */
-:root[data-stage="area-survey"] #edit-drawing-button {
-  position: absolute !important;
-  top: var(--space-2xl);
-  z-index: var(--z-dropdown);
-  padding: var(--space-sm) var(--space-md);
-  font-size: 1.3rem;
-  background: transparent;
-  color: var(--dark-blue);
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  border: none;
-}
-
-:root[data-stage="area-survey"] #edit-drawing-button:hover {
-  color: var(--primary-color);
-    background-color: unset !important;
-}
-
-:root[data-stage="area-survey"] #edit-drawing-button svg {
-  width: 20px;
-  height: 20px;
-  margin-right: var(--space-xs);
-}
-
-/* Hide edit button text on very small screens */
-@media (max-width: 480px) {
-  :root[data-stage="area-survey"] #edit-drawing-button span {
-    display: none;
-  }
-  
-  :root[data-stage="area-survey"] #edit-drawing-button svg {
-    margin-right: 0;
-  }
-}
+/* Edit Drawing Button - OLD STYLES REMOVED, now handled by toolbar */
+/* The button is now in the toolbar, so absolute positioning is no longer needed */
 
 /* Hide edit button in general survey */
 :root[data-stage="general-survey"] #edit-drawing-button {
@@ -462,23 +886,37 @@ canvas {
 .drawing-tools-container,
 .view-tools-container {
   background: var(--panel-background);
-  padding: var(--space-lg);
+  padding: var(--space-md);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-sm);
   border: 1px solid #e5e7eb;
   display: flex; 
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   flex-shrink: 1;
   min-height: 0;
-  justify-content: center;
+  justify-content: flex-start;
+  /* Dynamic max-height based on viewport */
+  max-height: calc(100vh - 200px); /* Account for header + footer */
+  max-height: calc(100dvh - 200px);
+  overflow-y: auto;
+}
+
+/* Desktop: taller container */
+@media (min-width: 1024px) {
+  .drawing-tools-container,
+  .view-tools-container {
+    max-height: calc(100vh - 260px);
+    max-height: calc(100dvh - 260px);
+    padding: var(--space-md);
+  }
 }
 
 /* Responsive padding */
 @media (max-width: 768px) {
   .drawing-tools-container,
   .view-tools-container {
-    padding: var(--space-md);
+    padding: var(--space-sm);
   }
 }
 
@@ -506,31 +944,44 @@ canvas {
    Drawing Tools
 ========================= */
 
-/* Tool action buttons */
+/* Tool action buttons - SVG on top, text below */
 .button-draw-control {
   width: 100%;
   padding: var(--space-sm) var(--space-xs);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  flex-direction: column;
+  flex-direction: column !important;
+  align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs) !important;
   transition: all 0.2s ease;
-  min-height: 44px; /* Touch-friendly */
+  min-height: 60px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .button-draw-control svg {
   margin: 0;
   flex-shrink: 0;
+  order: -1; /* SVG always on top */
+}
+
+.button-draw-control span {
+  display: block;
+  word-wrap: break-word;
 }
 
 .button-drawing-center {
   flex-direction: column;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
   justify-content: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   transition: all 0.2s ease;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .drawing-nav {
@@ -997,18 +1448,30 @@ input[type="range"]::-webkit-slider-thumb {
   border-top: 1px solid #e5e7eb;
 }
 
-/* Mobile footer adjustments */
+/* Mobile footer adjustments - portrait orientation */
 @media (max-width: 1023px) and (orientation: portrait) {
   :root[data-stage="drawing"] .app-shell {
     grid-template-areas:
       "header"
+      "toolbar"
       "center"
       "footer" !important;
     grid-template-columns: 1fr !important;
-    grid-template-rows: auto 1fr auto !important;
+    grid-template-rows: auto auto 1fr auto !important;
   }
   
-  :root[data-stage="drawing"] .slot-left,
+  :root[data-stage="drawing"] .slot-left {
+    grid-area: toolbar !important;
+    display: flex !important;
+    background: var(--panel-background);
+    border-bottom: 1px solid #e5e7eb;
+    min-height: 56px;
+    padding: var(--space-xs) var(--space-sm);
+    overflow-x: auto;
+    overflow-y: hidden;
+    justify-content: space-evenly;
+  }
+  
   :root[data-stage="drawing"] .slot-right {
     display: none !important;
   }
@@ -1032,6 +1495,114 @@ input[type="range"]::-webkit-slider-thumb {
     align-items: center;
     width: 100%;
     margin: 0 auto;
+  }
+  
+  /* Horizontal toolbar in portrait */
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container {
+    flex-direction: row !important;
+    gap: var(--space-md);
+    padding: var(--space-xs) var(--space-md);
+    max-height: none;
+    overflow: visible;
+    width: 100%;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-wrap: nowrap;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .divider,
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 {
+    display: none !important;
+  }
+  
+  /* Horizontal brush slider in portrait */
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 90px;
+    max-width: 120px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section label {
+    display: none;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section input[type="range"] {
+    width: 60px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e5e7eb;
+    border-radius: 2px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section .brush-size-value {
+    font-size: 0.7rem;
+    min-width: 20px;
+    text-align: center;
+  }
+  
+  /* Override vertical slider to be horizontal in portrait */
+  :root[data-stage="drawing"] .slot-left .vertical-slider-container {
+    height: auto !important;
+    width: auto !important;
+    padding: 0 !important;
+    flex-direction: row !important;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  
+  :root[data-stage="drawing"] .slot-left .vertical-slider {
+    transform: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 60px !important;
+    height: 6px !important;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .size-indicator {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    font-size: 0.8rem;
+    min-width: 24px;
+    text-align: center;
+  }
+  
+  /* Row layout buttons - icon left, text right */
+  :root[data-stage="drawing"] .slot-left .button-draw-control {
+    flex-direction: row !important;
+    width: auto;
+    min-width: auto;
+    max-width: none;
+    min-height: 40px;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.7rem;
+    gap: var(--space-xs);
+    flex: 1 0 20%;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control svg {
+    width: 18px;
+    height: 18px;
+    order: 0; /* Icon on left */
+    margin: 0;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control span {
+    order: 1; /* Text on right */
+    white-space: nowrap;
   }
 }
 
@@ -1234,18 +1805,12 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--secondary-color);
 }
 
-/* Canvas overlay (e.g., Change Model) */
+/* Canvas overlay - DEPRECATED, hidden in favor of toolbar */
 #canvas-overlay {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  padding-top: var(--space-xl);
-  pointer-events: none;
+  display: none !important;
 }
 
+/* Legacy button styles - kept for backwards compatibility but now unused */
 #change-model-button {
   pointer-events: auto;
   padding: var(--space-sm) var(--space-md);
@@ -1540,23 +2105,6 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 0.25rem !important;
 }
 
-/* If matrix question should be displayed with frozen header */
-/* .sd-table {
-  display: block;
-  max-height: 500px;
-  overflow-y: auto;
-  overscroll-behavior: auto;
-}
-
-.sd-matrix__table thead {
-  position: sticky ;
-  top: 0;
-  z-index: 10;
-  background-color: white;
-  opacity: 1;
-  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
-} */
-
 /* Matrix row text styling - ensure proper spacing and alignment */
 .sd-matrix__row-text {
   line-height: 1.5 !important;
@@ -1645,6 +2193,10 @@ input[type="range"]::-webkit-slider-thumb {
   border-color:#2AA3E6 !important;
 }
 
+.sd-question--error .sd-rating__item {
+  border-color: #feb1b1 !important;
+}
+
 .rating-layout-row {
   display: flex; 
   align-items: center; 
@@ -1659,6 +2211,10 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: clamp(1rem, 1.7vw, 1rem); 
   line-height: 1.2; 
   text-align: left; 
+}
+
+.sd-question--error .sd-radio__decorator {
+  background: #feb1b1 !important;
 }
 
 /* Error Messages */
@@ -1761,20 +2317,24 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* =========================
-   Modals
+   Modals - Unified Style (like region selector)
 ========================= */
+
+/* All modal overlays - with blur effect */
 .modal,
 #confirmation-modal,
 #reset-modal,
 #delete-empty-modal {
   position: fixed; 
   inset: 0;
-  margin: auto; 
-  background-color: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: none; 
   align-items: center; 
   justify-content: center; 
   z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .modal[style*="display: flex"],
@@ -1782,72 +2342,99 @@ input[type="range"]::-webkit-slider-thumb {
 #reset-modal[style*="display: flex"],
 #delete-empty-modal[style*="display: flex"] {
   display: flex !important;
+  opacity: 1;
 }
 
+/* Modal content card - animated entry */
+.modal-content {
+  background: var(--panel-background, #ffffff);
+  border-radius: var(--border-radius, 8px);
+  box-shadow: var(--shadow-xl, 0 10px 30px rgba(0,0,0,0.25));
+  padding: var(--space-xl, 2rem);
+  text-align: center;
+  width: 90%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  transform: scale(0.95) translateY(20px);
+  transition: transform 0.3s ease;
+}
+
+/* Confirmation modal (Done Drawing) - larger size for bigger screenshot */
+#confirmation-modal .modal-content {
+  max-width: 700px;
+  padding: var(--space-xl, 2rem) var(--space-2xl, 3rem);
+}
+
+.modal[style*="display: flex"] .modal-content,
+#confirmation-modal[style*="display: flex"] .modal-content,
+#reset-modal[style*="display: flex"] .modal-content,
+#delete-empty-modal[style*="display: flex"] .modal-content {
+  transform: scale(1) translateY(0);
+}
+
+/* Modal text/title */
 #modal-text,
 #reset-modal-text,
 #delete-empty-text {
-  white-space: pre-line;
-  margin: 0 0 var(--space-lg) 0;
-  font-size: var(--h2-font-size);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--secondary-color, #333333);
+  margin: 0 0 var(--space-lg, 1.5rem) 0;
   line-height: 1.4;
-  color: var(--secondary-color);
+  white-space: pre-line;
 }
 
-.modal-content {
-  background: white; 
-  padding: var(--space-xl); 
+/* Drawing preview in modal - even larger */
+.drawing-preview {
+  width: 100%;
+  max-width: 500px;
+  height: 350px;
   border-radius: var(--border-radius);
-  text-align: center; 
-  max-width: min(60vw, 38rem); 
-  max-height: min(85vh, 44rem); 
-  width: 100%; 
-  box-sizing: border-box;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  animation: slideInFromTop 0.3s ease;
+  border: 1px solid #e5e7eb;
+  margin: 0 auto var(--space-lg);
+  object-fit: contain;
+  display: block;
+  background: #f9fafb;
 }
 
-/* Responsive modal sizes */
-@media (max-width: 768px) {
-  .modal-content {
-    max-width: 90vw;
-    max-height: 80vh;
-    padding: var(--space-lg);
-  }
-}
-
-@media (max-width: 480px) {
-  .modal-content {
-    max-width: 95vw;
-    padding: var(--space-md);
-  }
-}
-
+/* Modal button group */
 .modal-button-group { 
   display: flex; 
+  flex-direction: row;
+  align-items: center;
   justify-content: center; 
-  gap: var(--space-md);
-  margin-top: var(--space-lg);
-  flex-wrap: wrap;
+  gap: var(--space-sm, 0.75rem);
+  margin-top: var(--space-lg, 1.5rem);
 }
 
+/* Modal buttons - unified style with fixed height */
 .modal-button {
-  padding: var(--space-sm) var(--space-lg); 
-  font-size: var(--min-font-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md, 1rem) var(--space-lg, 1.5rem);
+  font-size: 1rem;
   font-weight: 600;
-  border: 2px solid var(--secondary-color); 
-  background-color: var(--background-color);
-  border-radius: var(--border-radius); 
-  cursor: pointer; 
+  font-family: inherit;
+  border: 2px solid #e5e7eb;
+  background: #f9fafb;
+  color: var(--secondary-color, #333333);
+  border-radius: var(--border-radius, 8px);
+  cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 140px;
-  min-height: 44px; /* Touch-friendly */
+  height: 52px; /* Fixed height for all buttons */
+  min-height: 52px;
+  width: 100%;
+  max-width: 280px;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .modal-button:hover { 
-  background: #e0e0e0;
+  background: #e8e8e8;
+  border-color: #d0d0d0;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .modal-button:active {
@@ -1856,69 +2443,122 @@ input[type="range"]::-webkit-slider-thumb {
 
 .modal-button:disabled, 
 .modal-button.disabled {
-  background-color: #ccc !important; 
-  color: #888 !important; 
-  border: 1px solid #bbb; 
+  background: #e5e7eb !important; 
+  color: #9ca3af !important; 
+  border-color: #e5e7eb !important;
   cursor: not-allowed;
   transform: none;
 }
 
+/* "Yes, Proceed" / Continue button - green */
 #modal-continue { 
-  background: var(--green); 
+  background: var(--green, #88b4a2); 
   color: white;
-  border-color: var(--green);
+  border-color: var(--green, #88b4a2);
 }
 
 #modal-continue:hover { 
-  background: var(--green-hover) !important; 
-  border-color: var(--green-hover);
+  background: var(--green-hover, #69a08a) !important; 
+  border-color: var(--green-hover, #69a08a);
 }
 
+/* "Return to My Drawing" button - primary blue outline */
+#modal-return {
+  background: white;
+  color: var(--primary-color, #0277BD);
+  border: 2px solid var(--primary-color, #0277BD);
+}
+
+#modal-return:hover {
+  background: var(--primary-color, #0277BD);
+  color: white;
+}
+
+/* "Return to Summary" button - secondary gray outline */
+#modal-return-summary {
+  background: white;
+  color: var(--secondary-color, #333333);
+  border: 2px solid var(--secondary-color, #333333);
+}
+
+#modal-return-summary:hover {
+  background: var(--secondary-color, #333333);
+  color: white;
+}
+
+/* Reset modal return button */
+#modal-return-reset,
+#delete-empty-return {
+  background: white;
+  color: var(--primary-color, #0277BD);
+  border: 2px solid var(--primary-color, #0277BD);
+}
+
+#modal-return-reset:hover,
+#delete-empty-return:hover {
+  background: var(--primary-color, #0277BD);
+  color: white;
+}
+
+/* Reset/Delete buttons - red/danger */
 #modal-reset-confirm,
 #delete-empty-continue { 
   background: white !important; 
-  color: var(--red);
-  border: 2px solid var(--red) !important;
+  color: var(--red, #a10c0c);
+  border: 2px solid var(--red, #a10c0c) !important;
 }
 
 #modal-reset-confirm:hover,
 #delete-empty-continue:hover { 
-  background: var(--red) !important; 
+  background: var(--red, #a10c0c) !important; 
   color: white;
 }
 
-#modal-return,
-#modal-return-reset,
-#delete-empty-return {
-  background: white;
-  color: var(--secondary-color);
-  border-color: var(--secondary-color);
-}
-
-#modal-return:hover,
-#modal-return-reset:hover,
-#delete-empty-return:hover {
-  background: #f5f5f5 !important;
-}
-
-.drawing-preview {
-  object-fit: contain; 
-  display: block; 
-  margin: var(--space-md) auto;
-  border: 1px solid #ccc; 
-  border-radius: var(--border-radius);
-  max-width: 100%;
-  max-height: 350px;
-}
-
-@keyframes slideInFromTop {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
+/* Responsive modal */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    padding: var(--space-lg, 1.5rem);
+    max-height: 90vh;
   }
-  to {
-    transform: translateY(0);
-    opacity: 1;
+  
+  #confirmation-modal .modal-content {
+    max-width: 95%;
+    padding: var(--space-lg, 1.5rem);
+  }
+  
+  #modal-text,
+  #reset-modal-text,
+  #delete-empty-text {
+    font-size: 1.1rem;
+  }
+  
+  .modal-button {
+    max-width: 100%;
+    height: 48px;
+    min-height: 48px;
+  }
+  
+  .drawing-preview {
+    height: 280px;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    padding: var(--space-md, 1rem);
+  }
+  
+  .modal-button {
+    padding: var(--space-sm, 0.75rem) var(--space-md, 1rem);
+    font-size: 0.95rem;
+    height: 44px;
+    min-height: 44px;
+  }
+  
+  .drawing-preview {
+    height: 200px;
   }
 }
 
@@ -2205,4 +2845,455 @@ input[type="range"]::-webkit-slider-thumb {
 [data-viewport="mobile"][data-orientation="landscape"] .canvas-rotate-btn svg {
     width: 20px;
     height: 20px;
+}
+
+/* ============================================
+   REGION SELECTOR MODAL STYLES
+   ============================================ */
+
+/* Modal Overlay - high z-index to appear above footer */
+.region-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000; /* Higher than footer */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.region-modal-overlay.visible {
+    opacity: 1;
+}
+
+/* Modal Container */
+.region-modal {
+    background: var(--panel-background, #ffffff);
+    border-radius: var(--border-radius, 8px);
+    box-shadow: var(--shadow-xl, 0 10px 30px rgba(0,0,0,0.25));
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    overflow: hidden;
+    transform: scale(0.95) translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.region-modal-overlay.visible .region-modal {
+    transform: scale(1) translateY(0);
+}
+
+/* Modal Content Layout */
+.region-modal-content {
+    display: flex;
+    min-height: 280px;
+}
+
+/* Left Side - Selection */
+.region-modal-left {
+    flex: 1.2;
+    padding: var(--space-xl, 2rem);
+    display: flex;
+    flex-direction: column;
+}
+
+.region-modal-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--secondary-color, #333333);
+    margin: 0 0 var(--space-xs, 0.5rem) 0;
+    text-align: left;
+}
+
+.region-modal-instruction {
+    font-size: 0.95rem;
+    color: #6b7280;
+    margin: 0 0 var(--space-lg, 1.5rem) 0;
+    line-height: 1.5;
+}
+
+/* Selector Groups */
+.region-selectors {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md, 1rem);
+    margin-bottom: var(--space-lg, 1.5rem); /* Spacing before confirm button */
+}
+
+.selector-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs, 0.5rem);
+}
+
+.selector-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--secondary-color, #333333);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.region-select {
+    padding: var(--space-sm, 0.75rem) var(--space-md, 1rem);
+    font-size: 1rem;
+    font-family: inherit;
+    border: 2px solid #e5e7eb;
+    border-radius: var(--border-radius, 8px);
+    background: #f9fafb;
+    color: var(--secondary-color, #333333);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 44px;
+    min-height: 48px;
+}
+
+.region-select:hover {
+    border-color: var(--primary-color, #0277BD);
+    background-color: #fff;
+}
+
+.region-select:focus {
+    outline: none;
+    border-color: var(--primary-color, #0277BD);
+    box-shadow: 0 0 0 3px rgba(2, 119, 189, 0.15);
+}
+
+/* Sub-area transition */
+.sub-area-group {
+    animation: regionSlideDown 0.3s ease;
+}
+
+@keyframes regionSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Confirm Button */
+.region-confirm-btn {
+    padding: var(--space-md, 1rem) var(--space-lg, 1.5rem);
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: #ffffff;
+    background: var(--primary-color, #0277BD);
+    border: none;
+    border-radius: var(--border-radius, 8px);
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    min-height: 48px;
+    white-space: nowrap;
+}
+
+.region-confirm-btn:hover:not(:disabled) {
+    background: #01578b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(2, 119, 189, 0.3);
+}
+
+.region-confirm-btn:disabled {
+    background: #ccc;
+    color: #888;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Divider */
+.region-modal-divider {
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent);
+    margin: var(--space-lg, 1.5rem) 0;
+}
+
+/* Right Side - Full Body Option */
+.region-modal-right {
+    flex: 0.8;
+    padding: var(--space-xl, 2rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background-color, #f0f0f0);
+}
+
+.full-body-option {
+    text-align: start;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md, 1rem);
+}
+
+/* Body icon removed - no longer needed */
+.body-icon {
+    display: none;
+}
+
+/* Full Body Button */
+.full-body-btn {
+    padding: var(--space-md, 1rem) var(--space-lg, 1.5rem);
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--primary-color, #0277BD);
+    background: var(--panel-background, #ffffff);
+    border: 2px solid var(--primary-color, #0277BD);
+    border-radius: var(--border-radius, 8px);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    min-height: 48px;
+    white-space: nowrap;
+}
+
+.full-body-btn:hover {
+    background: var(--primary-color, #0277BD);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(2, 119, 189, 0.3);
+}
+
+.full-body-hint {
+    font-size: 0.85rem;
+    color: #6b7280;
+    max-width: 200px;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* ============================================
+   FOOTER/ACTION BUTTON - Select Area to Focus
+   ============================================ */
+
+.region-selector-footer-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs, 0.5rem);
+    padding: var(--space-sm, 0.75rem) var(--space-md, 1rem);
+    min-width: 100px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.3;
+    
+    /* Secondary button style */
+    background: #f5f5f5;
+    color: var(--secondary-color, #333333);
+    border: 1px solid #e0e0e0;
+    border-radius: var(--border-radius, 8px);
+    
+    font-size: 0.9rem;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    min-height: 44px;
+}
+
+.region-selector-footer-btn:hover {
+    background: #e8e8e8;
+    border-color: #d0d0d0;
+    color: var(--secondary-color, #333333); /* Keep text readable */
+}
+
+.region-selector-footer-btn svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-bottom: 0 !important;
+}
+
+/* ============================================
+   DRAWING VIEW - HEADER AND FOOTER
+   ============================================ */
+
+/* Header content layout - just status bar, no cancel button */
+#drawing-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: var(--space-md);
+}
+
+/* Status bar */
+#drawing-status-bar {
+    flex: 1;
+    text-align: center;
+}
+
+.status-bar-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.status-title {
+    font-size: var(--h2-font-size);
+    font-weight: 600;
+}
+
+.status-badge {
+    font-size: var(--min-font-size);
+    padding: 0.4rem 1rem;
+    border-radius: 3rem;
+    font-weight: 600;
+}
+
+.status-instruction {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+/* Drawing footer layout - left and right buttons */
+#footer-drawing {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: var(--space-md) var(--space-lg);
+    gap: var(--space-md);
+}
+
+#footer-drawing .footer-left {
+    display: flex;
+    align-items: center;
+}
+
+#footer-drawing .footer-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Done Drawing button */
+.button-done-drawing {
+    min-width: 120px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.3;
+}
+
+/* Mobile drawing actions - hidden, not used anymore */
+.mobile-drawing-actions {
+    display: none;
+}
+
+/* ============================================
+   REGION MODAL - RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .region-modal {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .region-modal-content {
+        flex-direction: column;
+        min-height: auto;
+    }
+    
+    .region-modal-left {
+        padding: var(--space-lg, 1.5rem);
+    }
+    
+    .region-modal-divider {
+        width: 100%;
+        height: 1px;
+        margin: 0;
+        background: linear-gradient(to right, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent);
+    }
+    
+    .region-modal-right {
+        padding: var(--space-lg, 1.5rem);
+    }
+    
+    .full-body-btn {
+        width: 100%;
+    }
+    
+    #drawing-header-content {
+        flex-wrap: wrap;
+        padding: var(--space-sm);
+    }
+    
+    .button-cancel-header {
+        order: -1;
+    }
+    
+    #drawing-status-bar {
+        order: 0;
+        flex-basis: 100%;
+        margin-top: var(--space-xs);
+    }
+}
+
+@media (max-width: 480px) {
+    .region-modal-title {
+        font-size: 1.15rem;
+    }
+    
+    .region-modal-left,
+    .region-modal-right {
+        padding: var(--space-md, 1rem);
+    }
+    
+    .region-select {
+        padding: var(--space-sm, 0.75rem);
+        min-height: 44px;
+    }
+    
+    .region-confirm-btn,
+    .full-body-btn {
+        padding: var(--space-sm, 0.75rem) var(--space-md, 1rem);
+        min-height: 44px;
+    }
+    
+    .region-selector-footer-btn {
+        padding: var(--space-sm, 0.75rem) var(--space-md, 1rem);
+        font-size: 0.85rem;
+        min-width: 160px;
+    }
+    
+    .status-title {
+        font-size: 1rem;
+    }
+    
+    .status-instruction {
+        font-size: 0.85rem;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .region-modal-overlay,
+    .region-modal,
+    .region-select,
+    .region-confirm-btn,
+    .full-body-btn,
+    .region-selector-footer-btn,
+    .sub-area-group {
+        transition: none;
+    }
+    
+    .sub-area-group {
+        animation: none;
+    }
 }
