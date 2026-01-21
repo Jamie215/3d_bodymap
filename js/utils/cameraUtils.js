@@ -826,43 +826,120 @@ export default class CameraUtils {
         return dominantBodyPart;
     }
 
-    // Analyze drawing orientation (front/back, left/right)
+    // Classify a single region into an octant (8-way direction)
+    classifyRegionOctant(regionName) {
+        const lower = regionName.toLowerCase();
+        
+        // Determine front/back based on anatomical naming conventions
+        const isAnterior = lower.includes('anterior') || lower.includes('volar') || 
+                          lower.includes('pubic') || lower.includes('chest') ||
+                          lower.includes('abdomen') || lower.includes('face') ||
+                          lower.includes('dorso');  // dorso on foot = top = front-facing
+        const isPosterior = lower.includes('posterior') || lower.includes('plantar') || 
+                           lower.includes('back') || lower.includes('buttock') ||
+                           lower.includes('sacrum') || lower.includes('coccyx') ||
+                           lower.includes('psis') || lower.includes('planto') ||
+                           lower.includes('hand_dorsal') || lower.includes('segment_dorsal');
+        
+        // Determine left/right from suffix
+        const isLeft = regionName.endsWith('.L');
+        const isRight = regionName.endsWith('.R');
+        
+        // Determine if it's a lateral (side-facing) region
+        const isLateral = lower.includes('lateral') && !lower.includes('anterolateral') && !lower.includes('posterolateral');
+        const isAnterolateral = lower.includes('anterolateral');
+        const isPosterolateral = lower.includes('posterolateral');
+        
+        // Classify into octant
+        if (isLateral) {
+            // Pure lateral regions -> side view
+            if (isLeft) return 'left';
+            if (isRight) return 'right';
+        }
+        
+        if (isAnterolateral) {
+            // Anterolateral -> diagonal front-side view
+            if (isLeft) return 'front-left';
+            if (isRight) return 'front-right';
+        }
+        
+        if (isPosterolateral) {
+            // Posterolateral -> diagonal back-side view
+            if (isLeft) return 'back-left';
+            if (isRight) return 'back-right';
+        }
+        
+        if (isPosterior) {
+            if (isLeft) return 'back-left';
+            if (isRight) return 'back-right';
+            return 'back';
+        }
+        
+        if (isAnterior) {
+            if (isLeft) return 'front-left';
+            if (isRight) return 'front-right';
+            return 'front';
+        }
+        
+        // Default for neutral/medial regions
+        if (isLeft) return 'left';
+        if (isRight) return 'right';
+        return 'front';
+    }
+
+    // Analyze drawing orientation with 45-degree granularity
     analyzeDrawingOrientation(drawnRegionNames) {
         if (!drawnRegionNames || drawnRegionNames.size === 0) {
-            return { side: 'front', lateral: 'center', bodyHalf: 'center', confidence: 0 };
+            return { angle: 0, octant: 'front', confidence: 0 };
         }
 
-        let anteriorCount = 0;
-        let posteriorCount = 0;
-        let leftCount = 0;
-        let rightCount = 0;
+        // Count regions in each octant
+        const octantCounts = {
+            'front': 0,
+            'front-right': 0,
+            'right': 0,
+            'back-right': 0,
+            'back': 0,
+            'back-left': 0,
+            'left': 0,
+            'front-left': 0
+        };
 
         for (const regionName of drawnRegionNames) {
-            const lowerName = regionName.toLowerCase();
-            if (lowerName.includes('anterior') || lowerName.includes('volar') || lowerName.includes('dorso')) {
-                anteriorCount++;
-            }
-            if (lowerName.includes('posterior') || lowerName.includes('plantar') || lowerName.includes('back') || lowerName.includes('planto') || lowerName.includes('hand_dorsal') || lowerName.includes('Segment_dorsal')) {
-                posteriorCount++;
-            }
-            if (regionName.endsWith('.L')) leftCount++;
-            if (regionName.endsWith('.R')) rightCount++;
+            const octant = this.classifyRegionOctant(regionName);
+            octantCounts[octant]++;
         }
 
-        const totalFrontBack = anteriorCount + posteriorCount;
-        const side = (totalFrontBack > 0 && posteriorCount > anteriorCount) ? 'back' : 'front';
+        // Find dominant octant
+        let maxCount = 0;
+        let dominantOctant = 'front';
+        for (const [octant, count] of Object.entries(octantCounts)) {
+            if (count > maxCount) {
+                maxCount = count;
+                dominantOctant = octant;
+            }
+        }
+
+        // Map octant to rotation angle
+        // Positive angles rotate camera to the left (sees right side of body)
+        // Negative angles rotate camera to the right (sees left side of body)
+        const octantAngles = {
+            'front': 0,
+            'front-left': Math.PI / 4,        // 45° - camera moves right to see left-front
+            'left': Math.PI / 2,              // 90° - camera moves right to see left side
+            'back-left': Math.PI * 3 / 4,     // 135°
+            'back': Math.PI,                  // 180°
+            'back-right': -Math.PI * 3 / 4,   // -135°
+            'right': -Math.PI / 2,            // -90° - camera moves left to see right side
+            'front-right': -Math.PI / 4       // -45°
+        };
+
+        const totalRegions = drawnRegionNames.size;
         
-        let bodyHalf = 'center';
-        if (leftCount > rightCount * 1.2) {
-            bodyHalf = 'left';
-        } else if (rightCount > leftCount * 1.2) {
-            bodyHalf = 'right';
-        }
-
         return {
-            side,
-            bodyHalf,
-            confidence: totalFrontBack > 0 ? Math.max(anteriorCount, posteriorCount) / totalFrontBack : 0
+            angle: octantAngles[dominantOctant],
+            octant: dominantOctant,
+            confidence: totalRegions > 0 ? maxCount / totalRegions : 0
         };
     }
 
@@ -881,7 +958,7 @@ export default class CameraUtils {
         console.log("Dominant body part:", dominantBodyPart);
 
         const orientation = this.analyzeDrawingOrientation(drawnRegionNames);
-        // console.log("Drawing orientation:", orientation);
+        console.log("Drawing orientation:", orientation.octant, "angle:", (orientation.angle * 180 / Math.PI).toFixed(0) + "°");
         
         const regions = this.regionMap[dominantBodyPart];
         if (!regions) {
@@ -897,19 +974,8 @@ export default class CameraUtils {
 
         this.setFocus(dominantBodyPart, center, box);
 
-        // Set initial angle based on orientation
-        if (orientation.side === 'back') {
-            this.rotationAngle = Math.PI;
-        } else {
-            this.rotationAngle = 0;
-        }
-        
-        // Slight adjustment for left/right body half
-        if (orientation.bodyHalf === 'left') {
-            this.rotationAngle += Math.PI / 8;
-        } else if (orientation.bodyHalf === 'right') {
-            this.rotationAngle -= Math.PI / 8;
-        }
+        // Set rotation angle directly from orientation analysis
+        this.rotationAngle = orientation.angle;
 
         this.applyRotation(true);
     }
