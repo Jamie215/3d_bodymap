@@ -839,7 +839,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
       // Re-enable button
       survey.completeButton.disabled = false;
-      survey.completeButton.textContent = 'Complete & Return to Summary';
+      survey.completeButton.textContent = 'Complete';
       
       if (docId) {
         console.log('All data submitted successfully!');
@@ -963,7 +963,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     }
 
     const previewWidth = 400;
-    const previewHeight = 350;
+    const previewHeight = 400;
     const originalSize = renderer.getSize(new THREE.Vector2());
     const originalPixelRatio = renderer.getPixelRatio();
 
