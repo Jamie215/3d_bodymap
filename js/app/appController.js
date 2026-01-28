@@ -984,21 +984,21 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     renderer.render(scene, camera);
 
     const areas = AppState.drawingInstances.map((instance, index) => {
-    const coverage = coverageCalculator.calculateCoverage(instance);
-    
-    return {
-        areaNumber: index + 1,
-        areaId: instance.id,
-        drawingImageData: instance.uvDrawingData,
-        questionnaireResponses: instance.questionnaireData,
-        drawnRegions: Array.from(instance.drawnRegionNames || []),
-        coverage: coverage ? {
-            overallPercentage: coverage.overall.percentage,
-            coloredArea: coverage.overall.coloredArea,
-            regionBreakdown: coverage.regions
-        } : null
-    };
-});
+      const coverage = coverageCalculator.calculateCoverage(instance);
+      
+      return {
+          areaNumber: index + 1,
+          areaId: instance.id,
+          drawingImageData: instance.uvDrawingData,
+          questionnaireResponses: instance.questionnaireData,
+          drawnRegions: Array.from(instance.drawnRegionNames || []),
+          coverage: coverage ? {
+              overallPercentage: coverage.overall.percentage,
+              coloredArea: coverage.overall.coloredArea,
+              regionBreakdown: coverage.regions
+          } : null
+      };
+    });
 
     const getDeviceType = () => {
       const ua = navigator.userAgent;
