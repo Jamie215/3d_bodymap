@@ -57,7 +57,7 @@ export function createSummaryView() {
       // Session completed
       summaryStatusPanel.innerHTML = `
         <div class="summary-complete">
-          <i class="fa-solid fa-circle-check" style="color: var(--success-color);"></i>
+          <i class="fa-solid fa-circle-check" style="color: var(--success-color); font-size: var(--font-title-large);"></i>
           <span class="summary-title">Submission Complete</span>
           <p style="margin-top: var(--space-md);">Thank you for completing your pain assessment.</p>
           <p>You logged <strong>${count}</strong> pain or symptom area${count !== 1 ? 's' : ''}.</p>

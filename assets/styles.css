@@ -1872,17 +1872,6 @@ input[type="range"]::-webkit-slider-thumb {
   text-align: center;
 }
 
-.summary-complete .complete-icon {
-  font-size: var(--font-title-large);
-  color: var(--success-color);
-  margin-bottom: var(--space-md);
-}
-
-.summary-complete h2 {
-  margin-bottom: var(--space-xs); /* 8px */
-  color: var(--success-color);
-}
-
 .summary-title {
   font-size: var(--font-title-large);
   font-weight: bold;
