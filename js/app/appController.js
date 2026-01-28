@@ -829,6 +829,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
       // Prepare complete submission data
       const submissionData = await prepareSubmissionData();
+      console.log('Submitting all data to Firebase...', submissionData);
 
       // Show loading indicator
       survey.completeButton.disabled = true;
