@@ -14,17 +14,13 @@ const activePointers = new Map();
 
 // Cursor management
 let cursorContainer = null;
-let cursorSizeEl = null;
 let cursorIconEl = null;
 
 const cursorHandlers = {
     mousemove: null,
     mouseleave: null,
-    brushInput: null,
     drawBtnClick: null,
-    eraseBtnClick: null,
-    mousedown: null,
-    mouseup: null
+    eraseBtnClick: null
 };
 
 // Remove all registered event listeners
@@ -107,58 +103,23 @@ export function setupCursorManagement() {
     if (!cursorContainer || !document.body.contains(cursorContainer)) {
         cursorContainer = document.createElement('div');
         cursorContainer.classList.add('cursor-container');
-        cursorContainer.style.position = 'absolute';
-        cursorContainer.style.pointerEvents = 'none';
-        cursorContainer.style.zIndex = '9999';
-        cursorContainer.style.transform = 'translate(-50%, -50%)';
-        cursorContainer.style.display = 'none';
-        cursorContainer.style.width = '40px';
-        cursorContainer.style.height = '40px';
         document.body.appendChild(cursorContainer);
-
-        cursorSizeEl = document.createElement('div');
-        cursorSizeEl.className = 'cursor-size';
-        cursorSizeEl.style.position = 'absolute';
-        cursorSizeEl.style.borderRadius = '50%';
-        cursorSizeEl.style.transition = 'width 0.2s, height 0.2s, background-color 0.2s';
-        cursorSizeEl.style.top = '50%';
-        cursorSizeEl.style.left = '50%';
-        cursorSizeEl.style.transform = 'translate(-50%, -50%)';
-        cursorContainer.appendChild(cursorSizeEl);
 
         cursorIconEl = document.createElement('div');
         cursorIconEl.className = 'cursor-icon';
-        cursorIconEl.style.position = 'absolute';
-        cursorIconEl.style.top = '50%';
-        cursorIconEl.style.left = '50%';
-        cursorIconEl.style.transform = 'translate(-50%, -50%)';
-        cursorIconEl.style.width = '18px';
-        cursorIconEl.style.height = '18px';
-        cursorIconEl.style.overflow = 'visible';
-        cursorIconEl.style.display = 'flex';
-        cursorIconEl.style.alignItems = 'center';
-        cursorIconEl.style.justifyContent = 'center';
         cursorContainer.appendChild(cursorIconEl);
     }
     
     cursorContainer.style.display = '';
     canvasPanel.style.cursor = 'none';
 
-    const drawColor = '#0277BD';
-    const eraseColor = '#FF5252';
-    const getDrawIconSvg  = (c) => `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/></svg>`;
-    const getEraseIconSvg = (c) => `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>`;
+    const drawColor = 'var(--primary-color)';
+    const eraseColor = 'var(--light-red)';
+    const getDrawIcon  = (c) => `<i class="fa-solid fa-pen" style="color: ${c};"></i>`;
+    const getEraseIcon = (c) => `<i class="fa-solid fa-eraser" style="color: ${c};"></i>`;
 
     const updateIcon = () => {
-       if (AppState.isErasing) {
-            cursorSizeEl.style.border = `2px solid ${eraseColor}`;
-            cursorSizeEl.style.backgroundColor = `rgba(255, 82, 82, 0.1)`;
-            cursorIconEl.innerHTML = getEraseIconSvg(eraseColor);
-        } else {
-            cursorSizeEl.style.border = `2px solid ${drawColor}`;
-            cursorSizeEl.style.backgroundColor = `rgba(2, 119, 189, 0.1)`;
-            cursorIconEl.innerHTML = getDrawIconSvg(drawColor);
-        } 
+       cursorIconEl.innerHTML = AppState.isErasing ? getEraseIcon(eraseColor) : getDrawIcon(drawColor);
     }
 
     disableCursorManagement();
@@ -168,31 +129,16 @@ export function setupCursorManagement() {
     cursorContainer.style.display = 'block';
     cursorContainer.style.left = `${e.clientX}px`;
     cursorContainer.style.top  = `${e.clientY}px`;
-    const size = AppState.brushRadius * 2;
-    cursorSizeEl.style.width = `${size}px`;
-    cursorSizeEl.style.height = `${size}px`;
-    updateIcon();
   };
   cursorHandlers.mouseleave = () => { cursorContainer.style.display = 'none'; };
-  cursorHandlers.brushInput = () => {
-    const size = AppState.brushRadius * 2;
-    cursorSizeEl.style.width = `${size}px`;
-    cursorSizeEl.style.height = `${size}px`;
-  };
-  cursorHandlers.mousedown = () => { cursorSizeEl.style.opacity = '0.8'; };
-  cursorHandlers.mouseup = () => { cursorSizeEl.style.opacity = '0.4'; };
 
-  const brushSlider = document.querySelector('.vertical-slider');
   const drawBtn = document.getElementById('draw-button');
   const eraseBtn = document.getElementById('erase-button');
 
   // Attach listeners
   canvasPanel.addEventListener('mousemove', cursorHandlers.mousemove, { passive: true });
   canvasPanel.addEventListener('mouseleave', cursorHandlers.mouseleave, { passive: true });
-  canvasPanel.addEventListener('mousedown', cursorHandlers.mousedown, { passive: true });
-  window.addEventListener('mouseup', cursorHandlers.mouseup, { passive: true });
 
-  if (brushSlider) brushSlider.addEventListener('input', cursorHandlers.brushInput, { passive: true });
   if (drawBtn) {
     cursorHandlers.drawBtnClick = () => { AppState.isErasing = false; updateIcon(); };
     drawBtn.addEventListener('click', cursorHandlers.drawBtnClick);
@@ -213,16 +159,9 @@ export function disableCursorManagement() {
     // Remove listeners if present
     if (cursorHandlers.mousemove)  { canvasPanel.removeEventListener('mousemove', cursorHandlers.mousemove); cursorHandlers.mousemove  = null; }
     if (cursorHandlers.mouseleave) { canvasPanel.removeEventListener('mouseleave', cursorHandlers.mouseleave); cursorHandlers.mouseleave = null; }
-    if (cursorHandlers.mousedown)  { canvasPanel.removeEventListener('mousedown', cursorHandlers.mousedown); cursorHandlers.mousedown = null; }
-    if (cursorHandlers.mouseup)    { window.removeEventListener('mouseup', cursorHandlers.mouseup); cursorHandlers.mouseup = null; }
 
-    const brushSlider = document.querySelector('.vertical-slider');
-    if (brushSlider && cursorHandlers.brushInput) {
-        brushSlider.removeEventListener('input', cursorHandlers.brushInput);
-        cursorHandlers.brushInput = null;
-    }
-    const drawBtn = document.querySelector('.button-primary');
-    const eraseBtn = document.querySelector('.button-secondary');
+    const drawBtn = document.querySelector('.draw-button');
+    const eraseBtn = document.querySelector('.erase-button');
     if (drawBtn && cursorHandlers.drawBtnClick) {
         drawBtn.removeEventListener('click', cursorHandlers.drawBtnClick);
         cursorHandlers.drawBtnClick = null;
@@ -297,6 +236,6 @@ export function syncEraserState() {
         drawBtn.classList.add('button-primary');
         eraseBtn.classList.remove('button-primary');
         eraseBtn.classList.add('button-secondary');
-        if (brushSizeLabel) brushSizeLabel.textContent = 'Brush Size';
+        if (brushSizeLabel) brushSizeLabel.textContent = 'Marker Size';
     }
 }

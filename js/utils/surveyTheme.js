@@ -29,9 +29,27 @@ export const customTheme = {
 };
 
 export const matrixStyles = `
+  /* Matrix answer columns have fixed equal width */
   .sd-table__cell.sd-table__cell--header {
     width: 20% !important;
-}`;
+  }
+  
+  .sd-table-wrapper,
+  .sd-matrix,
+  .sd-question--table {
+    overflow: visible !important;
+  }
+
+  /* Sticky header - target thead cells */
+  .sd-matrix__table thead{
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+`;
 
 export function applyCustomTheme(theme) {
   const vars = theme?.cssVariables || {};

@@ -1,6 +1,15 @@
 // main.js
 import { initApp } from './appController.js';
-import { initDrawContinueModal, initDrawResetModal, initDeleteEmptyModal, initRegionSelectorModal } from '../components/modal.js';
+import { 
+    initDrawContinueModal, 
+    initDrawResetModal, 
+    initDeleteEmptyModal, 
+    initRegionSelectorModal,
+    initOnboardingModal,
+    showOnboardingModal,
+
+    setOnOnboardingComplete
+} from '../components/modal.js';
 import { createScene } from '../utils/scene.js';
 import { createDrawingViewElements } from '../views/drawingView.js';
 import { createCanvasRotationControls, setupRegionSelectorForDrawing } from '../components/viewControls.js';
@@ -75,9 +84,10 @@ initDrawContinueModal(document.body);
 initDrawResetModal(document.body);
 initDeleteEmptyModal(document.body);
 initRegionSelectorModal(document.body);
+initOnboardingModal(document.body);
 
-// Track if this is the first time entering drawing stage (to show modal)
-let isFirstDrawingEntry = true;
+// Track if onboarding has been shown this session
+let hasShownOnboardingThisSession = false;
 
 // Improved ResizeObserver with debouncing - now observe canvasContent
 let resizeTimeout = null;
@@ -252,6 +262,15 @@ function setStage(stage) {
         };
         slotFooter.insertBefore(toggleBtn, slotFooter.firstChild);
       }
+      
+      // Show onboarding modal on first visit to summary
+      if (!hasShownOnboardingThisSession) {
+        hasShownOnboardingThisSession = true;
+        // Delay slightly to allow the UI to render first
+        setTimeout(() => {
+          showOnboardingModal();
+        }, 500);
+      }
       break;
 
     case 'selection':
@@ -274,7 +293,7 @@ function setStage(stage) {
       slotFooter.appendChild(drawing.drawingFooter);
       
       // Setup region selector - adds button to footerLeft
-      setupRegionSelectorForDrawing(drawing.footerLeft, isFirstDrawingEntry && !AppState.isEditingFromSurvey);
+      setupRegionSelectorForDrawing(drawing.footerLeft, !AppState.isEditingFromSurvey);
 
       // Close any open drawers from other stages
       const scrim = document.body.querySelector('.drawer-scrim');
@@ -284,8 +303,6 @@ function setStage(stage) {
       l?.classList.remove('open');
       r?.classList.remove('open');
       
-      // Mark that we've entered drawing stage at least once
-      isFirstDrawingEntry = false;
       break;
 
     case 'area-survey':
@@ -305,6 +322,12 @@ function setStage(stage) {
   }
 }
 
+// Optional: Set callback for when onboarding is completed
+setOnOnboardingComplete(() => {
+  console.log('Onboarding completed');
+  // You can trigger any action here after the user clicks "Get Started"
+});
+
 // Start application logic
 initApp({
   scene, 
@@ -316,10 +339,6 @@ initApp({
   registerModelSelectionHandler: handler => {
     selectionViewModelHandler = handler;
   },
-  // Expose a way to reset the first drawing entry flag (e.g., when starting a new session)
-  resetFirstDrawingEntry: () => {
-    isFirstDrawingEntry = true;
-  }
 });
 
 // Responsive event handling

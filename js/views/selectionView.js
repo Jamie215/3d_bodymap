@@ -14,7 +14,7 @@ export function createSelectionView(onModelSelected) {
   modelButtonsContainer.id = 'model-buttons-container';
 
   const returnSummaryButton = document.createElement('button');
-  returnSummaryButton.textContent = '← Return to Summary';
+  returnSummaryButton.innerHTML = '<span><i class="fa-solid fa-left-long"></i> Return to Summary';
   returnSummaryButton.classList.add('button', 'return-button');
 
   const addNewInstanceButton = document.createElement('button');

@@ -16,6 +16,13 @@ let selectedMainArea = null;
 let selectedSubArea = null;
 let onRegionSelectedCallback = null;
 
+// Onboarding Modal
+let onboardingModalEl, onboardingModalOverlay, onboardingStartButton;
+let onOnboardingCompleteCallback = null;
+
+// LocalStorage key for tracking if onboarding has been shown
+const ONBOARDING_SHOWN_KEY = 'painSurvey_onboardingShown';
+
 /**
  * Region hierarchy for the modal
  * Main Area -> Sub Areas
@@ -23,6 +30,10 @@ let onRegionSelectedCallback = null;
  * IMPORTANT: These must align with cameraUtils.js dropdownRegions keys
  */
 const REGION_HIERARCHY = {
+    'Entire Body': {
+        subAreas: [], // No sub-areas
+        cameraRegion: 'Entire Body'
+    },
     'Head': {
         subAreas: [], // Head is treated as a single region
         cameraRegion: 'Head'
@@ -148,6 +159,8 @@ function createButton(id, text, className = 'modal-button') {
     const button = document.createElement('button');
     button.id = id;
     button.classList.add(className);
+    // Add shared secondary button class for base styling
+    button.classList.add('modal-btn-secondary');
     button.innerText = text;
     return button;
 }
@@ -155,8 +168,141 @@ function createButton(id, text, className = 'modal-button') {
 function createButtonGroup(...buttons) {
     const group = document.createElement('div');
     group.classList.add('modal-button-group');
+    // Add shared button group class
+    group.classList.add('modal-btn-group');
     buttons.forEach(btn => group.appendChild(btn));
     return group;
+}
+
+// ============================================
+// ONBOARDING MODAL
+// ============================================
+
+export function initOnboardingModal(container) {
+    onboardingModalOverlay = document.createElement('div');
+    onboardingModalOverlay.className = 'onboarding-modal-overlay modal-overlay';
+    onboardingModalOverlay.style.display = 'none';
+    
+    onboardingModalEl = document.createElement('div');
+    onboardingModalEl.className = 'onboarding-modal modal-container';
+    onboardingModalEl.id = 'onboarding-modal';
+    
+    // Build modal content
+    onboardingModalEl.innerHTML = `
+        <div class="onboarding-modal-content modal-body">
+            <h2 class="onboarding-modal-title modal-title">Steps to Complete Survey</h2>
+            <p class="onboarding-modal-subtitle modal-subtitle">You will do this for each area of pain or symptom. If you have multiple, you will repeat the steps.</p>
+            
+            <div class="onboarding-steps">
+                <div class="onboarding-step">
+                    <div class="onboarding-step-icon">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <div class="onboarding-step-content">
+                        <span class="onboarding-step-number">1</span>
+                        <p class="onboarding-step-text">Locate where you experience your pain or symptom</p>
+                    </div>
+                </div>
+                
+                <div class="onboarding-step">
+                    <div class="onboarding-step-icon">
+                        <i class="fa-solid fa-paintbrush"></i>
+                    </div>
+                    <div class="onboarding-step-content">
+                        <span class="onboarding-step-number">2</span>
+                        <p class="onboarding-step-text">Draw your pain or symptom on the body</p>
+                    </div>
+                </div>
+                
+                <div class="onboarding-step">
+                    <div class="onboarding-step-icon">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </div>
+                    <div class="onboarding-step-content">
+                        <span class="onboarding-step-number">3</span>
+                        <p class="onboarding-step-text">Answer the questionnaire</p>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="onboarding-start-btn" class="onboarding-start-btn modal-btn-primary">
+                Get Started
+            </button>
+        </div>
+    `;
+    
+    onboardingModalOverlay.appendChild(onboardingModalEl);
+    container.appendChild(onboardingModalOverlay);
+    
+    // Get reference to start button
+    onboardingStartButton = onboardingModalEl.querySelector('#onboarding-start-btn');
+    
+    // Setup event listener
+    onboardingStartButton.addEventListener('click', () => {
+        hideOnboardingModal();
+        // Mark as shown in localStorage
+        try {
+            localStorage.setItem(ONBOARDING_SHOWN_KEY, 'true');
+        } catch (e) {
+            console.warn('Could not save onboarding state to localStorage:', e);
+        }
+        // Call callback if set
+        if (onOnboardingCompleteCallback) {
+            onOnboardingCompleteCallback();
+        }
+    });
+}
+
+export function showOnboardingModal() {
+    if (!onboardingModalOverlay) {
+        console.warn('Onboarding modal not initialized. Call initOnboardingModal first.');
+        return;
+    }
+    
+    onboardingModalOverlay.style.display = 'flex';
+    
+    // Trigger animation
+    requestAnimationFrame(() => {
+        onboardingModalOverlay.classList.add('visible');
+    });
+}
+
+export function hideOnboardingModal() {
+    if (!onboardingModalOverlay) return;
+    
+    onboardingModalOverlay.classList.remove('visible');
+    
+    // Remove after animation
+    setTimeout(() => {
+        onboardingModalOverlay.style.display = 'none';
+    }, 300);
+}
+
+export function setOnOnboardingComplete(callback) {
+    onOnboardingCompleteCallback = callback;
+}
+
+/**
+ * Check if onboarding should be shown (hasn't been shown before)
+ */
+export function shouldShowOnboarding() {
+    try {
+        return !localStorage.getItem(ONBOARDING_SHOWN_KEY);
+    } catch (e) {
+        // If localStorage is not available, show onboarding
+        return true;
+    }
+}
+
+/**
+ * Reset onboarding state (useful for testing or new sessions)
+ */
+export function resetOnboardingState() {
+    try {
+        localStorage.removeItem(ONBOARDING_SHOWN_KEY);
+    } catch (e) {
+        console.warn('Could not reset onboarding state:', e);
+    }
 }
 
 // ============================================
@@ -167,6 +313,12 @@ export function initDrawContinueModal(container) {
     continueModalEl = createModal('confirmation-modal');
     const modalContent = createModalContent();
 
+    // Close button (X) in top right corner
+    returnModalButton = document.createElement('button');
+    returnModalButton.className = 'modal-close-btn';
+    returnModalButton.innerHTML = '<i class="fa-solid fa-x"></i>';
+    returnModalButton.setAttribute('aria-label', 'Return to Drawing');
+
     continueModalText = document.createElement('h2');
     continueModalText.id = 'modal-text';
 
@@ -174,13 +326,13 @@ export function initDrawContinueModal(container) {
     drawingPreview.id = 'drawing-preview';
     drawingPreview.classList.add('drawing-preview');
 
-    // Three buttons: Return to Home, Return to Drawing, Yes Proceed
+    // Two buttons: Return to Home, Yes Proceed
     returnToSummaryButton = createButton('modal-return-summary', 'Return to Home');
-    returnModalButton = createButton('modal-return', 'Return to Drawing');
     continueModalButton = createButton('modal-continue', 'Yes, Proceed');
     
-    const buttonGroup = createButtonGroup(returnToSummaryButton, returnModalButton, continueModalButton);
+    const buttonGroup = createButtonGroup(returnToSummaryButton, continueModalButton);
 
+    modalContent.appendChild(returnModalButton);  // Close btn first (for positioning)
     modalContent.appendChild(continueModalText);
     modalContent.appendChild(drawingPreview);
     modalContent.appendChild(buttonGroup);
@@ -222,13 +374,12 @@ export function initDrawResetModal(container) {
 
     resetModalText = document.createElement('h2');
     resetModalText.id = 'reset-modal-text';
-    resetModalText.textContent = 'Are you sure you want to erase all of your current drawing?';
+    resetModalText.textContent = 'Are you sure you want to reset your drawing?';
 
-    resetReturnButton = createButton('modal-return-reset', 'Return to Drawing');
-    resetConfirmButton = createButton('modal-reset-confirm', 'Reset Drawing');
-    
+    resetReturnButton = createButton('modal-return-reset', 'Return to My Drawing');
+    resetConfirmButton = createButton('modal-confirm-reset', 'Yes, Reset');
+
     const buttonGroup = createButtonGroup(resetReturnButton, resetConfirmButton);
-    resetConfirmButton.classList.add('button-danger');
 
     modalContent.appendChild(resetModalText);
     modalContent.appendChild(buttonGroup);
@@ -255,11 +406,10 @@ export function initDeleteEmptyModal(container) {
     deleteEmptyText = document.createElement('h2');
     deleteEmptyText.id = 'delete-empty-text';
 
-    deleteEmptyReturnButton = createButton('delete-empty-return', 'Okay');
-    deleteEmptyContinueButton = createButton('delete-empty-continue', 'Delete & Proceed');
-    
+    deleteEmptyReturnButton = createButton('delete-empty-return', 'Return to Drawing');
+    deleteEmptyContinueButton = createButton('delete-empty-continue', 'Continue Anyway');
+
     const buttonGroup = createButtonGroup(deleteEmptyReturnButton, deleteEmptyContinueButton);
-    deleteEmptyContinueButton.classList.add('button-danger');
 
     modalContent.appendChild(deleteEmptyText);
     modalContent.appendChild(buttonGroup);
@@ -267,15 +417,9 @@ export function initDeleteEmptyModal(container) {
     container.appendChild(deleteEmptyModalEl);
 }
 
-export function showDeleteEmptyModal(text) {
-    deleteEmptyText.textContent = text;
+export function showDeleteEmptyModal(message) {
+    deleteEmptyText.textContent = message || "You haven't made a drawing yet. If you proceed, this area will be deleted.";
     deleteEmptyModalEl.style.display = 'flex';
-
-    if (text === "You haven't made a drawing yet. Please make one before adding another area.") {
-        deleteEmptyContinueButton.style.display = 'none';
-    } else {
-        deleteEmptyContinueButton.style.display = 'flex';
-    }
 }
 
 export function hideDeleteEmptyModal() {
@@ -287,57 +431,42 @@ export function hideDeleteEmptyModal() {
 // ============================================
 
 export function initRegionSelectorModal(container) {
-    // Create overlay
     regionModalOverlay = document.createElement('div');
-    regionModalOverlay.id = 'region-modal-overlay';
-    regionModalOverlay.className = 'region-modal-overlay';
+    regionModalOverlay.className = 'region-modal-overlay modal-overlay';
     regionModalOverlay.style.display = 'none';
     
-    // Create modal
     regionModalEl = document.createElement('div');
-    regionModalEl.id = 'region-modal';
-    regionModalEl.className = 'region-modal';
+    regionModalEl.className = 'region-modal modal-container';
+    regionModalEl.id = 'region-selector-modal';
     
     // Build modal content
     regionModalEl.innerHTML = `
         <div class="region-modal-content">
-            <div class="region-modal-left">
-                <h2 class="region-modal-title">Where would you like to focus?</h2>
-                <p class="region-modal-instruction">Select a body region to zoom in, or view the full body to start.</p>
-                
-                <div class="region-selectors">
-                    <div class="selector-group">
-                        <label for="main-area-select">Body Area</label>
-                        <select id="main-area-select" class="region-select">
-                            <option value="">-- Select Area --</option>
-                            ${Object.keys(REGION_HIERARCHY).map(area => 
-                                `<option value="${area}">${area}</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                    
-                    <div class="selector-group sub-area-group" id="sub-area-group" style="display: none;">
-                        <label for="sub-area-select">Specific Region</label>
-                        <select id="sub-area-select" class="region-select">
-                            <option value="">-- Select Region --</option>
-                        </select>
-                    </div>
+            <h1 class="region-modal-icon modal-icon"><i class="fa-solid fa-location-dot"></i></h1>
+            <h2 class="region-modal-title modal-title">Where Do You Experience Your Pain or Symptom?</h2>
+            <p class="region-modal-instruction">This will focus on the body area you selected. On the next screen, you'll be asked to draw your pain or symptom on that area.</p>
+            
+            <div class="region-selectors">
+                <div class="selector-group">
+                    <label for="main-area-select">Body Area</label>
+                    <select id="main-area-select" class="region-select">
+                        <option value="">-- Select Area --</option>
+                        ${Object.keys(REGION_HIERARCHY).map(area => 
+                            `<option value="${area}">${area}</option>`
+                        ).join('')}
+                    </select>
                 </div>
                 
-                <button id="region-confirm-btn" class="region-confirm-btn" disabled>
-                    Focus on Selected Region
+                <div class="selector-group sub-area-group" id="sub-area-group" style="display: none;">
+                    <label for="sub-area-select">Specific Region</label>
+                    <select id="sub-area-select" class="region-select">
+                        <option value="">-- Select Region --</option>
+                    </select>
+                </div>
+                
+                <button id="region-confirm-btn" class="region-confirm-btn modal-btn-primary" disabled>
+                    Focus on This Region
                 </button>
-            </div>
-            
-            <div class="region-modal-divider"></div>
-            
-            <div class="region-modal-right">
-                <div class="full-body-option">
-                    <button id="full-body-btn" class="full-body-btn">
-                        View Full Body
-                    </button>
-                    <p class="full-body-hint">You can later focus on a specific area using "Change the View"</p>
-                </div>
             </div>
         </div>
     `;
@@ -399,11 +528,6 @@ function setupRegionModalEvents() {
     regionConfirmBtn.addEventListener('click', () => {
         const cameraRegion = mapToCameraRegion(selectedMainArea, selectedSubArea);
         selectRegion(cameraRegion);
-    });
-    
-    // Full body button
-    fullBodyBtn.addEventListener('click', () => {
-        selectRegion('Entire Body');
     });
 }
 
@@ -511,7 +635,7 @@ export function createRegionSelectorFooterButton() {
     const button = document.createElement('button');
     button.id = 'region-selector-footer-btn';
     button.className = 'region-selector-footer-btn button button-secondary';
-    button.innerHTML = '<span>Change the View</span>';
+    button.innerHTML = '<span>Select Body Region</span>';
     
     button.addEventListener('click', () => {
         showRegionSelectorModal();
@@ -533,7 +657,8 @@ export function getModalElements(modalType) {
         },
         reset: { resetReturnButton, resetConfirmButton },
         deleteEmpty: { deleteEmptyReturnButton, deleteEmptyContinueButton },
-        regionSelector: { mainAreaSelect, subAreaSelect, regionConfirmBtn, fullBodyBtn }
+        regionSelector: { mainAreaSelect, subAreaSelect, regionConfirmBtn, fullBodyBtn },
+        onboarding: { onboardingStartButton }
     };
     return modalMap[modalType] || {};
 }

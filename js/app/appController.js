@@ -230,9 +230,15 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   }
 
   // Generate preview image of current drawing
-  function generateDrawingPreview() {
+  async function generateDrawingPreview() {
+    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+
+    if (cameraUtils && currentInstance?.drawnRegionNames?.size > 0) {
+      await cameraUtils.focusOnDrawing(currentInstance.drawnRegionNames);
+    }
+
     const previewWidth = 400;
-    const previewHeight = 350;
+    const previewHeight = 400;
     const originalSize = renderer.getSize(new THREE.Vector2());
     const originalPixelRatio = renderer.getPixelRatio();
 
@@ -241,6 +247,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     renderer.render(scene, camera);
     const preview = renderer.domElement.toDataURL('image/png');
 
+    // Return to original renderer size
     renderer.setSize(originalSize.x, originalSize.y, false);
     renderer.setPixelRatio(originalPixelRatio);
     renderer.render(scene, camera);
@@ -512,7 +519,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   }
 
   // "Done Drawing" button logic - shows confirmation modal with 3 options
-  drawing.continueButton.addEventListener('click', () => {
+  drawing.continueButton.addEventListener('click', async () => {
     if (AppState.isEditingFromSurvey) {
       // Editing from survey - return to survey
       if (isDrawingBlank()) {
@@ -528,8 +535,8 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     }
 
     // Normal drawing mode - generate preview and show confirmation modal
-    const previewDataURL = generateDrawingPreview();
     const hasDrawing = !isDrawingBlank();
+    const previewDataURL = await generateDrawingPreview();
 
     if (hasDrawing) {
       // Has drawing - show modal with all 3 buttons
@@ -691,10 +698,9 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     renderer.render(scene, camera);
   }
 
-  // UPDATED: Survey navigation buttons for new workflow
   function updateSurveyNavigationButtons() {
-    // In new workflow, we only show "Complete" button to return to summary
-    survey.completeButton.textContent = 'Complete & Return to Summary';
+    // In new workflow, we only show "Done" button to return to summary
+    survey.completeButton.textContent = 'Done';
     survey.completeButton.style.background = '';
     survey.completeButton.classList.add('button-success');
   }

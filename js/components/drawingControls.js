@@ -11,10 +11,8 @@ export function createDrawingControls(drawingControlsPanel) {
     drawButton.id = 'draw-button';
     drawButton.classList.add('button', 'button-primary', 'button-draw-control');
     drawButton.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"></path>
-    </svg>
-    <span>Draw</span>
+        <i class="fa-solid fa-brush"></i>
+        <span>Draw</span>
     `;
 
     // Erase Button
@@ -22,11 +20,7 @@ export function createDrawingControls(drawingControlsPanel) {
     eraseButton.id = 'erase-button';
     eraseButton.classList.add('button', 'button-secondary', 'button-draw-control');
     eraseButton.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
-            <path d="M22 21H7"></path>
-            <path d="m5 11 9 9"></path>
-        </svg>
+        <i class="fa-solid fa-eraser"></i>
         <span>Erase</span>
     `;
 
@@ -34,10 +28,7 @@ export function createDrawingControls(drawingControlsPanel) {
     const resetDrawingButton = document.createElement('button');
     resetDrawingButton.classList.add('button', 'button-secondary', 'button-draw-control');
     resetDrawingButton.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M1 4v6h6"></path>
-            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-        </svg>
+        <i class="fa-solid fa-arrow-rotate-left"></i>
         <span>Erase All</span>
     `;
 
@@ -45,30 +36,30 @@ export function createDrawingControls(drawingControlsPanel) {
     const divider = document.createElement('hr');
     divider.classList.add('divider');
 
-    // Brush Size Controls
-    const brushSizeLabel = document.createElement('h2');
-    brushSizeLabel.textContent = 'Brush Size';
-
     // Container for the vertical slider
     const sliderContainer = document.createElement('div');
     sliderContainer.classList.add('vertical-slider-container')
 
+    // Brush Size Controls
+    const brushSizeLabel = document.createElement('h2');
+    brushSizeLabel.textContent = 'Marker Size';
+
+    // Wrapper for the slider
+    const sliderWrapper = document.createElement('div');
+    sliderWrapper.classList.add('slider-wrapper')
+
     // Brush Size Slider
     const brushSizeSlider = document.createElement('input');
     brushSizeSlider.type = 'range';
-    brushSizeSlider.min = '1';
-    brushSizeSlider.max = '31';
-    brushSizeSlider.step = '2';
+    brushSizeSlider.min = '5';
+    brushSizeSlider.max = '30';
+    brushSizeSlider.step = '1';
     brushSizeSlider.value = AppState.brushRadius;
     brushSizeSlider.classList.add('vertical-slider');
 
-    // Size Indicator Value
-    const sizeIndicator = document.createElement('div');
-    sizeIndicator.classList.add('size-indicator');
-    sizeIndicator.textContent = brushSizeSlider.value;
-
-    sliderContainer.appendChild(brushSizeSlider);
-    sliderContainer.appendChild(sizeIndicator);
+    sliderContainer.appendChild(brushSizeLabel);
+    sliderWrapper.appendChild(brushSizeSlider);
+    sliderContainer.appendChild(sliderWrapper);
 
     // Event Listeners
     drawButton.addEventListener('click', () => {
@@ -77,7 +68,7 @@ export function createDrawingControls(drawingControlsPanel) {
         drawButton.classList.add('button-primary');
         eraseButton.classList.remove('button-primary');
         eraseButton.classList.add('button-secondary');
-        brushSizeLabel.textContent = 'Brush Size';
+        brushSizeLabel.textContent = 'Marker Size';
     });
 
     eraseButton.addEventListener('click', () => {
@@ -116,17 +107,48 @@ export function createDrawingControls(drawingControlsPanel) {
         }
     });
 
+    // Create a style element for dynamic thumb sizing
+    const thumbStyleSheet = document.createElement('style');
+    thumbStyleSheet.id = 'brush-thumb-style';
+    document.head.appendChild(thumbStyleSheet);
+
+    function updateThumbSize(value) {
+    
+        const minBrush = 5, maxBrush = 30;
+        const minThumb = 18, maxThumb = 30;
+        
+        // Linear interpolation: 5→18, 30→30
+        const t = (value - minBrush) / (maxBrush - minBrush);
+        const thumbSize = minThumb + t * (maxThumb - minThumb);
+        
+        thumbStyleSheet.textContent = `
+            .vertical-slider::-webkit-slider-thumb {
+                width: ${thumbSize}px !important;
+                height: ${thumbSize}px !important;
+                border: 2px solid var(--dark-blue) !important;
+                box-sizing: border-box;
+            }
+            .vertical-slider::-moz-range-thumb {
+                width: ${thumbSize}px !important;
+                height: ${thumbSize}px !important;
+                border: 2px solid var(--dark-blue) !important;
+                box-sizing: border-box;
+            }
+        `;
+    }
+
     brushSizeSlider.addEventListener('input', (e) => {
         AppState.brushRadius = parseInt(e.target.value);
-        sizeIndicator.textContent = e.target.value;
+        updateThumbSize(AppState.brushRadius);
     });
+
+    updateThumbSize(brushSizeSlider.value);
 
     // Assemble the container
     drawingToolsContainer.appendChild(drawButton);
     drawingToolsContainer.appendChild(eraseButton);
     drawingToolsContainer.appendChild(resetDrawingButton);
     drawingToolsContainer.appendChild(divider);
-    drawingToolsContainer.appendChild(brushSizeLabel);
     drawingToolsContainer.appendChild(sliderContainer);
 
     // Append to panel

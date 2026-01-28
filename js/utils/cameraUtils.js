@@ -521,7 +521,7 @@ export default class CameraUtils {
         // Animate to default view
         const targetPosition = new THREE.Vector3(0, 1, this.defaultDistance);
         this.controls.target.copy(this.defaultPivot);
-        this.animateCamera(targetPosition, this.defaultPivot.clone(), 600);
+        return this.animateCamera(targetPosition, this.defaultPivot.clone(), 600);
     }
 
     // ==========================================
@@ -616,11 +616,7 @@ export default class CameraUtils {
         );
         
         // Update controls target to always look at the adjusted center
-        if (animate) {
-            this.animateCamera(targetPosition, center, 400);
-        } else {
-            this.animateCamera(targetPosition, center, 600);
-        }
+        return this.animateCamera(targetPosition, center, animate ? 400 : 600);
     }
     
     // Get lateral (X), vertical (Y), and posterior (Z) offset for extremity regions
@@ -671,41 +667,47 @@ export default class CameraUtils {
 
     // Smooth camera animation with spherical interpolation for rotation
     animateCamera(targetPosition, targetLookAt, duration = 500) {
-        if (this.isAnimating) return;
-        
-        const startPosition = this.camera.position.clone();
-        const startTarget = this.controls.target.clone();
-        const startTime = Date.now();
+        return new Promise((resolve) => {
+            if (this.isAnimating) {
+                resolve();
+                return;
+            }
 
-        this.isAnimating = true;
-        
-        const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
+            const startPosition = this.camera.position.clone();
+            const startTarget = this.controls.target.clone();
+            const startTime = Date.now();
+
+            this.isAnimating = true;
             
-            // Ease in-out curve
-            const t = 0.5 - Math.cos(progress * Math.PI) / 2;
-            
-            // Interpolate position and target
-            this.camera.position.lerpVectors(startPosition, targetPosition, t);
-            this.controls.target.lerpVectors(startTarget, targetLookAt, t);
-            
-            // Make sure camera looks at target
-            this.camera.lookAt(this.controls.target);
-            this.controls.update();
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                this.isAnimating = false;
-                this.camera.position.copy(targetPosition);
-                this.controls.target.copy(targetLookAt);
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Ease in-out curve
+                const t = 0.5 - Math.cos(progress * Math.PI) / 2;
+                
+                // Interpolate position and target
+                this.camera.position.lerpVectors(startPosition, targetPosition, t);
+                this.controls.target.lerpVectors(startTarget, targetLookAt, t);
+                
+                // Make sure camera looks at target
                 this.camera.lookAt(this.controls.target);
                 this.controls.update();
-            }
-        };
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    this.isAnimating = false;
+                    this.camera.position.copy(targetPosition);
+                    this.controls.target.copy(targetLookAt);
+                    this.camera.lookAt(this.controls.target);
+                    this.controls.update();
+                    resolve();
+                }
+            };
         
-        animate();
+            animate();
+        });
     }
     
     // Public method to move camera
@@ -830,6 +832,20 @@ export default class CameraUtils {
     classifyRegionOctant(regionName) {
         const lower = regionName.toLowerCase();
         
+        // Determine left/right from suffix
+        const isLeft = regionName.endsWith('.L');
+        const isRight = regionName.endsWith('.R');
+        
+        // Determine medial vs lateral orientation
+        // Medial = facing toward body midline (inner surface)
+        // Lateral = facing away from body midline (outer surface)
+        const isMedial = lower.includes('medial') && !lower.includes('anteromedial') && !lower.includes('posteromedial');
+        const isAnteromedial = lower.includes('anteromedial');
+        const isPosteromedial = lower.includes('posteromedial');
+        const isLateral = lower.includes('lateral') && !lower.includes('anterolateral') && !lower.includes('posterolateral');
+        const isAnterolateral = lower.includes('anterolateral');
+        const isPosterolateral = lower.includes('posterolateral');
+        
         // Determine front/back based on anatomical naming conventions
         const isAnterior = lower.includes('anterior') || lower.includes('volar') || 
                           lower.includes('pubic') || lower.includes('chest') ||
@@ -841,34 +857,51 @@ export default class CameraUtils {
                            lower.includes('psis') || lower.includes('planto') ||
                            lower.includes('hand_dorsal') || lower.includes('segment_dorsal');
         
-        // Determine left/right from suffix
-        const isLeft = regionName.endsWith('.L');
-        const isRight = regionName.endsWith('.R');
+        // === MEDIAL REGIONS: View from OPPOSITE side ===
+        // Left body part's medial surface faces right → view from right
+        // Right body part's medial surface faces left → view from left
         
-        // Determine if it's a lateral (side-facing) region
-        const isLateral = lower.includes('lateral') && !lower.includes('anterolateral') && !lower.includes('posterolateral');
-        const isAnterolateral = lower.includes('anterolateral');
-        const isPosterolateral = lower.includes('posterolateral');
+        if (isMedial) {
+            // Pure medial regions -> view from opposite side
+            if (isLeft) return 'right';      // Left medial faces right
+            if (isRight) return 'left';      // Right medial faces left
+        }
         
-        // Classify into octant
+        if (isAnteromedial) {
+            // Anteromedial -> diagonal front view from opposite side
+            if (isLeft) return 'front-right';   // Left anteromedial → view from front-right
+            if (isRight) return 'front-left';   // Right anteromedial → view from front-left
+        }
+        
+        if (isPosteromedial) {
+            // Posteromedial -> diagonal back view from opposite side
+            if (isLeft) return 'back-right';    // Left posteromedial → view from back-right
+            if (isRight) return 'back-left';    // Right posteromedial → view from back-left
+        }
+        
+        // === LATERAL REGIONS: View from SAME side ===
+        // Left body part's lateral surface faces left → view from left
+        // Right body part's lateral surface faces right → view from right
+        
         if (isLateral) {
-            // Pure lateral regions -> side view
+            // Pure lateral regions -> side view from same side
             if (isLeft) return 'left';
             if (isRight) return 'right';
         }
         
         if (isAnterolateral) {
-            // Anterolateral -> diagonal front-side view
+            // Anterolateral -> diagonal front-side view from same side
             if (isLeft) return 'front-left';
             if (isRight) return 'front-right';
         }
         
         if (isPosterolateral) {
-            // Posterolateral -> diagonal back-side view
+            // Posterolateral -> diagonal back-side view from same side
             if (isLeft) return 'back-left';
             if (isRight) return 'back-right';
         }
         
+        // === PURE ANTERIOR/POSTERIOR (no medial/lateral) ===
         if (isPosterior) {
             if (isLeft) return 'back-left';
             if (isRight) return 'back-right';
@@ -881,9 +914,10 @@ export default class CameraUtils {
             return 'front';
         }
         
-        // Default for neutral/medial regions
-        if (isLeft) return 'left';
-        if (isRight) return 'right';
+        // === DEFAULT: Neutral regions without clear orientation ===
+        // For regions like 'groin', 'perinium', etc. - default to same-side view
+        if (isLeft) return 'front-left';
+        if (isRight) return 'front-right';
         return 'front';
     }
 
@@ -946,30 +980,27 @@ export default class CameraUtils {
     // Focus camera on a drawing based on drawn regions
     focusOnDrawing(drawnRegionNames) {
         if (!drawnRegionNames || drawnRegionNames.size === 0) {
-            this.resetView();
-            return;
+            return this.resetView();
         }
 
         const dominantBodyPart = this.findDominantBodyPart(drawnRegionNames);
         if (!dominantBodyPart) {
-            this.resetView();
-            return;
+            return this.resetView();
         }
+
         console.log("Dominant body part:", dominantBodyPart);
 
         const orientation = this.analyzeDrawingOrientation(drawnRegionNames);
-        console.log("Drawing orientation:", orientation.octant, "angle:", (orientation.angle * 180 / Math.PI).toFixed(0) + "°");
+        // console.log("Drawing orientation:", orientation.octant, "angle:", (orientation.angle * 180 / Math.PI).toFixed(0) + "°");
         
         const regions = this.regionMap[dominantBodyPart];
         if (!regions) {
-            this.resetView();
-            return;
+            return this.resetView();
         }
 
         const { center, box } = this.calculateRegionBounds(regions);
         if (!center || !box) {
-            this.resetView();
-            return;
+            return this.resetView();
         }
 
         this.setFocus(dominantBodyPart, center, box);
@@ -977,7 +1008,7 @@ export default class CameraUtils {
         // Set rotation angle directly from orientation analysis
         this.rotationAngle = orientation.angle;
 
-        this.applyRotation(true);
+        return this.applyRotation(true);
     }
     
     // Cleanup
