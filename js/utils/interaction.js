@@ -120,6 +120,7 @@ export function setupCursorManagement() {
 
     const updateIcon = () => {
        cursorIconEl.innerHTML = AppState.isErasing ? getEraseIcon(eraseColor) : getDrawIcon(drawColor);
+       cursorIconEl.classList.toggle('eraser-mode', AppState.isErasing);
     }
 
     disableCursorManagement();

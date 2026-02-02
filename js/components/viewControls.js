@@ -18,16 +18,22 @@ export function showRegionSelector() {
  * Setup region selector for the drawing view
  * - Sets up the callback for region selection
  * - Shows the modal
- * 
+ *
  * @param {HTMLElement} buttonContainer - The container to add the button to
  * @param {boolean} showModal - Whether to show the modal immediately (default: true)
+ * @param {Function} onRegionSelected - Optional callback to run after region is selected
  */
-export function setupRegionSelectorForDrawing(buttonContainer, showModal = true) {
+export function setupRegionSelectorForDrawing(buttonContainer, showModal = true, onRegionSelected = null) {
     // Set callback for region selection
     setOnRegionSelected((regionName) => {
         console.log('Region selected:', regionName);
         // Store selected region in AppState
         AppState.selectedRegion = regionName;
+
+        // Call the optional callback (e.g., to update status bar)
+        if (onRegionSelected) {
+            onRegionSelected(regionName);
+        }
     });
     
     // Add focus button (if not already present)

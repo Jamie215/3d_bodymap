@@ -293,7 +293,7 @@ function setStage(stage) {
       slotFooter.appendChild(drawing.drawingFooter);
       
       // Setup region selector - adds button to footerLeft
-      setupRegionSelectorForDrawing(drawing.footerLeft, !AppState.isEditingFromSurvey);
+      setupRegionSelectorForDrawing(drawing.footerLeft, !AppState.isEditingFromSurvey, drawing.updateStatusBar);
 
       // Close any open drawers from other stages
       const scrim = document.body.querySelector('.drawer-scrim');

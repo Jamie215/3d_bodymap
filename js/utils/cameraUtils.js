@@ -588,7 +588,7 @@ export default class CameraUtils {
     // Apply the current rotation angle - camera orbits around focus center
     applyRotation(animate = true) {
         const center = this.focusCenter ? this.focusCenter.clone() : this.defaultPivot.clone();
-        const distance = this.optimalDistance || this.defaultDistance;
+        const distance = (this.optimalDistance || this.defaultDistance) * this.getDistanceMultiplier(this.focusedRegionName);
         
         // Get elevation angle for special regions
         const elevationAngle = this.getElevationAngle(this.focusedRegionName || '');
@@ -614,6 +614,13 @@ export default class CameraUtils {
             center.y + y,
             center.z + z
         );
+        
+        // Aggressive near clipping for upper arm front view to hide torso
+        const isFrontView = Math.abs(this.rotationAngle) < Math.PI / 4;
+        if ((this.focusedRegionName?.includes('Upper Arm') || this.focusedRegionName?.includes('Elbow') )&& isFrontView) {
+            this.camera.near = distance * 0.1;
+            this.camera.updateProjectionMatrix();
+        }
         
         // Update controls target to always look at the adjusted center
         return this.animateCamera(targetPosition, center, animate ? 400 : 600);
@@ -659,6 +666,12 @@ export default class CameraUtils {
         }
         
         return { x: 0, y: 0, z: 0 };
+    }
+
+    // Get distance multiplier for specific regions/views (default 1.0)
+    getDistanceMultiplier(regionName) {
+        // Reserved for future region-specific zoom adjustments
+        return 1.0;
     }
 
     // ==========================================

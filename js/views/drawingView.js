@@ -28,6 +28,8 @@ export function createDrawingViewElements(controls) {
         const current = AppState.currentDrawingIndex + 1;
         const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
         const colour = currentInstance?.colour;
+        console.log("under updateStatusBar, selectedRegion:", AppState.selectedRegion);
+        const selectedRegion = AppState.selectedRegion || 'Entire Body';
 
         const hexToRgb = (hex) => {
             const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -55,7 +57,7 @@ export function createDrawingViewElements(controls) {
                 <div class="status-bar-content">
                     <span class="status-title"><i class="fa-solid fa-paintbrush"></i> Draw your pain or symptom area on the body</span>
                     <span class="status-badge" style="color: ${colour}; background-color: ${bgColour};">
-                        Drawing Area #${current}
+                        You are currently viewing: <strong>${selectedRegion}</strong>
                     </span>
                 </div>
             `;
