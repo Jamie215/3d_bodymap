@@ -282,29 +282,6 @@ export function setOnOnboardingComplete(callback) {
     onOnboardingCompleteCallback = callback;
 }
 
-/**
- * Check if onboarding should be shown (hasn't been shown before)
- */
-export function shouldShowOnboarding() {
-    try {
-        return !localStorage.getItem(ONBOARDING_SHOWN_KEY);
-    } catch (e) {
-        // If localStorage is not available, show onboarding
-        return true;
-    }
-}
-
-/**
- * Reset onboarding state (useful for testing or new sessions)
- */
-export function resetOnboardingState() {
-    try {
-        localStorage.removeItem(ONBOARDING_SHOWN_KEY);
-    } catch (e) {
-        console.warn('Could not reset onboarding state:', e);
-    }
-}
-
 // ============================================
 // CONTINUE/SURVEY MODAL (with 3 buttons)
 // ============================================

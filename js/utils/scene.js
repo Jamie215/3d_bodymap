@@ -39,16 +39,3 @@ export function createScene(canvasContainer) {
 
     return { scene, camera, renderer, controls };
 }
-
-export function resizeRenderer(camera, renderer, container) {
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    
-    // Update camera aspect ratio
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    
-    // Update renderer size
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
-}

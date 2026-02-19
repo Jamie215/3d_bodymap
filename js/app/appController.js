@@ -70,22 +70,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   // ============================================================================
   // HELPER FUNCTIONS
   // ============================================================================
-
-  function hasAnyValidDrawings() {
-    if (AppState.drawingInstances.length === 0) return false;
-    
-    const originalIndex = AppState.currentDrawingIndex;
-    
-    const hasValid = AppState.drawingInstances.some((instance, idx) => {
-      AppState.currentDrawingIndex = idx;
-      const blank = isDrawingBlank();
-      return !blank;
-    });
-    
-    AppState.currentDrawingIndex = originalIndex;
-    return hasValid;
-  }
-
   function deleteDrawingInstance(index) {
     if (index < 0 || index >= AppState.drawingInstances.length) return;
 
@@ -186,15 +170,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     }
     
     renderer.render(scene, camera);
-  }
-
-  function updateCurrentTexture() {
-    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-    if (AppState.skinMesh && currentInstance) {
-      AppState.skinMesh.material.map = currentInstance.texture;
-      AppState.skinMesh.material.needsUpdate = true;
-      currentInstance.texture.needsUpdate = true;
-    }
   }
   
   function createCombinedTexture() {
@@ -613,7 +588,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     if (!surveyInstance) {
       surveyInstance = new SurveyKO.Model(areaSurveyJson);
-      survey.css = { ...survey.css, root: "sv-root-modern sv-root-plain" };
       surveyInstance.showTitle = false;
       surveyInstance.validationEnabled = false;
 
@@ -933,7 +907,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
                 if (textCell && !textCell.querySelector('.medication-description')) {                
                   const desc = document.createElement('div');
                   desc.className = 'medication-description';
-                  desc.style.cssText = 'font-size: 1rem; color: #6b7280; font-weight: normal; margin-top: 0.25rem; font-style: italic; line-height: 1.4; display: block;';
                   desc.textContent = descriptions[rowValue];
                   textCell.appendChild(desc);
                 } 
@@ -996,7 +969,8 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
           coverage: coverage ? {
               overallPercentage: coverage.overall.percentage,
               coloredArea: coverage.overall.coloredArea,
-              regionBreakdown: coverage.regions
+              regionBreakdown: coverage.regions,
+              bodyPartBreakdown: coverage.bodyParts
           } : null
       };
     });

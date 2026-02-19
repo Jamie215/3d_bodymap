@@ -86,8 +86,6 @@ export function enableInteraction(renderer, camera, controls) {
             pointerDown = false;
             AppState.isDrawing = false;
             controls.enabled = true;
-        } else {
-
         }
     };
 
@@ -161,8 +159,9 @@ export function disableCursorManagement() {
     if (cursorHandlers.mousemove)  { canvasPanel.removeEventListener('mousemove', cursorHandlers.mousemove); cursorHandlers.mousemove  = null; }
     if (cursorHandlers.mouseleave) { canvasPanel.removeEventListener('mouseleave', cursorHandlers.mouseleave); cursorHandlers.mouseleave = null; }
 
-    const drawBtn = document.querySelector('.draw-button');
-    const eraseBtn = document.querySelector('.erase-button');
+    const drawBtn = document.getElementById('draw-button');
+    const eraseBtn = document.getElementById('erase-button');
+    
     if (drawBtn && cursorHandlers.drawBtnClick) {
         drawBtn.removeEventListener('click', cursorHandlers.drawBtnClick);
         cursorHandlers.drawBtnClick = null;

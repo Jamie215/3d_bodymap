@@ -5,7 +5,10 @@ import texturePool from '../utils/textureManager.js'
 const raycaster = new THREE.Raycaster();
 const mirroredRaycaster = new THREE.Raycaster();
 
-const colourPalette = d3.schemeObservable10;
+const colourPalette = [
+    '#4269d0', '#efb118', '#ff725c', '#6cc5b0', '#03831c',
+    '#ff8ab7', '#a463f2', '#97bbf5', '#9c6b4e', '#333399'
+];
 
 let idToRegionMap = null;
 let regionToIdMap = null;
@@ -309,14 +312,7 @@ function eraseFromRegionMap(hit, instance, radius, regionName) {
 export function updateInstanceColors() {
     AppState.drawingInstances.forEach((instance, index) => {
         const newColor = colourPalette[index % colourPalette.length];
-        
-        // Special case for 10th color (index 9)
-        if (index % colourPalette.length === 9) {
-            instance.colour = '#333399';
-        } else {
-            instance.colour = newColor;
-        }
-
+        instance.colour = newColor;
         redrawInstanceWithNewColor(instance);
     });
 }
@@ -381,16 +377,6 @@ export function addNewDrawingInstance() {
         uvDrawingData: null,
         colour: colourPalette[AppState.drawingInstances.length % colourPalette.length],
     };
-
-    // Change the 5th colour from the colourPalette
-    if (AppState.drawingInstances.length % colourPalette.length === 4) {
-        newInstance.colour = '#03831c';
-    }
-    
-    // Change the 10th colour from the colourPalette
-    if (AppState.drawingInstances.length % colourPalette.length === 9) {
-        newInstance.colour = '#333399';
-    }
 
     // Overlay persistent base drawing
     if (AppState.baseTextureCanvas) {

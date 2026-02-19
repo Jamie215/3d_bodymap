@@ -1115,6 +1115,16 @@ canvas {
   transition: all 0.2s ease;
 }
 
+.vertical-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: var(--primary-color);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
 /* =========================
    View Controls
 ========================= */
@@ -1296,6 +1306,15 @@ input[type="range"]::-webkit-slider-thumb {
   width: 22px;
   height: 22px;
   background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: var(--primary-color);
+  border: none;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -2244,6 +2263,37 @@ input[type="range"]::-webkit-slider-thumb {
   border-bottom: none;
 }
 
+/* Matrix answer columns – fixed equal width */
+.sd-table__cell.sd-table__cell--header {
+  width: 20% !important;
+}
+
+.sd-table-wrapper,
+.sd-matrix,
+.sd-question--table {
+  overflow: visible !important;
+}
+
+/* Sticky matrix header row */
+.sd-matrix__table thead {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Dynamic medication descriptions injected below matrix rows */
+.medication-description {
+  font-size: var(--font-body-small);
+  color: var(--dark-grey);
+  font-weight: normal;
+  margin-top: var(--space-2xs);
+  font-style: italic;
+  line-height: 1.4;
+  display: block;
+}
+
 /* =========================
    Survey Input Styling
 ========================= */
@@ -2968,6 +3018,92 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* =========================
+   Loading Progress Indicator
+   (was inline in modelLoader.js)
+========================= */
+
+@keyframes loading-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+#loading-progress-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  padding: var(--space-xl);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  min-width: 300px;
+}
+
+#loading-progress-container .progress-title {
+  color: var(--secondary-color);
+  font-family: inherit;
+  font-size: var(--font-title-small);
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+  text-align: center;
+}
+
+#loading-progress-container .progress-bar-container {
+  width: 100%;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  position: relative;
+}
+
+#loading-progress-container .progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), #029ffd);
+  border-radius: var(--border-radius-lg);
+  transition: width 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+#loading-progress-container .progress-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.3),
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 2s infinite;
+}
+
+#loading-progress-container .progress-text {
+  color: var(--dark-grey);
+  font-family: inherit;
+  font-size: var(--font-body-small);
+  text-align: center;
+  margin-top: var(--space-sm);
+}
+
+#loading-progress-container .progress-percentage {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+#loading-progress-container .loading-dots {
+  display: inline-block;
+  animation: loading-pulse 1.5s infinite;
+}
+
+/* =========================
    Performance Optimizations
 ========================= */
 
@@ -3509,6 +3645,25 @@ input[type="range"]::-webkit-slider-thumb {
   justify-content: center;
   gap: var(--space-sm);
   font-size: var(--font-body-medium);
+}
+
+/* Drawing footer responsive – tablet */
+@media (max-width: 768px) {
+  #footer-drawing {
+    padding: var(--space-sm) var(--space-md);
+  }
+}
+
+/* Drawing footer responsive – small mobile */
+@media (max-width: 480px) {
+  #footer-drawing {
+    gap: var(--space-sm);
+  }
+
+  #footer-drawing .button {
+    padding: var(--space-sm);
+    font-size: var(--font-body-small);
+  }
 }
 
 /* Done Drawing button */

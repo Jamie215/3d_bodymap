@@ -493,17 +493,6 @@ export default class CameraUtils {
     resetRotation() {
         this.rotationAngle = 0;
     }
-    
-    // Get rotation angle in degrees (for debugging/display)
-    getRotationAngleDegrees() {
-        return (this.rotationAngle * 180 / Math.PI);
-    }
-    
-    // Set rotation angle from degrees
-    setRotationAngleDegrees(degrees) {
-        this.rotationAngle = degrees * Math.PI / 180;
-        this.normalizeAngle();
-    }
 
     // Reset to default full body view
     resetView() {
@@ -588,7 +577,7 @@ export default class CameraUtils {
     // Apply the current rotation angle - camera orbits around focus center
     applyRotation(animate = true) {
         const center = this.focusCenter ? this.focusCenter.clone() : this.defaultPivot.clone();
-        const distance = (this.optimalDistance || this.defaultDistance) * this.getDistanceMultiplier(this.focusedRegionName);
+        const distance = (this.optimalDistance || this.defaultDistance);
         
         // Get elevation angle for special regions
         const elevationAngle = this.getElevationAngle(this.focusedRegionName || '');
@@ -666,12 +655,6 @@ export default class CameraUtils {
         }
         
         return { x: 0, y: 0, z: 0 };
-    }
-
-    // Get distance multiplier for specific regions/views (default 1.0)
-    getDistanceMultiplier(regionName) {
-        // Reserved for future region-specific zoom adjustments
-        return 1.0;
     }
 
     // ==========================================
@@ -780,7 +763,7 @@ export default class CameraUtils {
     // ==========================================
     // UTILITY METHODS
     // ==========================================
-
+    
     // Get current focus state
     getFocusState() {
         return {

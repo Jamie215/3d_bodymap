@@ -11,10 +11,6 @@ export function createDrawingViewElements(controls) {
     const drawingControlsPanel = document.createElement('div');
     drawingControlsPanel.id = 'drawing-control-panel';
 
-    // Canvas panel
-    const drawingCanvasPanel = document.createElement('div');
-    drawingCanvasPanel.id = 'drawing-canvas-panel';
-
     // Status bar (header content)
     const statusBar = document.createElement('div');
     statusBar.id = 'drawing-status-bar';
@@ -28,7 +24,6 @@ export function createDrawingViewElements(controls) {
         const current = AppState.currentDrawingIndex + 1;
         const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
         const colour = currentInstance?.colour;
-        console.log("under updateStatusBar, selectedRegion:", AppState.selectedRegion);
         const selectedRegion = AppState.selectedRegion || 'Entire Body';
 
         const hexToRgb = (hex) => {
@@ -96,75 +91,17 @@ export function createDrawingViewElements(controls) {
     drawingFooter.appendChild(footerCenter);
     drawingFooter.appendChild(footerRight);
 
-    // Drawing nav container (legacy, for compatibility)
-    const drawingNavContainer = document.createElement('div');
-    drawingNavContainer.classList.add('drawing-nav');
-    drawingNavContainer.style.display = 'none';
-
-    // Cancel button (hidden, but kept for appController compatibility)
-    const cancelButton = document.createElement('button');
-    cancelButton.id = 'cancel-drawing';
-    cancelButton.style.display = 'none';
-
     // Initialize drawing controls
     createDrawingControls(drawingControlsPanel);
-
-    // Add styles for the layout
-    const style = document.createElement('style');
-    style.textContent = `
-        /* Drawing footer specific styles */
-        #footer-drawing {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            padding: var(--space-md, 1rem) var(--space-lg, 1.5rem);
-            gap: var(--space-md, 1rem);
-        }
-
-        #footer-drawing .footer-left,
-        #footer-drawing .footer-right {
-            display: flex;
-            align-items: center;
-        }
-
-        /* Tablet and mobile adjustments */
-        @media (max-width: 768px) {
-            #footer-drawing {
-                padding: var(--space-sm, 0.75rem) var(--space-md, 1rem);
-            }
-        }
-
-        @media (max-width: 480px) {
-            #footer-drawing {
-                flex-direction: row;
-                gap: var(--space-sm, 0.5rem);
-            }
-            
-            #footer-drawing .button {
-                padding: var(--space-sm, 0.75rem);
-                font-size: 0.85rem;
-            }
-        }
-    `;
-    
-    // Only add styles if not already present
-    if (!document.getElementById('drawing-view-styles')) {
-        style.id = 'drawing-view-styles';
-        document.head.appendChild(style);
-    }
 
     return {
         root: drawingView,
         drawingControlsPanel,      // Goes in slot-left
-        drawingCanvasPanel,
         headerContent,             // Goes in slot-header (just status bar)
         footerLeft,                // Container for "Change the View" button
         footerRight,               // Container for "Done Drawing" button
         continueButton,            // Main action button (Done Drawing)
-        cancelButton,              // Hidden, for compatibility
         drawingFooter,             // Footer element
-        drawingNavContainer,       // Legacy, hidden
         statusBar,
         updateStatusBar
     };
