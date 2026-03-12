@@ -112,16 +112,23 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
 
                         const textureId = `model-${name}-skin`;
                         const { canvas, context, threeTexture } = texturePool.getTexture(textureId);
+
+                        // Upload texture
+                        const aoTexture = new THREE.TextureLoader().load('../assets/body_ao.png');
+                        aoTexture.flipY = false;
                         
                         // Use MeshLambertMaterial - softer lighting, good balance
                         child.material = new THREE.MeshLambertMaterial({
                             map: threeTexture,
+                            aoMap: aoTexture,
+                            aoMapIntensity: 1.0,
                             transparent: true,
                             opacity: 1.0,
                             color: 0xdddddd,  // Light gray base tint
                             emissive: 0x333333,  // Slight self-illumination to lift shadows
                             emissiveIntensity: 1.0
                         });
+                        child.geometry.setAttribute('uv2', child.geometry.getAttribute('uv')); // Ensure AO map uses correct UVs
                         child.material.needsUpdate = true;
                         child.userData = { 
                             canvas, 
@@ -142,7 +149,7 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                         child.material.depthWrite = false;
                         child.material.needsUpdate = true;
                     }
-                    
+
                     if (child.name === 'Hair') {
                         child.renderOrder = 2;
                         child.material = child.material.clone();

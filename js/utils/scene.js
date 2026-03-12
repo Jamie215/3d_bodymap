@@ -13,7 +13,7 @@ export function createScene(canvasContainer) {
     canvasContainer.appendChild(renderer.domElement);
 
     // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x666666, 3));
 
     const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
     dirLight1.position.set(5, 10, 7.5);
