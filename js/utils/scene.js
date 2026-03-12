@@ -1,3 +1,5 @@
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
 export function createScene(canvasContainer) {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
@@ -11,18 +13,18 @@ export function createScene(canvasContainer) {
     canvasContainer.appendChild(renderer.domElement);
 
     // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
     dirLight1.position.set(5, 10, 7.5);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+    const dirLight2 = new THREE.DirectionalLight(0xffffff, 1.5);
     dirLight2.position.set(-10, 10, -10);
     scene.add(dirLight2);
 
     // Controls
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.maxDistance = 10;
@@ -30,6 +32,7 @@ export function createScene(canvasContainer) {
     controls.enableRotate = false;
     controls.enablePan = false;
     controls.screenSpacePanning = true;
+    controls.zoomToCursor = true;
     controls.mouseButtons = {
         LEFT: null,
         MIDDLE: THREE.MOUSE.DOLLY,

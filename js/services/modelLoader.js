@@ -1,7 +1,8 @@
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import AppState from '../app/state.js';
 import texturePool from '../utils/textureManager.js'
 
-const loader = new THREE.GLTFLoader();
+const loader = new GLTFLoader();
 
 // Track the current loading request
 let currentLoadingRequest = null;
@@ -105,15 +106,9 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                 model.traverse((child) => {
                     if (!child.isMesh) return;
 
-                    if (child.name === 'Hair') {
-                        child.material = child.material.clone();
-                        child.material.transparent = true;
-                        child.material.opacity = 0.5;
-                        child.material.needsUpdate = true;
-                    }
-
                     if (child.name === 'Human') {
                         skinMesh = child;
+                        child.renderOrder = 0;
 
                         const textureId = `model-${name}-skin`;
                         const { canvas, context, threeTexture } = texturePool.getTexture(textureId);
@@ -139,9 +134,22 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                     }
 
                     if (['Top', 'Shorts'].includes(child.name)) {
+                        child.renderOrder = 1;
                         child.material = child.material.clone();
                         child.material.transparent = true;
                         child.material.opacity = 0.5;
+                        child.material.side = THREE.DoubleSide;
+                        child.material.depthWrite = false;
+                        child.material.needsUpdate = true;
+                    }
+                    
+                    if (child.name === 'Hair') {
+                        child.renderOrder = 2;
+                        child.material = child.material.clone();
+                        child.material.transparent = true;
+                        child.material.opacity = 0.5;
+                        child.material.side = THREE.DoubleSide;
+                        child.material.depthWrite = false;
                         child.material.needsUpdate = true;
                     }
                 });

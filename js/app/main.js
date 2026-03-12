@@ -1,4 +1,5 @@
 // main.js
+import './three_global.js'
 import { initApp } from './appController.js';
 import { 
     initDrawContinueModal, 
@@ -7,7 +8,6 @@ import {
     initRegionSelectorModal,
     initOnboardingModal,
     showOnboardingModal,
-
     setOnOnboardingComplete
 } from '../components/modal.js';
 import { createScene } from '../utils/scene.js';
