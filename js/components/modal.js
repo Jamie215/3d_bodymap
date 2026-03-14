@@ -1,5 +1,6 @@
 // modal.js
 import AppState from "../app/state.js";
+import { setVisibleRegions } from "../utils/regionVisibility.js";
 
 // Continue/Survey Modal
 let continueModalEl, continueModalText, continueModalButton, returnModalButton, returnToSummaryButton, drawingPreview;
@@ -11,9 +12,8 @@ let resetModalEl, resetModalText, resetReturnButton, resetConfirmButton;
 let deleteEmptyModalEl, deleteEmptyText, deleteEmptyReturnButton, deleteEmptyContinueButton;
 
 // Region Selector Modal
-let regionModalEl, regionModalOverlay, mainAreaSelect, subAreaSelect, regionConfirmBtn, fullBodyBtn;
-let selectedMainArea = null;
-let selectedSubArea = null;
+let regionModalEl, regionModalOverlay, regionConfirmBtn, selectAllCheckbox;
+let checkedAreas = new Set();
 let onRegionSelectedCallback = null;
 
 // Onboarding Modal
@@ -30,12 +30,8 @@ const ONBOARDING_SHOWN_KEY = 'painSurvey_onboardingShown';
  * IMPORTANT: These must align with cameraUtils.js dropdownRegions keys
  */
 const REGION_HIERARCHY = {
-    'Entire Body': {
-        subAreas: [], // No sub-areas
-        cameraRegion: 'Entire Body'
-    },
     'Head': {
-        subAreas: [], // Head is treated as a single region
+        subAreas: [],
         cameraRegion: 'Head'
     },
     'Neck': {
@@ -140,6 +136,54 @@ function mapFromCameraRegion(cameraRegion) {
     return { mainArea: null, subArea: null };
 }
 
+/**
+ * Resolves an array of checked main-area names into numeric _regionid values.
+ * 
+ * Chain: checked area → all camera region keys → vertex group names → numeric IDs
+ * 
+ * @param {string[]} areaNames - e.g. ['Head', 'Left Arm']
+ * @returns {number[]} array of numeric region IDs
+ */
+function resolveRegionIds(areaNames) {
+    const cameraUtils = AppState.cameraUtils;
+    const regionToIdMap = AppState.regionToIdMap;
+    if (!cameraUtils || !regionToIdMap) return [];
+
+    const ids = [];
+
+    for (const area of areaNames) {
+        const config = REGION_HIERARCHY[area];
+        if (!config) continue;
+
+        // Collect all camera-region keys for this main area
+        let cameraKeys = [];
+
+        if (config.cameraRegion) {
+            // Head, Neck — single key
+            cameraKeys.push(config.cameraRegion);
+        } else if (config.subAreas && config.subAreas.length > 0) {
+            // Torso, Arms, Legs — expand all sub-areas
+            for (const sub of config.subAreas) {
+                cameraKeys.push(mapToCameraRegion(area, sub));
+            }
+        }
+
+        // For each camera key, get vertex group names, then resolve to numeric IDs
+        for (const key of cameraKeys) {
+            const vertexGroupNames = cameraUtils.regionMap[key];
+            if (!vertexGroupNames) continue;
+            for (const name of vertexGroupNames) {
+                const id = regionToIdMap[name];
+                if (id !== undefined) {
+                    ids.push(id);
+                }
+            }
+        }
+    }
+
+    return ids;
+}
+
 // Helper to create modal structure
 function createModal(id, className = 'modal') {
     const modal = document.createElement('div');
@@ -191,7 +235,7 @@ export function initOnboardingModal(container) {
     onboardingModalEl.innerHTML = `
         <div class="onboarding-modal-content modal-body">
             <h2 class="onboarding-modal-title modal-title">Steps to Complete Survey</h2>
-            <p class="onboarding-modal-subtitle modal-subtitle">You will do this for each area of pain or symptom. If you have multiple, you will repeat the steps.</p>
+            <p class="onboarding-modal-subtitle modal-subtitle">Complete these steps for one area of pain or symptom at a time. If you have multiple areas, you will repeat the steps for each one.</p>
             
             <div class="onboarding-steps">
                 <div class="onboarding-step">
@@ -210,7 +254,7 @@ export function initOnboardingModal(container) {
                     </div>
                     <div class="onboarding-step-content">
                         <span class="onboarding-step-number">2</span>
-                        <p class="onboarding-step-text">Draw your pain or symptom on the body</p>
+                        <p class="onboarding-step-text">Draw <strong>one</strong> area of pain or symptom on the body</p>
                     </div>
                 </div>
                 
@@ -416,33 +460,36 @@ export function initRegionSelectorModal(container) {
     regionModalEl.className = 'region-modal modal-container';
     regionModalEl.id = 'region-selector-modal';
     
+    // Build checkbox list from REGION_HIERARCHY (excluding Entire Body)
+    const areaNames = Object.keys(REGION_HIERARCHY);
+    const checkboxesHTML = areaNames.map(area => `
+        <label class="region-checkbox-item">
+            <input type="checkbox" name="body-region" value="${area}" />
+            <span class="region-checkbox-label">${area}</span>
+        </label>
+    `).join('');
+
     // Build modal content
     regionModalEl.innerHTML = `
-        <div class="region-modal-content">
+        <div class="region-modal-content modal-body">
             <h1 class="region-modal-icon modal-icon"><i class="fa-solid fa-location-dot"></i></h1>
-            <h2 class="region-modal-title modal-title">Where Do You Experience Your Pain or Symptom?</h2>
-            <p class="region-modal-instruction">This will focus on the body area you selected. On the next screen, you'll be asked to draw your pain or symptom on that area.</p>
+            <h2 class="region-modal-title modal-title">Which Body Areas Do You Want to See?</h2>
+            <p class="region-modal-instruction">Select the area(s) where you feel this pain or symptom. Everything else will be hidden so you can focus. Draw only one area at a time — you can add more after.</p>
             
             <div class="region-selectors">
-                <div class="selector-group">
-                    <label for="main-area-select">Body Area</label>
-                    <select id="main-area-select" class="region-select">
-                        <option value="">-- Select Area --</option>
-                        ${Object.keys(REGION_HIERARCHY).map(area => 
-                            `<option value="${area}">${area}</option>`
-                        ).join('')}
-                    </select>
-                </div>
-                
-                <div class="selector-group sub-area-group" id="sub-area-group" style="display: none;">
-                    <label for="sub-area-select">Specific Region</label>
-                    <select id="sub-area-select" class="region-select">
-                        <option value="">-- Select Region --</option>
-                    </select>
+                <label class="region-checkbox-item region-checkbox-select-all">
+                    <input type="checkbox" id="region-select-all" />
+                    <span class="region-checkbox-label">Select All (Full Body)</span>
+                </label>
+
+                <div class="region-checkbox-divider"></div>
+
+                <div class="region-checkbox-grid">
+                    ${checkboxesHTML}
                 </div>
                 
                 <button id="region-confirm-btn" class="region-confirm-btn modal-btn-primary" disabled>
-                    Focus on This Region
+                    Confirm Selection
                 </button>
             </div>
         </div>
@@ -451,122 +498,123 @@ export function initRegionSelectorModal(container) {
     regionModalOverlay.appendChild(regionModalEl);
     container.appendChild(regionModalOverlay);
     
-    // Get references to elements
-    mainAreaSelect = regionModalEl.querySelector('#main-area-select');
-    subAreaSelect = regionModalEl.querySelector('#sub-area-select');
+    // Get references
     regionConfirmBtn = regionModalEl.querySelector('#region-confirm-btn');
-    fullBodyBtn = regionModalEl.querySelector('#full-body-btn');
+    selectAllCheckbox = regionModalEl.querySelector('#region-select-all');
     
     // Setup event listeners
     setupRegionModalEvents();
 }
 
 function setupRegionModalEvents() {
-    const subGroup = regionModalEl.querySelector('#sub-area-group');
-    
-    // Main area selection
-    mainAreaSelect.addEventListener('change', (e) => {
-        selectedMainArea = e.target.value;
-        selectedSubArea = null;
-        
-        if (selectedMainArea && REGION_HIERARCHY[selectedMainArea]) {
-            const config = REGION_HIERARCHY[selectedMainArea];
-            
-            // Show sub-area dropdown only if there are sub-areas
-            if (config.subAreas && config.subAreas.length > 0) {
-                subGroup.style.display = 'block';
-                subAreaSelect.innerHTML = `
-                    <option value="">-- Select Region --</option>
-                    ${config.subAreas.map(sub => 
-                        `<option value="${sub}">${sub}</option>`
-                    ).join('')}
-                `;
-                // For areas with sub-areas, require selection
-                regionConfirmBtn.disabled = true;
+    const checkboxes = regionModalEl.querySelectorAll('input[name="body-region"]');
+    const allAreaNames = Object.keys(REGION_HIERARCHY);
+
+    // Individual checkbox changes
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            if (cb.checked) {
+                checkedAreas.add(cb.value);
             } else {
-                // For Head/Neck, no sub-areas needed
-                subGroup.style.display = 'none';
-                regionConfirmBtn.disabled = false;
+                checkedAreas.delete(cb.value);
             }
-        } else {
-            subGroup.style.display = 'none';
-            regionConfirmBtn.disabled = true;
-        }
+
+            // Sync "Select All" state
+            selectAllCheckbox.checked = checkedAreas.size === allAreaNames.length;
+            selectAllCheckbox.indeterminate = checkedAreas.size > 0 && checkedAreas.size < allAreaNames.length;
+
+            // Enable confirm when at least one is checked
+            regionConfirmBtn.disabled = checkedAreas.size === 0;
+        });
     });
-    
-    // Sub-area selection
-    subAreaSelect.addEventListener('change', (e) => {
-        selectedSubArea = e.target.value || null;
-        // Enable confirm button when sub-area is selected
-        regionConfirmBtn.disabled = !selectedSubArea;
+
+    // Select All toggle
+    selectAllCheckbox.addEventListener('change', () => {
+        const shouldCheck = selectAllCheckbox.checked;
+        checkboxes.forEach(cb => {
+            cb.checked = shouldCheck;
+            if (shouldCheck) {
+                checkedAreas.add(cb.value);
+            } else {
+                checkedAreas.delete(cb.value);
+            }
+        });
+        selectAllCheckbox.indeterminate = false;
+        regionConfirmBtn.disabled = checkedAreas.size === 0;
     });
-    
+
     // Confirm button
     regionConfirmBtn.addEventListener('click', () => {
-        const cameraRegion = mapToCameraRegion(selectedMainArea, selectedSubArea);
-        selectRegion(cameraRegion);
+        confirmRegionSelection();
     });
 }
 
-function selectRegion(regionName) {
-    console.log('Selected region:', regionName);
-    
-    // Focus camera on region
-    if (AppState.cameraUtils) {
-        AppState.cameraUtils.focusOnRegion(regionName);
+function confirmRegionSelection() {
+    const allAreaNames = Object.keys(REGION_HIERARCHY);
+    const isFullBody = checkedAreas.size === allAreaNames.length;
+
+    if (isFullBody) {
+        // All areas selected → show full body, no filter
+        setVisibleRegions(null, null);
+        if (AppState.cameraUtils) {
+            AppState.cameraUtils.resetView();
+        }
+        // Report as 'Entire Body' to callback
+        if (onRegionSelectedCallback) {
+            onRegionSelectedCallback('Entire Body');
+        }
+    } else {
+        // Partial selection → resolve to IDs, apply filter + camera fit
+        const selectedAreas = [...checkedAreas];
+        const regionIds = resolveRegionIds(selectedAreas);
+
+        setVisibleRegions(regionIds, selectedAreas);
+
+        if (AppState.cameraUtils) {
+            AppState.cameraUtils.fitToVisibleRegions(regionIds);
+        }
+
+        // Report the checked areas to callback
+        if (onRegionSelectedCallback) {
+            const label = selectedAreas.join(', ');
+            onRegionSelectedCallback(label);
+        }
     }
-    
-    // Call callback if set
-    if (onRegionSelectedCallback) {
-        onRegionSelectedCallback(regionName);
-    }
-    
-    // Hide modal
+
     hideRegionSelectorModal();
 }
 
-function resetRegionSelections(preselect = null) {
-    const subGroup = regionModalEl?.querySelector('#sub-area-group');
-    
-    if (preselect && preselect.mainArea) {
-        // Pre-select the main area
-        selectedMainArea = preselect.mainArea;
-        selectedSubArea = preselect.subArea;
-        
-        if (mainAreaSelect) mainAreaSelect.value = preselect.mainArea;
-        
-        const config = REGION_HIERARCHY[preselect.mainArea];
-        
-        if (config && config.subAreas && config.subAreas.length > 0) {
-            // Show and populate sub-area dropdown
-            if (subGroup) subGroup.style.display = 'block';
-            if (subAreaSelect) {
-                subAreaSelect.innerHTML = `
-                    <option value="">-- Select Region --</option>
-                    ${config.subAreas.map(sub => 
-                        `<option value="${sub}"${sub === preselect.subArea ? ' selected' : ''}>${sub}</option>`
-                    ).join('')}
-                `;
-            }
-            // Enable confirm button only if sub-area is also selected
-            if (regionConfirmBtn) regionConfirmBtn.disabled = !preselect.subArea;
-        } else {
-            // No sub-areas needed (Head, Neck)
-            if (subGroup) subGroup.style.display = 'none';
-            if (regionConfirmBtn) regionConfirmBtn.disabled = false;
-        }
+function resetRegionSelections(preselectAreas = null) {
+    if (!regionModalEl) return;
+
+    const checkboxes = regionModalEl.querySelectorAll('input[name="body-region"]');
+    const allAreaNames = Object.keys(REGION_HIERARCHY);
+
+    checkedAreas.clear();
+
+    if (preselectAreas && preselectAreas.length > 0) {
+        // Pre-check the given areas
+        checkboxes.forEach(cb => {
+            const shouldCheck = preselectAreas.includes(cb.value);
+            cb.checked = shouldCheck;
+            if (shouldCheck) checkedAreas.add(cb.value);
+        });
     } else {
-        // Reset to default state
-        selectedMainArea = null;
-        selectedSubArea = null;
-        
-        if (mainAreaSelect) mainAreaSelect.value = '';
-        if (subAreaSelect) {
-            subAreaSelect.innerHTML = '<option value="">-- Select Region --</option>';
-        }
-        
-        if (subGroup) subGroup.style.display = 'none';
-        if (regionConfirmBtn) regionConfirmBtn.disabled = true;
+        // Default: check all (full body)
+        checkboxes.forEach(cb => {
+            cb.checked = true;
+            checkedAreas.add(cb.value);
+        });
+    }
+
+    // Sync Select All state
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = checkedAreas.size === allAreaNames.length;
+        selectAllCheckbox.indeterminate = checkedAreas.size > 0 && checkedAreas.size < allAreaNames.length;
+    }
+
+    if (regionConfirmBtn) {
+        regionConfirmBtn.disabled = checkedAreas.size === 0;
     }
 }
 
@@ -583,10 +631,60 @@ export function showRegionSelectorModal() {
         regionModalOverlay.classList.add('visible');
     });
     
-    // Get current focused region from cameraUtils and pre-select it
-    const currentRegion = AppState.cameraUtils?.focusedRegionName;
-    const preselect = mapFromCameraRegion(currentRegion);
-    resetRegionSelections(preselect);
+    // If there's an active visibility filter, pre-check only those areas.
+    // Otherwise default to all checked (full body).
+    if (AppState.visibleRegionIds) {
+        // Reverse-resolve which main areas are currently visible
+        const currentAreas = getCurrentlyVisibleAreas();
+        resetRegionSelections(currentAreas.length > 0 ? currentAreas : null);
+    } else {
+        resetRegionSelections(null); // all checked
+    }
+}
+
+/**
+ * Determines which main area names are currently visible based on AppState.visibleRegionIds.
+ * Used to pre-check the correct boxes when reopening the modal.
+ */
+function getCurrentlyVisibleAreas() {
+    const visibleIds = AppState.visibleRegionIds;
+    if (!visibleIds) return [];
+
+    const cameraUtils = AppState.cameraUtils;
+    const regionToIdMap = AppState.regionToIdMap;
+    if (!cameraUtils || !regionToIdMap) return [];
+
+    const visibleAreas = [];
+
+    for (const [area, config] of Object.entries(REGION_HIERARCHY)) {
+        // Get all camera keys for this area
+        let cameraKeys = [];
+        if (config.cameraRegion) {
+            cameraKeys.push(config.cameraRegion);
+        } else if (config.subAreas?.length > 0) {
+            for (const sub of config.subAreas) {
+                cameraKeys.push(mapToCameraRegion(area, sub));
+            }
+        }
+
+        // Check if ANY region ID in this area is in the visible set
+        let hasVisible = false;
+        for (const key of cameraKeys) {
+            const names = cameraUtils.regionMap[key];
+            if (!names) continue;
+            for (const name of names) {
+                if (visibleIds.has(regionToIdMap[name])) {
+                    hasVisible = true;
+                    break;
+                }
+            }
+            if (hasVisible) break;
+        }
+
+        if (hasVisible) visibleAreas.push(area);
+    }
+
+    return visibleAreas;
 }
 
 export function hideRegionSelectorModal() {
@@ -634,7 +732,7 @@ export function getModalElements(modalType) {
         },
         reset: { resetReturnButton, resetConfirmButton },
         deleteEmpty: { deleteEmptyReturnButton, deleteEmptyContinueButton },
-        regionSelector: { mainAreaSelect, subAreaSelect, regionConfirmBtn, fullBodyBtn },
+        regionSelector: { regionConfirmBtn, selectAllCheckbox },
         onboarding: { onboardingStartButton }
     };
     return modalMap[modalType] || {};

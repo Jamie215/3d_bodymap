@@ -14,6 +14,9 @@ const AppState = {
     baseTextureCanvas: null,
     baseTextureContext: null,
     baseTextureTexture: null,
+
+    // Visible region state
+    visibleRegionIds: null,    // Set of currently visible region IDs (null means all visible)
     
     // Drawing instances (multiple pain areas)
     drawingInstances: [],

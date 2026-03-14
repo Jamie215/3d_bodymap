@@ -9,6 +9,7 @@ export function createScene(canvasContainer) {
     camera.lookAt(0, 1.0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0xf0f0f0);
     canvasContainer.appendChild(renderer.domElement);
 

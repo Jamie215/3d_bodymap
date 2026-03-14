@@ -50,7 +50,7 @@ export function createDrawingViewElements(controls) {
         } else {
             statusBar.innerHTML = `
                 <div class="status-bar-content">
-                    <span class="status-title"><i class="fa-solid fa-paintbrush"></i> Draw your pain or symptom area on the body</span>
+                    <span class="status-title"><i class="fa-solid fa-paintbrush"></i> Draw one area of pain or symptom area on the body</span>
                     <span class="status-badge" style="color: ${colour}; background-color: ${bgColour};">
                         You are currently viewing: <strong>${selectedRegion}</strong>
                     </span>

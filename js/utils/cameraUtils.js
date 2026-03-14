@@ -513,6 +513,78 @@ export default class CameraUtils {
         return this.animateCamera(targetPosition, this.defaultPivot.clone(), 600);
     }
 
+    // Fit camera to frame all visible regions (used with region visibility filter)
+    fitToVisibleRegions(visibleRegionIds) {
+        if (!visibleRegionIds || visibleRegionIds.length === 0) {
+            return this.resetView();
+        }
+
+        if (!this.mesh) return;
+
+        const geometry = this.mesh.geometry;
+        const positionAttr = geometry.attributes.position;
+        const regionIDAttr = geometry.attributes._regionid;
+
+        if (!regionIDAttr) return;
+
+        // Build a set for fast lookup
+        const idSet = new Set(visibleRegionIds);
+
+        // Collect all vertices belonging to any visible region
+        const points = [];
+        for (let i = 0; i < regionIDAttr.count; i++) {
+            const regionId = regionIDAttr.getX(i);
+            if (idSet.has(regionId)) {
+                points.push(new THREE.Vector3(
+                    positionAttr.getX(i),
+                    positionAttr.getY(i),
+                    positionAttr.getZ(i)
+                ));
+            }
+        }
+
+        if (points.length === 0) return this.resetView();
+
+        // Combined bounding box in world space
+        const localBox = new THREE.Box3().setFromPoints(points);
+        const box = localBox.clone().applyMatrix4(this.mesh.matrixWorld);
+
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        // Calculate distance to fit the bounding box in view
+        const fov = this.camera.fov * (Math.PI / 180);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const distance = (maxDim / 2) / Math.tan(fov / 2) * 1;
+        const finalDistance = Math.max(distance, 0.5);
+
+        // Reset rotation to front view for the new selection
+        this.rotationAngle = 0;
+
+        // Store focus state so rotation controls orbit around this center
+        this.focusedRegionName = null;
+        this.focusCenter = center.clone();
+        this.focusRadius = maxDim / 2;
+        this.optimalDistance = finalDistance;
+
+        // Update controls limits
+        this.controls.minDistance = Math.max(0.05, this.focusRadius * 0.3);
+        this.controls.maxDistance = finalDistance * 5;
+        this.controls.target.copy(center);
+
+        // Position camera in front of the center
+        const targetPosition = new THREE.Vector3(
+            center.x,
+            center.y,
+            center.z + finalDistance
+        );
+
+        return this.animateCamera(targetPosition, center, 500);
+    }
+
     // ==========================================
     // ROTATION CONTROLS
     // ==========================================

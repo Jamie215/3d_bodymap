@@ -1,7 +1,8 @@
 // appController.js - Updated for new workflow
-// New workflow: Summary → Draw ONE area → Area Survey → Summary (repeat or proceed) → General Survey → Summary (done)
+// Workflow: Summary → Draw ONE area → Area Survey → Summary (repeat or proceed) → General Survey → Summary (done)
 
 import { loadModel, cleanupAllModels } from '../services/modelLoader.js';
+import { setVisibleRegions } from '../utils/regionVisibility.js';
 import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance, buildGlobalUVMap, initializeRegionMappings, updateInstanceColors } from '../services/drawingEngine.js';
 import texturePool from '../utils/textureManager.js';
 import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement, syncEraserState } from '../utils/interaction.js';
@@ -260,6 +261,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     switch (stage) {
       case 'summary': {
         if (cameraUtils) cameraUtils.resetView();
+        setVisibleRegions(null, null);
 
         // Check if session is completed (general questionnaire submitted)
         const isSessionComplete = AppState.generalQuestionnaireResponse !== null;

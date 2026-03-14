@@ -124,11 +124,78 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                             aoMapIntensity: 1.0,
                             transparent: true,
                             opacity: 1.0,
-                            color: 0xdddddd,  // Light gray base tint
-                            emissive: 0x333333,  // Slight self-illumination to lift shadows
+                            color: 0xdddddd,
+                            emissive: 0x333333,
                             emissiveIntensity: 1.0
                         });
-                        child.geometry.setAttribute('uv2', child.geometry.getAttribute('uv')); // Ensure AO map uses correct UVs
+
+                        // ── Region visibility filter ──
+                        // Uses flat varying for hard discard decisions.
+                        // Uses a smooth "visibility signal" (1.0=visible, 0.0=hidden per vertex)
+                        // to fade fragments at boundaries between visible and hidden regions.
+                        // Internal boundaries between two visible regions stay at 1.0 → no fade.
+                        child.material.onBeforeCompile = (shader) => {
+                            shader.uniforms.visibleIds = { value: new Float32Array(512).fill(-1) };
+                            shader.uniforms.visibleCount = { value: 0 };
+                            shader.uniforms.filterActive = { value: false };
+
+                            // Vertex: check if this vertex's region is visible, output binary signal
+                            shader.vertexShader = shader.vertexShader.replace(
+                                '#include <common>',
+                                `#include <common>
+                                 attribute float _regionid;
+                                 uniform float visibleIds[512];
+                                 uniform int visibleCount;
+                                 uniform bool filterActive;
+                                 flat varying float vRegionId;
+                                 varying float vVisibility;`
+                            );
+                            shader.vertexShader = shader.vertexShader.replace(
+                                '#include <begin_vertex>',
+                                `#include <begin_vertex>
+                                 vRegionId = _regionid;
+                                 vVisibility = 0.0;
+                                 if (filterActive) {
+                                     for (int i = 0; i < 512; i++) {
+                                         if (i >= visibleCount) break;
+                                         if (abs(_regionid - visibleIds[i]) < 0.5) {
+                                             vVisibility = 1.0;
+                                             break;
+                                         }
+                                     }
+                                 } else {
+                                     vVisibility = 1.0;
+                                 }`
+                            );
+
+                            // Fragment: discard hidden, fade at boundaries
+                            shader.fragmentShader = shader.fragmentShader.replace(
+                                '#include <common>',
+                                `#include <common>
+                                 uniform bool filterActive;
+                                 flat varying float vRegionId;
+                                 varying float vVisibility;`
+                            );
+                            shader.fragmentShader = shader.fragmentShader.replace(
+                                '#include <dithering_fragment>',
+                                `#include <dithering_fragment>
+                                 if (filterActive) {
+                                     // Smooth visibility: 1.0 = all vertices visible,
+                                     // 0.0 = all vertices hidden, in-between = boundary triangle
+                                     if (vVisibility < 0.05) {
+                                         discard;
+                                     } else if (vVisibility < 0.95) {
+                                         // Boundary fragment: fade based on proximity to hidden side
+                                         gl_FragColor.a *= smoothstep(0.05, 0.95, vVisibility);
+                                     }
+                                 }`
+                            );
+
+                            // Store reference so uniforms can be updated at runtime
+                            child.userData.regionShader = shader;
+                        };
+
+                        child.geometry.setAttribute('uv2', child.geometry.getAttribute('uv'));
                         child.material.needsUpdate = true;
                         child.userData = { 
                             canvas, 

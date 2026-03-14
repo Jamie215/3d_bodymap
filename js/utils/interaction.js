@@ -1,6 +1,7 @@
 import AppState from '../app/state.js';
 import eventManager from '../app/eventManager.js';
 import { drawAtPointer } from '../services/drawingEngine.js';
+import { isRegionVisible } from '../utils/regionVisibility.js';
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -209,6 +210,19 @@ function handlePointerDown(camera, controls) {
     const intersects = raycaster.intersectObject(AppState.skinMesh, true);
 
     if (intersects.length > 0) {
+        // Gate: ignore hits on hidden regions
+        const hit = intersects[0];
+        if (hit.face && AppState.visibleRegionIds) {
+            const regionAttr = AppState.skinMesh.geometry.getAttribute('_regionid');
+            if (regionAttr) {
+                const regionId = regionAttr.getX(hit.face.a);
+                if (!isRegionVisible(regionId)) {
+                    controls.enabled = true;
+                    return;
+                }
+            }
+        }
+
         AppState.isDrawing = true;
         pointerDown = true;
         drawAtPointer(camera, pointer, AppState.isErasing);

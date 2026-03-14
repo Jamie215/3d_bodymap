@@ -4030,3 +4030,91 @@ input[type="range"]::-moz-range-thumb {
     font-size: var(--font-button-small);
   }
 }
+
+/* ============================================
+   REGION SELECTOR - CHECKBOX STYLES
+   Add these to your styles.css, replacing the 
+   old .region-select / .selector-group / .sub-area-group rules
+   ============================================ */
+
+/* Checkbox grid — 2 columns on desktop, 1 on mobile */
+.region-checkbox-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm, 0.75rem);
+    margin-bottom: var(--space-lg, 1.5rem);
+}
+
+@media (max-width: 480px) {
+    .region-checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Individual checkbox item */
+.region-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 0.75rem);
+    padding: var(--space-sm, 0.75rem) var(--space-md, 1rem);
+    border: 2px solid #e5e7eb;
+    border-radius: var(--border-radius, 8px);
+    background: #f9fafb;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    user-select: none;
+}
+
+.region-checkbox-item:hover {
+    border-color: var(--primary-color, #0277BD);
+    background: #fff;
+}
+
+.region-checkbox-item:has(input:checked) {
+    border-color: var(--primary-color, #0277BD);
+    background: rgba(2, 119, 189, 0.06);
+}
+
+/* Hide the native checkbox, style a custom one */
+.region-checkbox-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--primary-color, #0277BD);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.region-checkbox-label {
+    font-size: 1rem;
+    color: var(--secondary-color, #333333);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+/* Select All row — sits above the grid */
+.region-checkbox-select-all {
+    margin-bottom: 0;
+    border-color: transparent;
+    background: transparent;
+    padding-left: var(--space-md, 1rem);
+    padding-right: var(--space-md, 1rem);
+}
+
+.region-checkbox-select-all:hover {
+    background: rgba(2, 119, 189, 0.04);
+    border-color: transparent;
+}
+
+.region-checkbox-select-all .region-checkbox-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--primary-color, #0277BD);
+}
+
+/* Divider between Select All and the grid */
+.region-checkbox-divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin: var(--space-xs, 0.5rem) 0 var(--space-md, 1rem) 0;
+}
