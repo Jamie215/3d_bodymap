@@ -141,6 +141,30 @@ export default class CameraUtils {
                 'littleFinger_distalSegment_volar.L', 'littleFinger_distalSegment_dorsal.L'
             ],
             
+            // Left Hand (Front) - palm/volar side
+            'Left Hand (Front)': [
+                'hand_volar_radial.L', 'hand_volar_ulnar.L',
+                'thumb_proximalSegment_volar.L', 'thumb_distalSegment_volar.L',
+                'indexFinger_proximalSegment_volar.L', 'indexFinger_intermediateSegment_volar.L', 'indexFinger_distalSegment_volar.L',
+                'middleFinger_proximalSegment_volar.L', 'middleFinger_intermediateSegment_volar.L', 'middleFinger_distalSegment_volar.L',
+                'ringFinger_proximalSegment_volar_radial.L', 'ringFinger_proximalSegment_volar_ulnar.L',
+                'ringFinger_intermediateSegment_volar_radial.L', 'ringFinger_intermediateSegment_volar_ulnar.L',
+                'ringFinger_distalSegment_volar_radial.L', 'ringFinger_distalSegment_volar_ulnar.L',
+                'littleFinger_proximalSegment_volar.L', 'littleFinger_intermediateSegment_volar.L', 'littleFinger_distalSegment_volar.L'
+            ],
+            
+            // Left Hand (Back) - dorsal side
+            'Left Hand (Back)': [
+                'hand_dorsal_radial.L', 'hand_dorsal_ulnar.L',
+                'thumb_proximalSegment_dorsal.L', 'thumb_distalSegment_dorsal.L',
+                'indexFinger_proximalSegment_dorsal.L', 'indexFinger_intermediateSegment_dorsal.L', 'indexFinger_distalSegment_dorsal.L',
+                'middleFinger_proximalSegment_dorsal.L', 'middleFinger_intermediateSegment_dorsal.L', 'middleFinger_distalSegment_dorsal.L',
+                'ringFinger_proximalSegment_dorsal_radial.L', 'ringFinger_proximalSegment_dorsal_ulnar.L',
+                'ringFinger_intermediateSegment_dorsal_radial.L', 'ringFinger_intermediateSegment_dorsal_ulnar.L',
+                'ringFinger_distalSegment_dorsal_radial.L', 'ringFinger_distalSegment_dorsal_ulnar.L',
+                'littleFinger_proximalSegment_dorsal.L', 'littleFinger_intermediateSegment_dorsal.L', 'littleFinger_distalSegment_dorsal.L'
+            ],
+            
             // Right Shoulder
             'Right Shoulder': [
                 'shoulder_anterior.R', 'shoulder_posterior.R', 'shoulder_superior.R', 'shoulder_lateral.R'
@@ -194,6 +218,30 @@ export default class CameraUtils {
                 'littleFinger_proximalSegment_volar.R', 'littleFinger_proximalSegment_dorsal.R',
                 'littleFinger_intermediateSegment_volar.R', 'littleFinger_intermediateSegment_dorsal.R',
                 'littleFinger_distalSegment_volar.R', 'littleFinger_distalSegment_dorsal.R'
+            ],
+            
+            // Right Hand (Front) - palm/volar side
+            'Right Hand (Front)': [
+                'hand_volar_radial.R', 'hand_volar_ulnar.R',
+                'thumb_proximalSegment_volar.R', 'thumb_distalSegment_volar.R',
+                'indexFinger_proximalSegment_volar.R', 'indexFinger_intermediateSegment_volar.R', 'indexFinger_distalSegment_volar.R',
+                'middleFinger_proximalSegment_volar.R', 'middleFinger_intermediateSegment_volar.R', 'middleFinger_distalSegment_volar.R',
+                'ringFinger_proximalSegment_volar_radial.R', 'ringFinger_proximalSegment_volar_ulnar.R',
+                'ringFinger_intermediateSegment_volar_radial.R', 'ringFinger_intermediateSegment_volar_ulnar.R',
+                'ringFinger_distalSegment_volar_radial.R', 'ringFinger_distalSegment_volar_ulnar.R',
+                'littleFinger_proximalSegment_volar.R', 'littleFinger_intermediateSegment_volar.R', 'littleFinger_distalSegment_volar.R'
+            ],
+            
+            // Right Hand (Back) - dorsal side
+            'Right Hand (Back)': [
+                'hand_dorsal_radial.R', 'hand_dorsal_ulnar.R',
+                'thumb_proximalSegment_dorsal.R', 'thumb_distalSegment_dorsal.R',
+                'indexFinger_proximalSegment_dorsal.R', 'indexFinger_intermediateSegment_dorsal.R', 'indexFinger_distalSegment_dorsal.R',
+                'middleFinger_proximalSegment_dorsal.R', 'middleFinger_intermediateSegment_dorsal.R', 'middleFinger_distalSegment_dorsal.R',
+                'ringFinger_proximalSegment_dorsal_radial.R', 'ringFinger_proximalSegment_dorsal_ulnar.R',
+                'ringFinger_intermediateSegment_dorsal_radial.R', 'ringFinger_intermediateSegment_dorsal_ulnar.R',
+                'ringFinger_distalSegment_dorsal_radial.R', 'ringFinger_distalSegment_dorsal_ulnar.R',
+                'littleFinger_proximalSegment_dorsal.R', 'littleFinger_intermediateSegment_dorsal.R', 'littleFinger_distalSegment_dorsal.R'
             ],
             
             // Left Thigh
@@ -331,7 +379,8 @@ export default class CameraUtils {
         const backKeywords = [
             'Back', 'back', 'posterior', 'Posterior', 
             'buttock', 'Buttock', 'sacrum', 'coccyx',
-            'heel', 'Heel', 'plantar', 'Plantar'
+            'heel', 'Heel', 'plantar', 'Plantar',
+            'Hand (Back)'
         ];
         
         // Check region name
@@ -341,16 +390,17 @@ export default class CameraUtils {
             }
         }
         
-        // Check if the regions in the map contain posterior indicators
+        // Check if the regions in the map contain posterior/dorsal indicators
         const regions = this.regionMap[regionName];
         if (regions) {
             const posteriorCount = regions.filter(r => 
                 r.includes('posterior') || r.includes('back_') || 
                 r.includes('buttock') || r.includes('plantar') ||
-                r.includes('heel') || r.includes('sacrum') || r.includes('coccyx')
+                r.includes('heel') || r.includes('sacrum') || r.includes('coccyx') ||
+                r.includes('hand_dorsal') || r.includes('_dorsal')
             ).length;
             
-            // If more than half the regions are posterior, it's a back region
+            // If more than half the regions are posterior/dorsal, it's a back region
             return posteriorCount > regions.length / 2;
         }
         
