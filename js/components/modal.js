@@ -51,25 +51,29 @@ const REGION_HIERARCHY = {
         subAreas: ['Shoulder', 'Upper Arm', 'Elbow', 'Forearm', 'Wrist', 'Hand (Front)', 'Hand (Back)'],
         cameraRegion: null,
         prefix: 'Left',
-        hideOthers: true
+        hideOthers: true,
+        displayName: 'Arm (Left)'
     },
     'Right Arm': {
         subAreas: ['Shoulder', 'Upper Arm', 'Elbow', 'Forearm', 'Wrist', 'Hand (Front)', 'Hand (Back)'],
         cameraRegion: null,
         prefix: 'Right',
-        hideOthers: true
+        hideOthers: true,
+        displayName: 'Arm (Right)'
     },
     'Left Leg': {
-        subAreas: ['Thigh', 'Knee', 'Lower Leg', 'Ankle', 'Foot'],
+        subAreas: ['Thigh', 'Knee', 'Calf', 'Ankle', 'Foot'],
         cameraRegion: null,
         prefix: 'Left',
-        hideOthers: true
+        hideOthers: true,
+        displayName: 'Leg (Left)'
     },
     'Right Leg': {
-        subAreas: ['Thigh', 'Knee', 'Lower Leg', 'Ankle', 'Foot'],
+        subAreas: ['Thigh', 'Knee', 'Calf', 'Ankle', 'Foot'],
         cameraRegion: null,
         prefix: 'Right',
-        hideOthers: true
+        hideOthers: true,
+        displayName: 'Leg (Right)'
     }
 };
 
@@ -94,7 +98,7 @@ function mapToCameraRegion(mainArea, subArea) {
     
     // Handle Torso - sub-areas map directly to cameraUtils keys
     if (mainArea === 'Torso') {
-        return subArea || 'Chest';
+        return subArea || 'Torso';
     }
     
     // For arms and legs, combine prefix with sub-area
@@ -130,8 +134,14 @@ function mapFromCameraRegion(cameraRegion) {
         }
         
         // Torso sub-areas map directly
-        if (mainArea === 'Torso' && config.subAreas.includes(cameraRegion)) {
-            return { mainArea: 'Torso', subArea: cameraRegion };
+        if (mainArea === 'Torso') {
+            // Handle composite 'Torso' (no sub-area)
+            if (cameraRegion === 'Torso') {
+                return { mainArea: 'Torso', subArea: null };
+            }
+            if (config.subAreas.includes(cameraRegion)) {
+                return { mainArea: 'Torso', subArea: cameraRegion };
+            }
         }
         
         // For prefixed regions (Left/Right Arm/Leg)
@@ -487,8 +497,8 @@ export function initRegionSelectorModal(container) {
                     <select id="main-area-select" class="region-select">
                         <option value="">-- Select Area --</option>
                         <option value="Entire Body">Entire Body</option>
-                        ${Object.keys(REGION_HIERARCHY).map(area => 
-                            `<option value="${area}">${area}</option>`
+                        ${Object.entries(REGION_HIERARCHY).map(([area, config]) => 
+                            `<option value="${area}">${config.displayName || area}</option>`
                         ).join('')}
                     </select>
                 </div>

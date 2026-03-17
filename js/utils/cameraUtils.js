@@ -86,6 +86,18 @@ export default class CameraUtils {
                 'psis.L', 'psis.R', 'buttock.L', 'buttock.R'
             ],
             
+            // Torso - Composite (all torso sub-regions combined)
+            'Torso': [
+                'chest_anterior.L', 'chest_anterior.R', 'chest_lateral.L', 'chest_lateral.R',
+                'axilla.L', 'axilla.R',
+                'abdomen_anterior.L', 'abdomen_anterior.R', 'abdomen_lateral.L', 'abdomen_lateral.R',
+                'pelvis_anterior.L', 'pelvis_anterior.R', 'pubicSymphysis', 'hip.L', 'hip.R',
+                'back_upper.L', 'back_upper.R', 'back_upper.M',
+                'back_mid.L', 'back_mid.R', 'back_mid.M',
+                'back_lower.L', 'back_lower.R', 'back_lower.M', 'sacrum', 'apexSacrum', 'coccyx',
+                'psis.L', 'psis.R', 'buttock.L', 'buttock.R'
+            ],
+            
             // Left Shoulder
             'Left Shoulder': [
                 'shoulder_anterior.L', 'shoulder_posterior.L', 'shoulder_superior.L', 'shoulder_lateral.L'
@@ -257,8 +269,8 @@ export default class CameraUtils {
                 'knee_medial.L', 'knee_posteromedial.L', 'knee_posterior.L', 'knee_posterolateral.L'
             ],
             
-            // Left Lower Leg
-            'Left Lower Leg': [
+            // Left Calf
+            'Left Calf': [
                 'lowerLeg_anteromedial.L', 'lowerLeg_anterolateral.L',
                 'lowerLeg_posterolateral.L', 'lowerLeg_posteromedial.L',
                 'lowerLeg_medial.L', 'lowerLeg_anterior.L', 'lowerLeg_lateral.L', 'lowerLeg_posterior.L'
@@ -297,8 +309,8 @@ export default class CameraUtils {
                 'knee_medial.R', 'knee_posteromedial.R', 'knee_posterior.R', 'knee_posterolateral.R'
             ],
             
-            // Right Lower Leg
-            'Right Lower Leg': [
+            // Right Calf
+            'Right Calf': [
                 'lowerLeg_anteromedial.R', 'lowerLeg_anterolateral.R',
                 'lowerLeg_posterolateral.R', 'lowerLeg_posteromedial.R',
                 'lowerLeg_medial.R', 'lowerLeg_anterior.R', 'lowerLeg_lateral.R', 'lowerLeg_posterior.R'
