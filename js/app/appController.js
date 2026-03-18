@@ -927,37 +927,76 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     renderer.render(scene, camera);
   }
 
-  // Helper function to prepare all submission data
-  async function prepareSubmissionData() {
-    const combinedCanvas = createCombinedTexture();
+  // Helper function to capture multi view snapshots
+  async function captureMultiViewSnapshots(combinedCanvas) {
     const tempTexture = new THREE.CanvasTexture(combinedCanvas);
     tempTexture.needsUpdate = true;
 
-    if (AppState.skinMesh) {
-      AppState.skinMesh.material.map = tempTexture;
-      AppState.skinMesh.material.needsUpdate = true;
-    }
+    const originalMap = AppState.skinMesh.material.map;
+    AppState.skinMesh.material.map = tempTexture;
+    AppState.skinMesh.material.needsUpdate = true;
+
+    const originalSize = renderer.getSize(new THREE.Vector2());
+    const originalPixelRatio = renderer.getPixelRatio();
+    const originalCameraPosition = camera.position.clone();
+    const originalCameraTarget = controls.target.clone();
 
     const previewWidth = 400;
     const previewHeight = 400;
-    const originalSize = renderer.getSize(new THREE.Vector2());
-    const originalPixelRatio = renderer.getPixelRatio();
-
     renderer.setSize(previewWidth, previewHeight, false);
     renderer.setPixelRatio(1);
-    renderer.render(scene, camera);
-    const snapshot = renderer.domElement.toDataURL('image/png');
 
+    // Calculate framing distance from model bounds
+    const bbox = new THREE.Box3().setFromObject(AppState.skinMesh);
+    const center = bbox.getCenter(new THREE.Vector3());
+    const size = bbox.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    const dist = (maxDim / 2) / Math.tan(fov / 2) * 1.3; // 1.3 = padding
+
+    // Define cardinal views: [label, camera offset from center]
+    const views = [
+      ['front',  new THREE.Vector3(0, 0, dist)],
+      ['back',   new THREE.Vector3(0, 0, -dist)],
+      ['right',  new THREE.Vector3(dist, 0, 0)],
+      ['left',   new THREE.Vector3(-dist, 0, 0)],
+    ];
+
+    const snapshots = {};
+
+    for (const [label, offset] of views) {
+      camera.position.copy(center).add(offset);
+      camera.position.y = center.y;
+      controls.target.copy(center);
+      controls.update();
+      camera.updateProjectionMatrix();
+
+      renderer.render(scene, camera);
+      snapshots[label] = renderer.domElement.toDataURL('image/png');
+    }
+
+    // Restore everything
+    camera.position.copy(originalCameraPosition);
+    if (originalCameraTarget) controls.target.copy(originalCameraTarget);
+    controls.update();
     renderer.setSize(originalSize.x, originalSize.y, false);
     renderer.setPixelRatio(originalPixelRatio);
 
-    if (AppState.skinMesh) {
-      const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-      AppState.skinMesh.material.map = currentInstance.texture;
-      AppState.skinMesh.material.needsUpdate = true;
-    }
-
+    // Restore original texture
+    AppState.skinMesh.material.map = originalMap;
+    AppState.skinMesh.material.needsUpdate = true;
     renderer.render(scene, camera);
+
+    tempTexture.dispose();
+
+    return snapshots;
+
+  }
+
+  // Helper function to prepare all submission data
+  async function prepareSubmissionData() {
+    const combinedCanvas = createCombinedTexture();
+    const snapshot = await captureMultiViewSnapshots(combinedCanvas);
 
     const areas = AppState.drawingInstances.map((instance, index) => {
       const coverage = coverageCalculator.calculateCoverage(instance);
