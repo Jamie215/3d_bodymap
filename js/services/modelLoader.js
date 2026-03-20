@@ -114,7 +114,7 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                         const { canvas, context, threeTexture } = texturePool.getTexture(textureId);
 
                         // Upload texture
-                        const aoTexture = new THREE.TextureLoader().load('../assets/body_ao_original.png');
+                        const aoTexture = new THREE.TextureLoader().load('../assets/body_ao_modified.png');
                         aoTexture.flipY = false;
                         
                         // Use MeshLambertMaterial - softer lighting, good balance
