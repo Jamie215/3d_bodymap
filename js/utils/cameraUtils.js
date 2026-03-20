@@ -269,6 +269,18 @@ export default class CameraUtils {
                 'knee_medial.L', 'knee_posteromedial.L', 'knee_posterior.L', 'knee_posterolateral.L'
             ],
             
+            // Left Knee (Front) - anterior/patella side
+            'Left Knee (Front)': [
+                'knee_anterior.L', 'knee_anteromedial.L', 'knee_anterolateral.L',
+                'knee_medial.L', 'knee_lateral.L'
+            ],
+            
+            // Left Knee (Back) - posterior/popliteal side
+            'Left Knee (Back)': [
+                'knee_posterior.L', 'knee_posteromedial.L', 'knee_posterolateral.L',
+                'knee_medial.L', 'knee_lateral.L'
+            ],
+            
             // Left Calf
             'Left Calf': [
                 'lowerLeg_anteromedial.L', 'lowerLeg_anterolateral.L',
@@ -307,6 +319,18 @@ export default class CameraUtils {
             'Right Knee': [
                 'knee_anterior.R', 'knee_anteromedial.R', 'knee_anterolateral.R', 'knee_lateral.R',
                 'knee_medial.R', 'knee_posteromedial.R', 'knee_posterior.R', 'knee_posterolateral.R'
+            ],
+            
+            // Right Knee (Front) - anterior/patella side
+            'Right Knee (Front)': [
+                'knee_anterior.R', 'knee_anteromedial.R', 'knee_anterolateral.R',
+                'knee_medial.R', 'knee_lateral.R'
+            ],
+            
+            // Right Knee (Back) - posterior/popliteal side
+            'Right Knee (Back)': [
+                'knee_posterior.R', 'knee_posteromedial.R', 'knee_posterolateral.R',
+                'knee_medial.R', 'knee_lateral.R'
             ],
             
             // Right Calf
@@ -392,7 +416,7 @@ export default class CameraUtils {
             'Back', 'back', 'posterior', 'Posterior', 
             'buttock', 'Buttock', 'sacrum', 'coccyx',
             'heel', 'Heel', 'plantar', 'Plantar',
-            'Hand (Back)'
+            'Hand (Back)', 'Calf'
         ];
         
         // Check region name

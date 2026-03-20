@@ -29,7 +29,6 @@ export function createSummaryView() {
   summaryDoneButton.id = 'summary-done-button';
   summaryDoneButton.textContent = 'Proceed to General Questionnaire';
   summaryDoneButton.classList.add('button', 'button-success');
-  summaryDoneButton.disabled = true;
 
   summaryFooter.appendChild(addNewInstanceButton);
   summaryFooter.appendChild(summaryDoneButton);
@@ -49,6 +48,73 @@ export function createSummaryView() {
     onDeleteArea = callback;
   }
 
+  // Create a YouTube embed element for the instructional video
+  function createVideoEmbed() {
+    const videoContainer = document.createElement('div');
+    videoContainer.classList.add('summary-video-container');
+
+    const videoId = 'TeL9O6yiCMs'; //TODO: Replace with actual video ID once available
+
+    videoContainer.innerHTML = `
+      <span class="summary-title">Getting Started</span>
+      <p class="summary-instruction">Watch this video to learn how to use this application.</p>
+      <div class="video-thumbnail" id="video-thumbnail">
+        <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="Video Tutorial Thumbnail" class="video-thumbnail-img">
+        <div class="video-play-btn">
+          <i class="fa-solid fa-play"></i>
+        </div>
+      </div>
+    `;
+
+    // Create the fullscreen video overlay
+    const overlay = document.createElement('div');
+    overlay.classList.add('video-overlay');
+    overlay.id = 'video-overlay';
+    overlay.innerHTML = `
+    <button class="video-overlay-close" id="video-overlay-close" title="close Video">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="video-overlay-content">
+        <iframe 
+          id="summary-video-iframe"
+          src=""
+          title="Pain Assessment Tool - How to Use"
+          frameborder="0"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+      </div>
+    `;
+
+    // Open overlay on thumbmail click
+    const thumbnail = videoContainer.querySelector('#video-thumbnail');
+    thumbnail.addEventListener('click', () => {
+      const iframe = overlay.querySelector('#summary-video-iframe');
+      iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0`;
+      overlay.classList.add('is-active');
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    });
+
+    // Close overlay on close button click
+    function closeOverlay() {
+      const iframe = overlay.querySelector('#summary-video-iframe');
+      iframe.src = '';
+      overlay.classList.remove('is-active');
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+
+    overlay.querySelector('#video-overlay-close').addEventListener('click', closeOverlay);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        closeOverlay();
+      }
+    });
+
+    document.body.appendChild(overlay);
+    return videoContainer;
+  }
+
   function updateSummaryStatus() {
     const count = AppState.drawingInstances.length;
     const isComplete = !!AppState.generalQuestionnaireResponse;
@@ -63,7 +129,6 @@ export function createSummaryView() {
           <p>You logged <strong>${count}</strong> pain or symptom area${count !== 1 ? 's' : ''}.</p>
         </div>
       `;
-      summaryDoneButton.disabled = true;
       summaryDoneButton.style.display = 'none';
       addNewInstanceButton.style.display = 'none';
       return;
@@ -72,20 +137,22 @@ export function createSummaryView() {
     if (count === 0) {
       // No areas logged yet - show change model button
       changeModelButton.style.display = 'inline-flex';
+
+      // Hide "Proceed to Questionnaire" button until at least one area is logged
+      summaryDoneButton.style.display = 'none';
       
-      // No areas logged yet
-      summaryStatusPanel.innerHTML = `
-        <div class="summary-empty">
-          <p>You currently don't have any pain or symptoms logged.</p>
-          <p style="margin-top: var(--space-md);">Select <strong>"Add a New Pain or Symptom"</strong> to draw your first area on the body model.</p>
-        </div>
-      `;
-      summaryDoneButton.disabled = true;
+      // Show Youtube instruction video when no areas logged yet
+      summaryStatusPanel.innerHTML = '';
+      summaryStatusPanel.appendChild(createVideoEmbed());
       return;
     }
 
     // Hide change model button when areas are logged
     changeModelButton.style.display = 'none';
+
+    // Enable & show the summary done button as areas exist
+    summaryDoneButton.style.display = '';
+    summaryDoneButton.disabled = false;
 
     // Areas logged - show simple list with edit/delete options
     const areasHtml = AppState.drawingInstances.map((instance, index) => {
@@ -121,9 +188,6 @@ export function createSummaryView() {
         </div>
       </div>
     `;
-
-    // Enable done button since we have at least one area
-    summaryDoneButton.disabled = false;
 
     // Add event listeners to edit/delete buttons
     summaryStatusPanel.querySelectorAll('.area-edit-btn').forEach(btn => {

@@ -26,6 +26,7 @@ export function createDrawingControls(drawingControlsPanel) {
 
     // Reset Drawing Button
     const resetDrawingButton = document.createElement('button');
+    resetDrawingButton.id = 'reset-drawing-button';
     resetDrawingButton.classList.add('button', 'button-secondary', 'button-draw-control');
     resetDrawingButton.innerHTML = `
         <i class="fa-solid fa-arrow-rotate-left"></i>

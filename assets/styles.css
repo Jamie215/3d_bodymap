@@ -3201,22 +3201,24 @@ input[type="range"]::-moz-range-thumb {
 .canvas-rotation-controls {
   position: absolute;
   top: 50%;
+  left: var(--space-sm);
+  right: var(--space-sm);
   transform: translateY(-50%);
-  width: 100%;
+  height: 56px;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
   pointer-events: none;
   z-index: 10;
-  display: none;
 }
 
 /* Show controls only in drawing stage */
 [data-stage="drawing"] .canvas-rotation-controls {
-  display: block;
+  display: flex;
 }
 
 .canvas-rotate-btn {
-  position: absolute;
-  margin-left: 3vw;
-  margin-right: 3vw;
   width: 56px;
   height: 56px;
   border: none;
@@ -3229,6 +3231,7 @@ input[type="range"]::-moz-range-thumb {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: auto;
   opacity: 0.5;
+  flex-shrink: 0;
 }
 
 .canvas-rotate-btn:hover {
@@ -3269,27 +3272,24 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .canvas-rotate-btn.rotate-left {
-  left: 24px;
+  /* Positioned by flex parent */
 }
 
 .canvas-rotate-btn.rotate-right {
-  right: 24px;
+  /* Positioned by flex parent */
 }
 
 /* Responsive adjustments for mobile */
 @media (max-width: 768px) {
+  .canvas-rotation-controls {
+    height: 52px;
+    padding: 0 16px;
+  }
+
   .canvas-rotate-btn {
     width: 52px;
     height: 52px;
     opacity: 0.9;
-  }
-  
-  .canvas-rotate-btn.rotate-left {
-    left: 16px;
-  }
-  
-  .canvas-rotate-btn.rotate-right {
-    right: 16px;
   }
   
   .canvas-rotate-btn svg {
@@ -3300,12 +3300,8 @@ input[type="range"]::-moz-range-thumb {
 
 /* Tablet adjustments */
 @media (min-width: 769px) and (max-width: 1024px) {
-  .canvas-rotate-btn.rotate-left {
-    left: 20px;
-  }
-  
-  .canvas-rotate-btn.rotate-right {
-    right: 20px;
+  .canvas-rotation-controls {
+    padding: 0 20px;
   }
 }
 
@@ -3358,6 +3354,10 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* Style adjustments for landscape mode on mobile */
+[data-viewport="mobile"][data-orientation="landscape"] .canvas-rotation-controls {
+  height: 44px;
+}
+
 [data-viewport="mobile"][data-orientation="landscape"] .canvas-rotate-btn {
   width: 44px;
   height: 44px;
@@ -3575,6 +3575,18 @@ input[type="range"]::-moz-range-thumb {
   background-color: var(--primary-color) !important;
   color: #ffffff;
   border-color: var(--primary-color);
+}
+
+/* Pulse animation — applied after region modal flies to this button */
+@keyframes btn-pulse-highlight {
+  0%   { box-shadow: 0 0 0 0 rgba(2, 119, 189, 0.6); transform: scale(1); }
+  40%  { box-shadow: 0 0 0 12px rgba(2, 119, 189, 0); transform: scale(1.08); }
+  70%  { transform: scale(0.97); }
+  100% { box-shadow: 0 0 0 0 rgba(2, 119, 189, 0); transform: scale(1); }
+}
+
+.region-selector-footer-btn.pulse-highlight {
+  animation: btn-pulse-highlight 0.8s ease-out;
 }
 
 /* ============================================
@@ -4118,4 +4130,243 @@ input[type="range"]::-moz-range-thumb {
     height: 1px;
     background: #e5e7eb;
     margin: var(--space-xs, 0.5rem) 0 var(--space-md, 1rem) 0;
+}
+
+/* ============================================================================
+   Summary View — YouTube Video Embed
+   Add these rules to your existing styles.css
+   ============================================================================ */
+
+.summary-video-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-sm);
+  height: 100%;
+}
+
+.summary-video-container .summary-instruction {
+  margin-bottom: var(--space-sm);
+}
+
+.video-thumbnail {
+  position: relative;
+  width: 100%;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  cursor: pointer;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.video-thumbnail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.2s ease;
+}
+
+.video-thumbnail:hover .video-thumbnail-img {
+  opacity: 0.8;
+}
+
+.video-play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 1.25rem;
+  transition: background 0.2s ease, transform 0.2s ease;
+  /* Offset the play icon slightly right for visual centering */
+  padding-left: 3px;
+}
+
+.video-thumbnail:hover .video-play-btn {
+  background: var(--primary-color, #0277BD);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+ 
+/* Fullscreen overlay */
+.video-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+ 
+.video-overlay.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+ 
+.video-overlay-content {
+  position: relative;
+  width: 90vw;
+  max-width: 1100px;
+  aspect-ratio: 16 / 9;
+}
+ 
+.video-overlay-content iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: var(--border-radius, 8px);
+}
+ 
+.video-overlay-close {
+  position: absolute;
+  top: var(--space-md, 16px);
+  right: var(--space-md, 16px);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  z-index: 1;
+}
+ 
+.video-overlay-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+ 
+/* Mobile: make overlay content nearly full width */
+@media (max-width: 480px) {
+  .video-overlay-content {
+    width: 96vw;
+  }
+ 
+  .video-play-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+}
+
+/* ============================================================================
+   Driver.js Tooltip Overrides
+   Scoped to .app-tooltip (set via popoverClass in Driver config)
+   Double-chained selectors for specificity over default driver.css
+   ============================================================================ */
+
+/* Popover container */
+.driver-popover.app-tooltip {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--panel-background);
+  border-radius: var(--border-radius-lg);
+  max-width: 340px;
+  padding: var(--space-lg);
+}
+
+/* Title */
+.driver-popover.app-tooltip .driver-popover-title {
+  font-size: var(--font-title-medium);
+  font-weight: 600;
+  color: var(--secondary-color);
+  margin-bottom: var(--space-xs);
+  line-height: 1.3;
+}
+
+/* Description */
+.driver-popover.app-tooltip .driver-popover-description {
+  font-size: var(--font-body-medium);
+  color: var(--dark-grey);
+  line-height: 1.5;
+}
+
+/* Progress text (e.g. "1 of 2") */
+.driver-popover.app-tooltip .driver-popover-progress-text {
+  font-size: var(--font-xs);
+  color: var(--dark-grey);
+}
+
+/* Footer area */
+.driver-popover.app-tooltip .driver-popover-footer {
+  margin-top: var(--space-md);
+}
+
+/* Next / Done button — matches .modal-btn-primary style */
+.driver-popover.app-tooltip .driver-popover-next-btn {
+  font-family: inherit;
+  background: var(--primary-color);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: var(--space-sm);
+  font-size: var(--font-button-small);
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+  text-shadow: none !important;
+  transition: background-color 0.2s ease;
+}
+
+.driver-popover.app-tooltip .driver-popover-next-btn:hover {
+  background: #01579B;
+}
+
+/* Previous button — matches .button-secondary style */
+.driver-popover.app-tooltip .driver-popover-prev-btn {
+  font-family: inherit;
+  background: #f5f5f5;
+  color: var(--secondary-color);
+  border: 1px solid #e0e0e0;
+  border-radius: var(--border-radius);
+  padding: var(--space-sm);
+  font-size: var(--font-button-small);
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+  transition: all 0.2s ease;
+}
+
+.driver-popover.app-tooltip .driver-popover-prev-btn:hover {
+  background: #e8e8e8;
+}
+
+/* Close button (X) */
+.driver-popover.app-tooltip .driver-popover-close-btn {
+  color: var(--dark-grey);
+}
+
+.driver-popover.app-tooltip .driver-popover-close-btn:hover {
+  color: var(--secondary-color);
+}
+
+/* Arrow colours — match panel background */
+.driver-popover.app-tooltip.driver-popover-arrow-side-top .driver-popover-arrow {
+  border-bottom-color: var(--panel-background);
+}
+
+.driver-popover.app-tooltip.driver-popover-arrow-side-bottom .driver-popover-arrow {
+  border-top-color: var(--panel-background);
+}
+
+.driver-popover.app-tooltip.driver-popover-arrow-side-left .driver-popover-arrow {
+  border-right-color: var(--panel-background);
+}
+
+.driver-popover.app-tooltip.driver-popover-arrow-side-right .driver-popover-arrow {
+  border-left-color: var(--panel-background);
 }

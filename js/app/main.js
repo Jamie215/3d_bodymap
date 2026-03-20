@@ -86,8 +86,135 @@ initDeleteEmptyModal(document.body);
 initRegionSelectorModal(document.body);
 initOnboardingModal(document.body);
 
-// Track if onboarding has been shown this session
-let hasShownOnboardingThisSession = false;
+// Track if tooltips have shown this session per view
+let hasShownDrawingTooltips = false;
+let hasShownReturnTooltips = false;
+
+// Run a Driver.js tooltip sequence for the drawing view
+function runDrawingTooltips() {
+  if (typeof window.driver === 'undefined' || !window.driver?.js?.driver) {
+    console.warn('Driver.js not loaded - skipping tooltips');
+    return;
+  }
+
+  const driverInstance = window.driver.js.driver({
+    showProgress: true,
+    showButtons: ['next', 'previous', 'close'],
+    allowClose: true,
+    overlayClickNext: false,
+    stagePadding: 8,
+    stageRadius: 8,
+    disableActiveInteraction: true,
+    popoverClass: 'app-tooltip',
+    steps: [
+      {
+        element: '#draw-button',
+        popover: {
+          title: 'Draw Tool',
+          description: 'Use this to draw on the body model. This tool is selected by default when you enter the drawing view.',
+          side: 'right',
+          align: 'start'
+        }
+      },
+      {
+        element: '#erase-button',
+        popover: {
+          title: 'Eraser Tool',
+          description: 'Switch to the eraser to remove parts of your drawing. You can toggle back to the draw tool anytime.',
+          side: 'right',
+          align: 'start'
+        }
+      },
+      {
+        element: '.vertical-slider-container',
+        popover: {
+          title: 'Marker Size',
+          description: 'Drag the slider to adjust how large or small your brush or eraser is.',
+          side: 'right',
+          align: 'center'
+        }
+      },
+      {
+        element: '#canvas-rotation-controls',
+        popover: {
+          title: 'Rotate the Body',
+          description: 'Use these arrows to rotate the body model left or right so you can reach different areas.',
+          side: 'top',
+          align: 'center'
+        }
+      },
+      {
+        element: '.footer-center',
+        popover: {
+          title: 'Zoom In / Out',
+          description: 'Use your mouse wheel or pinch gesture to zoom in and out on the body model for more precision.',
+          side: 'top',
+          align: 'center'
+        }
+      }
+    ]
+  });
+ 
+  setTimeout(() => {
+    driverInstance.drive();
+  }, 1500);
+}
+
+/**
+ * Runs a Driver.js tooltip sequence when the user returns to summary
+ * after completing their first pain/symptom area.
+ * Highlights: area card, add more button, proceed button.
+ */
+function runReturnToSummaryTooltips() {
+  if (typeof window.driver === 'undefined' || !window.driver?.js?.driver) {
+    console.warn('Driver.js not loaded — skipping return tooltips');
+    return;
+  }
+
+  const driverInstance = window.driver.js.driver({
+    showProgress: true,
+    showButtons: ['next', 'previous', 'close'],
+    allowClose: true,
+    overlayClickNext: false,
+    stagePadding: 8,
+    stageRadius: 8,
+    disableActiveInteraction: true,
+    popoverClass: 'app-tooltip',
+    steps: [
+      {
+        element: '.area-item',
+        popover: {
+          title: 'Your Logged Area',
+          description: 'Each pain or symptom area you complete will appear here. You can edit or delete any area at any time.',
+          side: 'bottom',
+          align: 'center'
+        }
+      },
+      {
+        element: '#add-new-instance-summary',
+        popover: {
+          title: 'Add More Areas',
+          description: 'If you have pain or symptoms in other areas, click here to draw and log another one.',
+          side: 'top',
+          align: 'center'
+        }
+      },
+      {
+        element: '#summary-done-button',
+        popover: {
+          title: 'Finish Up',
+          description: 'Once you\'ve added all your areas, click here to complete the general questionnaire and submit.',
+          side: 'top',
+          align: 'center'
+        }
+      }
+    ]
+  });
+
+  setTimeout(() => {
+    driverInstance.drive();
+  }, 500);
+}
 
 // Improved ResizeObserver with debouncing - now observe canvasContent
 let resizeTimeout = null;
@@ -150,14 +277,11 @@ function setStage(stage) {
         };
         slotFooter.insertBefore(toggleBtn, slotFooter.firstChild);
       }
-      
-      // Show onboarding modal on first visit to summary
-      if (!hasShownOnboardingThisSession) {
-        hasShownOnboardingThisSession = true;
-        // Delay slightly to allow the UI to render first
-        setTimeout(() => {
-          showOnboardingModal();
-        }, 500);
+
+      // Show return tooltips when coming back with at least one area logged
+      if (!hasShownReturnTooltips && AppState.drawingInstances.length > 0 && !AppState.generalQuestionnaireResponse) {
+        hasShownReturnTooltips = true;
+        runReturnToSummaryTooltips();
       }
       break;
 
@@ -179,9 +303,25 @@ function setStage(stage) {
       
       // Footer: Change View (left) + Done Drawing (right)
       slotFooter.appendChild(drawing.drawingFooter);
+
+      // For triggering first time tooltip
+      const isFirstDrawingEntry = !AppState.isEditingFromSurvey;
       
       // Setup region selector - adds button to footerLeft
-      setupRegionSelectorForDrawing(drawing.footerLeft, !AppState.isEditingFromSurvey, drawing.updateStatusBar);
+      if (isFirstDrawingEntry) {
+        setupRegionSelectorForDrawing(drawing.footerLeft, isFirstDrawingEntry, (regionName) => {
+          drawing.updateStatusBar(regionName);
+
+          // If this is the first time entering drawing, also trigger the tooltip for region selection
+          if (!hasShownDrawingTooltips && isFirstDrawingEntry) {
+            hasShownDrawingTooltips = true;
+            runDrawingTooltips();
+          }
+        });
+      } else {
+        setupRegionSelectorForDrawing(drawing.footerLeft, !AppState.isEditingFromSurvey, drawing.updateStatusBar);
+      }
+
 
       // Close any open drawers from other stages
       const scrim = document.body.querySelector('.drawer-scrim');
@@ -213,7 +353,8 @@ function setStage(stage) {
 // Optional: Set callback for when onboarding is completed
 setOnOnboardingComplete(() => {
   console.log('Onboarding completed');
-  // You can trigger any action here after the user clicks "Get Started"
+  // Tigger Driver.js tooltip
+  runSummaryTooltips();
 });
 
 // Start application logic

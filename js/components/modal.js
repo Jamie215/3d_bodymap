@@ -62,14 +62,14 @@ const REGION_HIERARCHY = {
         displayName: 'Arm (Right)'
     },
     'Left Leg': {
-        subAreas: ['Thigh', 'Knee', 'Calf', 'Ankle', 'Foot'],
+        subAreas: ['Thigh', 'Knee (Front)', 'Knee (Back)', 'Calf', 'Ankle', 'Foot'],
         cameraRegion: null,
         prefix: 'Left',
         hideOthers: true,
         displayName: 'Leg (Left)'
     },
     'Right Leg': {
-        subAreas: ['Thigh', 'Knee', 'Calf', 'Ankle', 'Foot'],
+        subAreas: ['Thigh', 'Knee (Front)', 'Knee (Back)', 'Calf', 'Ankle', 'Foot'],
         cameraRegion: null,
         prefix: 'Right',
         hideOthers: true,
@@ -126,6 +126,11 @@ function mapFromCameraRegion(cameraRegion) {
         return { mainArea: null, subArea: null };
     }
     
+    // Direct match for main area names (e.g., "Left Leg" stored by fitToVisibleRegions)
+    if (REGION_HIERARCHY[cameraRegion]) {
+        return { mainArea: cameraRegion, subArea: null };
+    }
+    
     // Check each main area
     for (const [mainArea, config] of Object.entries(REGION_HIERARCHY)) {
         // Direct match (Head, Neck)
@@ -153,6 +158,10 @@ function mapFromCameraRegion(cameraRegion) {
             // Handle legacy "Left Hand" → default to "Hand (Front)"
             if (subArea === 'Hand') {
                 return { mainArea, subArea: 'Hand (Front)' };
+            }
+            // Handle legacy "Left Knee" → default to "Knee (Front)"
+            if (subArea === 'Knee') {
+                return { mainArea, subArea: 'Knee (Front)' };
             }
         }
     }
@@ -614,6 +623,9 @@ function confirmRegionSelection() {
             // No sub-area: fit camera to entire limb
             if (AppState.cameraUtils) {
                 AppState.cameraUtils.fitToVisibleRegions(limbIds);
+                // fitToVisibleRegions nulls focusedRegionName since it frames
+                // arbitrary IDs. Restore it so the modal can pre-select on reopen.
+                AppState.cameraUtils.focusedRegionName = selectedMainArea;
             }
             if (onRegionSelectedCallback) {
                 onRegionSelectedCallback(selectedMainArea);
@@ -704,12 +716,55 @@ export function showRegionSelectorModal() {
 export function hideRegionSelectorModal() {
     if (!regionModalOverlay) return;
     
-    regionModalOverlay.classList.remove('visible');
+    const footerBtn = document.getElementById('region-selector-footer-btn');
     
-    // Remove after animation
-    setTimeout(() => {
-        regionModalOverlay.style.display = 'none';
-    }, 300);
+    // If footer button exists and is visible, animate modal toward it
+    if (footerBtn && footerBtn.offsetParent !== null) {
+        const modalRect = regionModalEl.getBoundingClientRect();
+        const btnRect = footerBtn.getBoundingClientRect();
+        
+        // Calculate translation from modal center to button center
+        const modalCenterX = modalRect.left + modalRect.width / 2;
+        const modalCenterY = modalRect.top + modalRect.height / 2;
+        const btnCenterX = btnRect.left + btnRect.width / 2;
+        const btnCenterY = btnRect.top + btnRect.height / 2;
+        
+        const deltaX = btnCenterX - modalCenterX;
+        const deltaY = btnCenterY - modalCenterY;
+        
+        // Apply fly-to animation on the modal container
+        regionModalEl.style.transition = 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease';
+        regionModalEl.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.05)`;
+        regionModalEl.style.opacity = '0';
+        
+        // Fade out the overlay backdrop
+        regionModalOverlay.style.transition = 'opacity 0.3s ease';
+        regionModalOverlay.classList.remove('visible');
+        
+        // After animation completes, clean up and pulse the button
+        setTimeout(() => {
+            regionModalOverlay.style.display = 'none';
+            
+            // Reset modal transform for next open
+            regionModalEl.style.transition = '';
+            regionModalEl.style.transform = '';
+            regionModalEl.style.opacity = '';
+            regionModalOverlay.style.transition = '';
+            
+            // Pulse the footer button to draw attention
+            footerBtn.classList.add('pulse-highlight');
+            setTimeout(() => {
+                footerBtn.classList.remove('pulse-highlight');
+            }, 1000);
+        }, 420);
+    } else {
+        // Fallback: standard fade out (no footer button visible)
+        regionModalOverlay.classList.remove('visible');
+        
+        setTimeout(() => {
+            regionModalOverlay.style.display = 'none';
+        }, 300);
+    }
 }
 
 export function setOnRegionSelected(callback) {
