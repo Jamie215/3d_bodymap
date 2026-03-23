@@ -48,6 +48,9 @@ export function createSummaryView() {
     onDeleteArea = callback;
   }
 
+  // Video overlay reference — created once, not on every updateSummaryStatus call
+  let videoOverlay = null;
+
   // Create a YouTube embed element for the instructional video
   function createVideoEmbed() {
     const videoContainer = document.createElement('div');
@@ -66,52 +69,51 @@ export function createSummaryView() {
       </div>
     `;
 
-    // Create the fullscreen video overlay
-    const overlay = document.createElement('div');
-    overlay.classList.add('video-overlay');
-    overlay.id = 'video-overlay';
-    overlay.innerHTML = `
-    <button class="video-overlay-close" id="video-overlay-close" title="close Video">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-    <div class="video-overlay-content">
-        <iframe 
-          id="summary-video-iframe"
-          src=""
-          title="Pain Assessment Tool - How to Use"
-          frameborder="0"
-          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen
-        ></iframe>
-      </div>
-    `;
+    // Create the fullscreen video overlay only once
+    if (!videoOverlay) {
+      videoOverlay = document.createElement('div');
+      videoOverlay.classList.add('video-overlay');
+      videoOverlay.id = 'video-overlay';
+      videoOverlay.innerHTML = `
+        <button class="video-overlay-close" id="video-overlay-close" title="close Video">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="video-overlay-content">
+          <iframe 
+            id="summary-video-iframe"
+            src=""
+            title="Pain Assessment Tool - How to Use"
+            frameborder="0"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+        </div>
+      `;
 
-    // Open overlay on thumbmail click
-    const thumbnail = videoContainer.querySelector('#video-thumbnail');
-    thumbnail.addEventListener('click', () => {
-      const iframe = overlay.querySelector('#summary-video-iframe');
-      iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0`;
-      overlay.classList.add('is-active');
-      document.body.style.overflow = 'hidden'; // Prevent background scrolling
-    });
+      function closeOverlay() {
+        const iframe = videoOverlay.querySelector('#summary-video-iframe');
+        iframe.src = '';
+        videoOverlay.classList.remove('is-active');
+        document.body.style.overflow = '';
+      }
 
-    // Close overlay on close button click
-    function closeOverlay() {
-      const iframe = overlay.querySelector('#summary-video-iframe');
-      iframe.src = '';
-      overlay.classList.remove('is-active');
-      document.body.style.overflow = ''; // Restore scrolling
+      videoOverlay.querySelector('#video-overlay-close').addEventListener('click', closeOverlay);
+      videoOverlay.addEventListener('click', (e) => {
+        if (e.target === videoOverlay) closeOverlay();
+      });
+
+      document.body.appendChild(videoOverlay);
     }
 
-    overlay.querySelector('#video-overlay-close').addEventListener('click', closeOverlay);
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        closeOverlay();
-      }
+    // Open overlay on thumbnail click
+    const thumbnail = videoContainer.querySelector('#video-thumbnail');
+    thumbnail.addEventListener('click', () => {
+      const iframe = videoOverlay.querySelector('#summary-video-iframe');
+      iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0`;
+      videoOverlay.classList.add('is-active');
+      document.body.style.overflow = 'hidden';
     });
 
-    document.body.appendChild(overlay);
     return videoContainer;
   }
 
@@ -135,13 +137,10 @@ export function createSummaryView() {
     }
 
     if (count === 0) {
-      // No areas logged yet - show change model button
+      // No areas logged yet
       changeModelButton.style.display = 'inline-flex';
-
-      // Hide "Proceed to Questionnaire" button until at least one area is logged
       summaryDoneButton.style.display = 'none';
-      
-      // Show Youtube instruction video when no areas logged yet
+
       summaryStatusPanel.innerHTML = '';
       summaryStatusPanel.appendChild(createVideoEmbed());
       return;
@@ -154,14 +153,14 @@ export function createSummaryView() {
     summaryDoneButton.style.display = '';
     summaryDoneButton.disabled = false;
 
-    // Areas logged - show simple list with edit/delete options
+    // Areas logged - show list with edit/delete options
     const areasHtml = AppState.drawingInstances.map((instance, index) => {
       const areaNum = index + 1;
-      
+
       return `
         <div class="area-item" data-index="${index}">
           <div class="area-info">
-            <span class="area-number" style="color: ${instance.colour || 'var(--primary-color)'}">
+            <span class="area-number" style="color: ${instance.color || 'var(--primary-color)'}">
               Area #${areaNum}
             </span>
           </div>

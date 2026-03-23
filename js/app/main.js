@@ -144,7 +144,7 @@ function runDrawingTooltips() {
         }
       },
       {
-        element: '.footer-center',
+        element: '#canvas-content',
         popover: {
           title: 'Zoom In / Out',
           description: 'Use your mouse wheel or pinch gesture to zoom in and out on the body model for more precision.',

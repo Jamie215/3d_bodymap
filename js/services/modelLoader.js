@@ -1,6 +1,6 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import AppState from '../app/state.js';
-import texturePool from '../utils/textureManager.js'
+import texturePool from '../utils/textureManager.js';
 
 const loader = new GLTFLoader();
 
@@ -26,14 +26,11 @@ function disposeNode(node) {
 }
 
 function disposeMaterial(material) {
-    // Skip if material is null or undefined
     if (!material) return;
-    
-    // Dispose textures and other disposable properties
+
     for (const prop in material) {
         try {
             const value = material[prop];
-            // Only try to dispose if the value has a dispose function
             if (value && typeof value.dispose === 'function') {
                 value.dispose();
             }
@@ -41,34 +38,26 @@ function disposeMaterial(material) {
             console.warn(`Error disposing material property ${prop}:`, e);
         }
     }
-    
-    // Finally dispose the material itself
+
     if (typeof material.dispose === 'function') {
         material.dispose();
     }
 }
 
-// Clean up a model and its resources
 function cleanupModel(model) {
     if (!model) return;
-    
-    // Traverse the model to dispose all resources
     model.traverse(disposeNode);
 }
 
 export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
-    // Cancel any previous loading by tracking the current request
     const thisRequest = { cancelled: false };
-    
-    // If there was a previous request, mark it as cancelled
+
     if (currentLoadingRequest) {
         currentLoadingRequest.cancelled = true;
     }
-    
-    // Set this as the current request
+
     currentLoadingRequest = thisRequest;
 
-    // Only show loading spinner if not cancelled
     if (!thisRequest.cancelled) {
         showLoadingProgress(0);
     }
@@ -111,15 +100,14 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                         child.renderOrder = 0;
 
                         const textureId = `model-${name}-skin`;
-                        const { canvas, context, threeTexture } = texturePool.getTexture(textureId);
+                        const { canvas, context, texture } = texturePool.getTexture(textureId);
 
-                        // Upload texture
+                        // Upload AO texture
                         const aoTexture = new THREE.TextureLoader().load('../assets/body_ao_modified.png');
                         aoTexture.flipY = false;
-                        
-                        // Use MeshLambertMaterial - softer lighting, good balance
+
                         child.material = new THREE.MeshLambertMaterial({
-                            map: threeTexture,
+                            map: texture,
                             aoMap: aoTexture,
                             aoMapIntensity: 1.0,
                             transparent: true,
@@ -129,17 +117,12 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                             emissiveIntensity: 1.0
                         });
 
-                        // ── Region visibility filter ──
-                        // Uses flat varying for hard discard decisions.
-                        // Uses a smooth "visibility signal" (1.0=visible, 0.0=hidden per vertex)
-                        // to fade fragments at boundaries between visible and hidden regions.
-                        // Internal boundaries between two visible regions stay at 1.0 → no fade.
+                        // Region visibility shader
                         child.material.onBeforeCompile = (shader) => {
                             shader.uniforms.visibleIds = { value: new Float32Array(512).fill(-1) };
                             shader.uniforms.visibleCount = { value: 0 };
                             shader.uniforms.filterActive = { value: false };
 
-                            // Vertex: check if this vertex's region is visible, output binary signal
                             shader.vertexShader = shader.vertexShader.replace(
                                 '#include <common>',
                                 `#include <common>
@@ -168,7 +151,6 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                                  }`
                             );
 
-                            // Fragment: discard hidden, fade at boundaries
                             shader.fragmentShader = shader.fragmentShader.replace(
                                 '#include <common>',
                                 `#include <common>
@@ -180,28 +162,24 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                                 '#include <dithering_fragment>',
                                 `#include <dithering_fragment>
                                  if (filterActive) {
-                                     // Smooth visibility: 1.0 = all vertices visible,
-                                     // 0.0 = all vertices hidden, in-between = boundary triangle
                                      if (vVisibility < 0.05) {
                                          discard;
                                      } else if (vVisibility < 0.95) {
-                                         // Boundary fragment: fade based on proximity to hidden side
                                          gl_FragColor.a *= smoothstep(0.05, 0.95, vVisibility);
                                      }
                                  }`
                             );
 
-                            // Store reference so uniforms can be updated at runtime
                             child.userData.regionShader = shader;
                         };
 
                         child.geometry.setAttribute('uv2', child.geometry.getAttribute('uv'));
                         child.material.needsUpdate = true;
-                        child.userData = { 
-                            canvas, 
-                            context, 
-                            texture: threeTexture, 
-                            textureId 
+                        child.userData = {
+                            canvas,
+                            context,
+                            texture,
+                            textureId
                         };
 
                         AppState.skinMesh = skinMesh;
@@ -234,7 +212,7 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                 AppState.model = model;
                 AppState.currentModelName = name;
 
-                const { canvas: baseCanvas, context: baseCtx, threeTexture: baseTexture } = texturePool.getTexture(`base-texture-${name}`);
+                const { canvas: baseCanvas, context: baseCtx, texture: baseTexture } = texturePool.getTexture(`base-texture-${name}`);
                 baseCtx.fillStyle = '#ffffff';
                 baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
 
@@ -243,18 +221,16 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
                 AppState.baseTextureTexture = baseTexture;
 
                 console.log(`Loaded model: ${name}`);
-                
+
                 resolve(skinMesh);
             },
             (xhr) => {
                 if (thisRequest.cancelled) return;
-                
-                // Calculate progress percentage
+
                 if (xhr.lengthComputable) {
                     const percentComplete = (xhr.loaded / xhr.total) * 100;
                     updateLoadingProgress(percentComplete);
                 } else {
-                    // If we can't determine exact progress, show bytes loaded
                     const mbLoaded = (xhr.loaded / 1024 / 1024).toFixed(2);
                     updateLoadingProgress(null, mbLoaded);
                 }
@@ -270,9 +246,8 @@ export function loadModel(path, name, scene, controls, onLoaded = () => {}) {
 }
 
 function showLoadingProgress(percentage = 0) {
-    // Remove any existing progress indicator first
     hideLoadingProgress();
-    
+
     const progressContainer = document.createElement('div');
     progressContainer.id = 'loading-progress-container';
     progressContainer.innerHTML = `
@@ -283,20 +258,19 @@ function showLoadingProgress(percentage = 0) {
         <div class="progress-text" id="progress-text">
             <span class="progress-percentage">${percentage.toFixed(1)}%</span> complete
         </div>`;
-    
+
     document.body.appendChild(progressContainer);
 }
 
 function updateLoadingProgress(percentage, mbLoaded = null) {
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
-    
+
     if (!progressBar || !progressText) return;
-    
+
     if (percentage !== null) {
-        // We have a percentage
         progressBar.style.width = `${percentage}%`;
-        
+
         if (percentage >= 100) {
             progressText.innerHTML = `
                 <span class="progress-percentage">Loading</span>
@@ -306,8 +280,6 @@ function updateLoadingProgress(percentage, mbLoaded = null) {
                 <span class="progress-percentage">${percentage.toFixed(1)}%</span> complete`;
         }
     } else if (mbLoaded !== null) {
-        // We only have bytes loaded (no total size available)
-        // Show indeterminate progress with MB loaded
         progressBar.style.width = '50%';
         progressBar.style.animation = 'pulse 1.5s infinite';
         progressText.innerHTML = `
@@ -319,7 +291,6 @@ function updateLoadingProgress(percentage, mbLoaded = null) {
 function hideLoadingProgress() {
     const el = document.getElementById('loading-progress-container');
     if (el) {
-        // Add a fade-out animation before removing
         el.style.transition = 'opacity 0.3s';
         el.style.opacity = '0';
         setTimeout(() => {

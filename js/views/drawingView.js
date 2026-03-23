@@ -23,7 +23,7 @@ export function createDrawingViewElements(controls) {
     function updateStatusBar() {
         const current = AppState.currentDrawingIndex + 1;
         const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-        const colour = currentInstance?.colour;
+        const color = currentInstance?.color;
         const selectedRegion = AppState.selectedRegion || 'Entire Body';
 
         const hexToRgb = (hex) => {
@@ -35,14 +35,14 @@ export function createDrawingViewElements(controls) {
             } : { r: 0, g: 0, b: 0 };
         };
 
-        const rgb = hexToRgb(colour);
-        const bgColour = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.075)`;
+        const rgb = hexToRgb(color);
+        const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.075)`;
 
         if (AppState.isEditingFromSurvey) {
             statusBar.innerHTML = `
                 <div class="status-bar-content">
                     <span class="status-title"><i class="fa-solid fa-paintbrush"></i> Make your changes, then click "Done Editing" to return to the questionnaire</span>
-                    <span class="status-badge" style="color: ${colour}; background-color: ${bgColour};">
+                    <span class="status-badge" style="color: ${color}; background-color: ${bgColor};">
                         Editing Area #${current}
                     </span>
                 </div>
@@ -51,17 +51,17 @@ export function createDrawingViewElements(controls) {
             statusBar.innerHTML = `
                 <div class="status-bar-content">
                     <span class="status-title"><i class="fa-solid fa-paintbrush"></i> Draw one area of pain or symptom area on the body</span>
-                    <span class="status-badge" style="color: ${colour}; background-color: ${bgColour};">
+                    <span class="status-badge" style="color: ${color}; background-color: ${bgColor};">
                         You are currently viewing: <strong>${selectedRegion}</strong>
                     </span>
                 </div>
             `;
         }
     }
-    
+
     updateStatusBar();
 
-    // Footer with left, right, and right sections
+    // Footer with left, center, and right sections
     const drawingFooter = document.createElement('div');
     drawingFooter.id = 'footer-drawing';
     drawingFooter.classList.add('footer');
@@ -86,7 +86,7 @@ export function createDrawingViewElements(controls) {
     continueButton.classList.add('button', 'button-primary', 'button-done-drawing');
 
     footerRight.appendChild(continueButton);
-    
+
     drawingFooter.appendChild(footerLeft);
     drawingFooter.appendChild(footerCenter);
     drawingFooter.appendChild(footerRight);
@@ -96,12 +96,12 @@ export function createDrawingViewElements(controls) {
 
     return {
         root: drawingView,
-        drawingControlsPanel,      // Goes in slot-left
-        headerContent,             // Goes in slot-header (just status bar)
-        footerLeft,                // Container for "Change the View" button
-        footerRight,               // Container for "Done Drawing" button
-        continueButton,            // Main action button (Done Drawing)
-        drawingFooter,             // Footer element
+        drawingControlsPanel,
+        headerContent,
+        footerLeft,
+        footerRight,
+        continueButton,
+        drawingFooter,
         statusBar,
         updateStatusBar
     };

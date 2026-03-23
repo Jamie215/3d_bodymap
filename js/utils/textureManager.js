@@ -5,47 +5,44 @@ const texturePool = {
     inUse: new Map(),
     width: 1024,
     height: 1024,
-    
+
     getTexture(id, width = 1024, height = 1024) {
         // If this ID already has a texture, return it
         if (this.inUse.has(id)) {
             return this.inUse.get(id);
         }
-        
-        let texture;
-        
+
+        let entry;
+
         // Try to reuse an available texture
         if (this.available.length > 0) {
             const canvas = this.available.pop();
-            // Clear the canvas
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            texture = {
+
+            entry = {
                 canvas,
                 context: ctx,
-                threeTexture: new THREE.CanvasTexture(canvas)
+                texture: new THREE.CanvasTexture(canvas)
             };
         } else {
-            // Create a new texture if none available
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            texture = {
+
+            entry = {
                 canvas,
                 context: ctx,
-                threeTexture: new THREE.CanvasTexture(canvas)
+                texture: new THREE.CanvasTexture(canvas)
             };
         }
-        
-        // Mark this texture as in use
-        this.inUse.set(id, texture);
-        return texture;
+
+        this.inUse.set(id, entry);
+        return entry;
     },
 
     getNewTexture(id, width = 1024, height = 1024) {
@@ -64,21 +61,19 @@ const texturePool = {
             texture: new THREE.CanvasTexture(canvas)
         };
     },
-    
+
     releaseTexture(id) {
         if (this.inUse.has(id)) {
-            const texture = this.inUse.get(id);
+            const entry = this.inUse.get(id);
             this.inUse.delete(id);
-            this.available.push(texture.canvas);
-            // Dispose the Three.js texture
-            texture.threeTexture.dispose();
+            this.available.push(entry.canvas);
+            entry.texture.dispose();
         }
     },
-    
-    // Call this when cleaning up the application
+
     disposeAll() {
-        this.inUse.forEach(texture => {
-            texture.threeTexture.dispose();
+        this.inUse.forEach(entry => {
+            entry.texture.dispose();
         });
         this.inUse.clear();
         this.available = [];

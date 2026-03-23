@@ -1,6 +1,19 @@
 // modal.js
+// UI layer for all application modals.
+// Region hierarchy data and mapping logic lives in ../utils/regionHierarchy.js
+
 import AppState from "../app/state.js";
 import { setVisibleRegions } from "../utils/regionVisibility.js";
+import {
+    REGION_HIERARCHY,
+    mapToCameraRegion,
+    mapFromCameraRegion,
+    resolveRegionIds
+} from "../utils/regionHierarchy.js";
+
+// ============================================
+// MODULE-LEVEL REFERENCES
+// ============================================
 
 // Continue/Survey Modal
 let continueModalEl, continueModalText, continueModalButton, returnModalButton, returnToSummaryButton, drawingPreview;
@@ -24,200 +37,10 @@ let onOnboardingCompleteCallback = null;
 // LocalStorage key for tracking if onboarding has been shown
 const ONBOARDING_SHOWN_KEY = 'painSurvey_onboardingShown';
 
-/**
- * Region hierarchy for the modal
- * Main Area -> Sub Areas
- * 
- * hideOthers: if true, selecting this area hides non-limb body parts
- * IMPORTANT: These must align with cameraUtils.js dropdownRegions keys
- */
-const REGION_HIERARCHY = {
-    'Head': {
-        subAreas: [],
-        cameraRegion: 'Head',
-        hideOthers: false
-    },
-    'Neck': {
-        subAreas: [],
-        cameraRegion: 'Neck',
-        hideOthers: false
-    },
-    'Torso': {
-        subAreas: ['Chest', 'Abdomen', 'Upper Back', 'Mid Back', 'Lower Back', 'Pelvis'],
-        cameraRegion: null,
-        hideOthers: false
-    },
-    'Left Arm': {
-        subAreas: ['Shoulder', 'Upper Arm', 'Elbow', 'Forearm', 'Wrist', 'Hand (Front)', 'Hand (Back)'],
-        cameraRegion: null,
-        prefix: 'Left',
-        hideOthers: true,
-        displayName: 'Arm (Left)'
-    },
-    'Right Arm': {
-        subAreas: ['Shoulder', 'Upper Arm', 'Elbow', 'Forearm', 'Wrist', 'Hand (Front)', 'Hand (Back)'],
-        cameraRegion: null,
-        prefix: 'Right',
-        hideOthers: true,
-        displayName: 'Arm (Right)'
-    },
-    'Left Leg': {
-        subAreas: ['Thigh', 'Knee (Front)', 'Knee (Back)', 'Calf', 'Ankle', 'Foot'],
-        cameraRegion: null,
-        prefix: 'Left',
-        hideOthers: true,
-        displayName: 'Leg (Left)'
-    },
-    'Right Leg': {
-        subAreas: ['Thigh', 'Knee (Front)', 'Knee (Back)', 'Calf', 'Ankle', 'Foot'],
-        cameraRegion: null,
-        prefix: 'Right',
-        hideOthers: true,
-        displayName: 'Leg (Right)'
-    }
-};
+// ============================================
+// SHARED HELPERS
+// ============================================
 
-/**
- * Maps sub-area selections to cameraUtils region names
- * 
- * Examples:
- *   mapToCameraRegion('Head', null) => 'Head'
- *   mapToCameraRegion('Torso', 'Chest') => 'Chest'
- *   mapToCameraRegion('Left Arm', 'Shoulder') => 'Left Shoulder'
- *   mapToCameraRegion('Left Leg', 'Foot') => 'Left Foot'
- */
-function mapToCameraRegion(mainArea, subArea) {
-    const config = REGION_HIERARCHY[mainArea];
-    
-    if (!config) return 'Entire Body';
-    
-    // If mainArea has a direct camera region (Head, Neck)
-    if (config.cameraRegion) {
-        return config.cameraRegion;
-    }
-    
-    // Handle Torso - sub-areas map directly to cameraUtils keys
-    if (mainArea === 'Torso') {
-        return subArea || 'Torso';
-    }
-    
-    // For arms and legs, combine prefix with sub-area
-    // e.g., "Left" + "Shoulder" = "Left Shoulder"
-    // e.g., "Left" + "Hand (Front)" = "Left Hand (Front)"
-    if (config.prefix && subArea) {
-        return `${config.prefix} ${subArea}`;
-    }
-    
-    // Fallback - shouldn't reach here normally
-    return 'Entire Body';
-}
-
-/**
- * Reverse maps a camera region name back to main area and sub area
- * 
- * Examples:
- *   mapFromCameraRegion('Head') => { mainArea: 'Head', subArea: null }
- *   mapFromCameraRegion('Chest') => { mainArea: 'Torso', subArea: 'Chest' }
- *   mapFromCameraRegion('Left Shoulder') => { mainArea: 'Left Arm', subArea: 'Shoulder' }
- *   mapFromCameraRegion('Left Foot') => { mainArea: 'Left Leg', subArea: 'Foot' }
- */
-function mapFromCameraRegion(cameraRegion) {
-    if (!cameraRegion || cameraRegion === 'Entire Body') {
-        return { mainArea: null, subArea: null };
-    }
-    
-    // Direct match for main area names (e.g., "Left Leg" stored by fitToVisibleRegions)
-    if (REGION_HIERARCHY[cameraRegion]) {
-        return { mainArea: cameraRegion, subArea: null };
-    }
-    
-    // Check each main area
-    for (const [mainArea, config] of Object.entries(REGION_HIERARCHY)) {
-        // Direct match (Head, Neck)
-        if (config.cameraRegion === cameraRegion) {
-            return { mainArea, subArea: null };
-        }
-        
-        // Torso sub-areas map directly
-        if (mainArea === 'Torso') {
-            // Handle composite 'Torso' (no sub-area)
-            if (cameraRegion === 'Torso') {
-                return { mainArea: 'Torso', subArea: null };
-            }
-            if (config.subAreas.includes(cameraRegion)) {
-                return { mainArea: 'Torso', subArea: cameraRegion };
-            }
-        }
-        
-        // For prefixed regions (Left/Right Arm/Leg)
-        if (config.prefix && cameraRegion.startsWith(config.prefix + ' ')) {
-            const subArea = cameraRegion.replace(config.prefix + ' ', '');
-            if (config.subAreas.includes(subArea)) {
-                return { mainArea, subArea };
-            }
-            // Handle legacy "Left Hand" → default to "Hand (Front)"
-            if (subArea === 'Hand') {
-                return { mainArea, subArea: 'Hand (Front)' };
-            }
-            // Handle legacy "Left Knee" → default to "Knee (Front)"
-            if (subArea === 'Knee') {
-                return { mainArea, subArea: 'Knee (Front)' };
-            }
-        }
-    }
-    
-    return { mainArea: null, subArea: null };
-}
-
-/**
- * Resolves an array of checked main-area names into numeric _regionid values.
- * 
- * Chain: checked area → all camera region keys → vertex group names → numeric IDs
- * 
- * @param {string[]} areaNames - e.g. ['Head', 'Left Arm']
- * @returns {number[]} array of numeric region IDs
- */
-function resolveRegionIds(areaNames) {
-    const cameraUtils = AppState.cameraUtils;
-    const regionToIdMap = AppState.regionToIdMap;
-    if (!cameraUtils || !regionToIdMap) return [];
-
-    const ids = [];
-
-    for (const area of areaNames) {
-        const config = REGION_HIERARCHY[area];
-        if (!config) continue;
-
-        // Collect all camera-region keys for this main area
-        let cameraKeys = [];
-
-        if (config.cameraRegion) {
-            // Head, Neck — single key
-            cameraKeys.push(config.cameraRegion);
-        } else if (config.subAreas && config.subAreas.length > 0) {
-            // Torso, Arms, Legs — expand all sub-areas
-            for (const sub of config.subAreas) {
-                cameraKeys.push(mapToCameraRegion(area, sub));
-            }
-        }
-
-        // For each camera key, get vertex group names, then resolve to numeric IDs
-        for (const key of cameraKeys) {
-            const vertexGroupNames = cameraUtils.regionMap[key];
-            if (!vertexGroupNames) continue;
-            for (const name of vertexGroupNames) {
-                const id = regionToIdMap[name];
-                if (id !== undefined) {
-                    ids.push(id);
-                }
-            }
-        }
-    }
-
-    return ids;
-}
-
-// Helper to create modal structure
 function createModal(id, className = 'modal') {
     const modal = document.createElement('div');
     modal.id = id;
@@ -236,7 +59,6 @@ function createButton(id, text, className = 'modal-button') {
     const button = document.createElement('button');
     button.id = id;
     button.classList.add(className);
-    // Add shared secondary button class for base styling
     button.classList.add('modal-btn-secondary');
     button.innerText = text;
     return button;
@@ -245,7 +67,6 @@ function createButton(id, text, className = 'modal-button') {
 function createButtonGroup(...buttons) {
     const group = document.createElement('div');
     group.classList.add('modal-button-group');
-    // Add shared button group class
     group.classList.add('modal-btn-group');
     buttons.forEach(btn => group.appendChild(btn));
     return group;
@@ -259,12 +80,11 @@ export function initOnboardingModal(container) {
     onboardingModalOverlay = document.createElement('div');
     onboardingModalOverlay.className = 'onboarding-modal-overlay modal-overlay';
     onboardingModalOverlay.style.display = 'none';
-    
+
     onboardingModalEl = document.createElement('div');
     onboardingModalEl.className = 'onboarding-modal modal-container';
     onboardingModalEl.id = 'onboarding-modal';
-    
-    // Build modal content
+
     onboardingModalEl.innerHTML = `
         <div class="onboarding-modal-content modal-body">
             <h2 class="onboarding-modal-title modal-title">Steps to Complete Survey</h2>
@@ -307,23 +127,19 @@ export function initOnboardingModal(container) {
             </button>
         </div>
     `;
-    
+
     onboardingModalOverlay.appendChild(onboardingModalEl);
     container.appendChild(onboardingModalOverlay);
-    
-    // Get reference to start button
+
     onboardingStartButton = onboardingModalEl.querySelector('#onboarding-start-btn');
-    
-    // Setup event listener
+
     onboardingStartButton.addEventListener('click', () => {
         hideOnboardingModal();
-        // Mark as shown in localStorage
         try {
             localStorage.setItem(ONBOARDING_SHOWN_KEY, 'true');
         } catch (e) {
             console.warn('Could not save onboarding state to localStorage:', e);
         }
-        // Call callback if set
         if (onOnboardingCompleteCallback) {
             onOnboardingCompleteCallback();
         }
@@ -335,10 +151,8 @@ export function showOnboardingModal() {
         console.warn('Onboarding modal not initialized. Call initOnboardingModal first.');
         return;
     }
-    
+
     onboardingModalOverlay.style.display = 'flex';
-    
-    // Trigger animation
     requestAnimationFrame(() => {
         onboardingModalOverlay.classList.add('visible');
     });
@@ -346,10 +160,8 @@ export function showOnboardingModal() {
 
 export function hideOnboardingModal() {
     if (!onboardingModalOverlay) return;
-    
+
     onboardingModalOverlay.classList.remove('visible');
-    
-    // Remove after animation
     setTimeout(() => {
         onboardingModalOverlay.style.display = 'none';
     }, 300);
@@ -360,7 +172,7 @@ export function setOnOnboardingComplete(callback) {
 }
 
 // ============================================
-// CONTINUE/SURVEY MODAL (with 3 buttons)
+// CONTINUE/SURVEY MODAL (3 buttons)
 // ============================================
 
 export function initDrawContinueModal(container) {
@@ -380,13 +192,12 @@ export function initDrawContinueModal(container) {
     drawingPreview.id = 'drawing-preview';
     drawingPreview.classList.add('drawing-preview');
 
-    // Two buttons: Return to Home, Yes Proceed
     returnToSummaryButton = createButton('modal-return-summary', 'Return to Home');
     continueModalButton = createButton('modal-continue', 'Yes, Proceed');
-    
+
     const buttonGroup = createButtonGroup(returnToSummaryButton, continueModalButton);
 
-    modalContent.appendChild(returnModalButton);  // Close btn first (for positioning)
+    modalContent.appendChild(returnModalButton);
     modalContent.appendChild(continueModalText);
     modalContent.appendChild(drawingPreview);
     modalContent.appendChild(buttonGroup);
@@ -396,14 +207,10 @@ export function initDrawContinueModal(container) {
 
 export function showMoveToSurveyModal(text, canProceed, previewDataURL = null, showReturnToSummary = false) {
     continueModalText.textContent = text;
-    
-    // Show/hide "Yes, Proceed" based on whether user can proceed
+
     continueModalButton.style.display = canProceed ? 'flex' : 'none';
-    
-    // Show/hide the Return to Home button
     returnToSummaryButton.style.display = showReturnToSummary ? 'flex' : 'none';
-    
-    // Always show preview if we have a data URL
+
     if (previewDataURL) {
         drawingPreview.src = previewDataURL;
         drawingPreview.style.display = 'block';
@@ -488,12 +295,11 @@ export function initRegionSelectorModal(container) {
     regionModalOverlay = document.createElement('div');
     regionModalOverlay.className = 'region-modal-overlay modal-overlay';
     regionModalOverlay.style.display = 'none';
-    
+
     regionModalEl = document.createElement('div');
     regionModalEl.className = 'region-modal modal-container';
     regionModalEl.id = 'region-selector-modal';
-    
-    // Build modal content with dropdowns
+
     regionModalEl.innerHTML = `
         <div class="region-modal-content modal-body">
             <h1 class="region-modal-icon modal-icon"><i class="fa-solid fa-location-dot"></i></h1>
@@ -525,35 +331,30 @@ export function initRegionSelectorModal(container) {
             </div>
         </div>
     `;
-    
+
     regionModalOverlay.appendChild(regionModalEl);
     container.appendChild(regionModalOverlay);
-    
-    // Get references to elements
+
     mainAreaSelect = regionModalEl.querySelector('#main-area-select');
     subAreaSelect = regionModalEl.querySelector('#sub-area-select');
     regionConfirmBtn = regionModalEl.querySelector('#region-confirm-btn');
-    
-    // Setup event listeners
+
     setupRegionModalEvents();
 }
 
 function setupRegionModalEvents() {
     const subGroup = regionModalEl.querySelector('#sub-area-group');
-    
-    // Main area selection
+
     mainAreaSelect.addEventListener('change', (e) => {
         selectedMainArea = e.target.value;
         selectedSubArea = null;
-        
+
         if (selectedMainArea === 'Entire Body') {
-            // Entire Body — no sub-areas, enable confirm
             subGroup.style.display = 'none';
             regionConfirmBtn.disabled = false;
         } else if (selectedMainArea && REGION_HIERARCHY[selectedMainArea]) {
             const config = REGION_HIERARCHY[selectedMainArea];
-            
-            // Show sub-area dropdown only if there are sub-areas
+
             if (config.subAreas && config.subAreas.length > 0) {
                 subGroup.style.display = 'block';
                 subAreaSelect.innerHTML = `
@@ -565,21 +366,18 @@ function setupRegionModalEvents() {
             } else {
                 subGroup.style.display = 'none';
             }
-            
-            // Enable confirm when main area is selected (sub-area is optional)
+
             regionConfirmBtn.disabled = false;
         } else {
             subGroup.style.display = 'none';
             regionConfirmBtn.disabled = true;
         }
     });
-    
-    // Sub-area selection
+
     subAreaSelect.addEventListener('change', (e) => {
         selectedSubArea = e.target.value || null;
     });
-    
-    // Confirm button
+
     regionConfirmBtn.addEventListener('click', () => {
         confirmRegionSelection();
     });
@@ -587,7 +385,7 @@ function setupRegionModalEvents() {
 
 function confirmRegionSelection() {
     if (!selectedMainArea) return;
-    
+
     // Entire Body — clear filter and reset view
     if (selectedMainArea === 'Entire Body') {
         setVisibleRegions(null, null);
@@ -600,18 +398,16 @@ function confirmRegionSelection() {
         hideRegionSelectorModal();
         return;
     }
-    
+
     const config = REGION_HIERARCHY[selectedMainArea];
     if (!config) return;
-    
+
     if (config.hideOthers) {
-        // ── LIMBS (Arms / Legs): hide other body parts, keep entire limb visible ──
-        // Resolve ALL region IDs for the entire limb
+        // Limbs (Arms / Legs): hide other body parts, keep entire limb visible
         const limbIds = resolveRegionIds([selectedMainArea]);
         setVisibleRegions(limbIds, [selectedMainArea]);
-        
+
         if (selectedSubArea) {
-            // Focus on the specific sub-area within the limb
             const cameraRegion = mapToCameraRegion(selectedMainArea, selectedSubArea);
             if (AppState.cameraUtils) {
                 AppState.cameraUtils.focusOnRegion(cameraRegion, false);
@@ -620,11 +416,8 @@ function confirmRegionSelection() {
                 onRegionSelectedCallback(`${selectedMainArea} - ${selectedSubArea}`);
             }
         } else {
-            // No sub-area: fit camera to entire limb
             if (AppState.cameraUtils) {
                 AppState.cameraUtils.fitToVisibleRegions(limbIds);
-                // fitToVisibleRegions nulls focusedRegionName since it frames
-                // arbitrary IDs. Restore it so the modal can pre-select on reopen.
                 AppState.cameraUtils.focusedRegionName = selectedMainArea;
             }
             if (onRegionSelectedCallback) {
@@ -632,45 +425,45 @@ function confirmRegionSelection() {
             }
         }
     } else {
-        // ── HEAD / NECK / TORSO: focus camera only, no visibility filter ──
+        // Head / Neck / Torso: focus camera only, no visibility filter
         setVisibleRegions(null, null);
-        
-        const cameraRegion = selectedSubArea 
-            ? mapToCameraRegion(selectedMainArea, selectedSubArea) 
+
+        const cameraRegion = selectedSubArea
+            ? mapToCameraRegion(selectedMainArea, selectedSubArea)
             : (config.cameraRegion || selectedMainArea);
-        
+
         if (AppState.cameraUtils) {
             AppState.cameraUtils.focusOnRegion(cameraRegion, false);
         }
-        
+
         if (onRegionSelectedCallback) {
-            const label = selectedSubArea 
-                ? `${selectedMainArea} - ${selectedSubArea}` 
+            const label = selectedSubArea
+                ? `${selectedMainArea} - ${selectedSubArea}`
                 : selectedMainArea;
             onRegionSelectedCallback(label);
         }
     }
-    
+
     hideRegionSelectorModal();
 }
 
 function resetRegionSelections(preselect = null) {
     const subGroup = regionModalEl?.querySelector('#sub-area-group');
-    
+
     if (preselect && preselect.mainArea) {
         selectedMainArea = preselect.mainArea;
         selectedSubArea = preselect.subArea;
-        
+
         if (mainAreaSelect) mainAreaSelect.value = preselect.mainArea;
-        
+
         const config = REGION_HIERARCHY[preselect.mainArea];
-        
+
         if (config && config.subAreas && config.subAreas.length > 0) {
             if (subGroup) subGroup.style.display = 'block';
             if (subAreaSelect) {
                 subAreaSelect.innerHTML = `
                     <option value="">-- Select Region --</option>
-                    ${config.subAreas.map(sub => 
+                    ${config.subAreas.map(sub =>
                         `<option value="${sub}"${sub === preselect.subArea ? ' selected' : ''}>${sub}</option>`
                     ).join('')}
                 `;
@@ -678,17 +471,17 @@ function resetRegionSelections(preselect = null) {
         } else {
             if (subGroup) subGroup.style.display = 'none';
         }
-        
+
         if (regionConfirmBtn) regionConfirmBtn.disabled = false;
     } else {
         selectedMainArea = null;
         selectedSubArea = null;
-        
+
         if (mainAreaSelect) mainAreaSelect.value = '';
         if (subAreaSelect) {
             subAreaSelect.innerHTML = '<option value="">-- Select Region --</option>';
         }
-        
+
         if (subGroup) subGroup.style.display = 'none';
         if (regionConfirmBtn) regionConfirmBtn.disabled = true;
     }
@@ -699,14 +492,12 @@ export function showRegionSelectorModal() {
         console.warn('Region selector modal not initialized. Call initRegionSelectorModal first.');
         return;
     }
-    
+
     regionModalOverlay.style.display = 'flex';
-    
-    // Trigger animation
     requestAnimationFrame(() => {
         regionModalOverlay.classList.add('visible');
     });
-    
+
     // Pre-select current focused region if available
     const currentRegion = AppState.cameraUtils?.focusedRegionName;
     const preselect = mapFromCameraRegion(currentRegion);
@@ -715,52 +506,44 @@ export function showRegionSelectorModal() {
 
 export function hideRegionSelectorModal() {
     if (!regionModalOverlay) return;
-    
+
     const footerBtn = document.getElementById('region-selector-footer-btn');
-    
+
     // If footer button exists and is visible, animate modal toward it
     if (footerBtn && footerBtn.offsetParent !== null) {
         const modalRect = regionModalEl.getBoundingClientRect();
         const btnRect = footerBtn.getBoundingClientRect();
-        
-        // Calculate translation from modal center to button center
+
         const modalCenterX = modalRect.left + modalRect.width / 2;
         const modalCenterY = modalRect.top + modalRect.height / 2;
         const btnCenterX = btnRect.left + btnRect.width / 2;
         const btnCenterY = btnRect.top + btnRect.height / 2;
-        
+
         const deltaX = btnCenterX - modalCenterX;
         const deltaY = btnCenterY - modalCenterY;
-        
-        // Apply fly-to animation on the modal container
+
         regionModalEl.style.transition = 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease';
         regionModalEl.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.05)`;
         regionModalEl.style.opacity = '0';
-        
-        // Fade out the overlay backdrop
+
         regionModalOverlay.style.transition = 'opacity 0.3s ease';
         regionModalOverlay.classList.remove('visible');
-        
-        // After animation completes, clean up and pulse the button
+
         setTimeout(() => {
             regionModalOverlay.style.display = 'none';
-            
-            // Reset modal transform for next open
+
             regionModalEl.style.transition = '';
             regionModalEl.style.transform = '';
             regionModalEl.style.opacity = '';
             regionModalOverlay.style.transition = '';
-            
-            // Pulse the footer button to draw attention
+
             footerBtn.classList.add('pulse-highlight');
             setTimeout(() => {
                 footerBtn.classList.remove('pulse-highlight');
             }, 1000);
         }, 420);
     } else {
-        // Fallback: standard fade out (no footer button visible)
         regionModalOverlay.classList.remove('visible');
-        
         setTimeout(() => {
             regionModalOverlay.style.display = 'none';
         }, 300);
@@ -780,11 +563,11 @@ export function createRegionSelectorFooterButton() {
     button.id = 'region-selector-footer-btn';
     button.className = 'region-selector-footer-btn button button-secondary';
     button.innerHTML = '<span>Select Body Region</span>';
-    
+
     button.addEventListener('click', () => {
         showRegionSelectorModal();
     });
-    
+
     return button;
 }
 
@@ -794,8 +577,8 @@ export function createRegionSelectorFooterButton() {
 
 export function getModalElements(modalType) {
     const modalMap = {
-        continue: { 
-            continueButton: continueModalButton, 
+        continue: {
+            continueButton: continueModalButton,
             returnButton: returnModalButton,
             returnToSummaryButton: returnToSummaryButton
         },

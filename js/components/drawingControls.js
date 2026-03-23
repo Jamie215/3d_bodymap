@@ -1,3 +1,4 @@
+// drawingControls.js
 import AppState from '../app/state.js';
 import { showDrawResetModal, hideDrawResetModal, getModalElements } from './modal.js';
 
@@ -33,13 +34,13 @@ export function createDrawingControls(drawingControlsPanel) {
         <span>Erase All</span>
     `;
 
-    // Divider 
+    // Divider
     const divider = document.createElement('hr');
     divider.classList.add('divider');
 
     // Container for the vertical slider
     const sliderContainer = document.createElement('div');
-    sliderContainer.classList.add('vertical-slider-container')
+    sliderContainer.classList.add('vertical-slider-container');
 
     // Brush Size Controls
     const brushSizeLabel = document.createElement('h2');
@@ -47,7 +48,7 @@ export function createDrawingControls(drawingControlsPanel) {
 
     // Wrapper for the slider
     const sliderWrapper = document.createElement('div');
-    sliderWrapper.classList.add('slider-wrapper')
+    sliderWrapper.classList.add('slider-wrapper');
 
     // Brush Size Slider
     const brushSizeSlider = document.createElement('input');
@@ -62,7 +63,8 @@ export function createDrawingControls(drawingControlsPanel) {
     sliderWrapper.appendChild(brushSizeSlider);
     sliderContainer.appendChild(sliderWrapper);
 
-    // Event Listeners
+    // --- Event Listeners ---
+
     drawButton.addEventListener('click', () => {
         AppState.isErasing = false;
         drawButton.classList.remove('button-secondary');
@@ -81,18 +83,28 @@ export function createDrawingControls(drawingControlsPanel) {
         brushSizeLabel.textContent = 'Eraser Size';
     });
 
+    // Wire reset modal handlers on first click (modal doesn't exist at init time).
+    let resetListenersAttached = false;
+
     resetDrawingButton.addEventListener('click', () => {
-        if (AppState.skinMesh?.userData?.context) {
-            showDrawResetModal();
+        if (!AppState.skinMesh?.userData?.context) return;
+
+        if (!resetListenersAttached) {
             const { resetReturnButton, resetConfirmButton } = getModalElements("reset");
-            resetReturnButton.addEventListener('click', () => hideDrawResetModal());            
+
+            resetReturnButton.addEventListener('click', () => {
+                hideDrawResetModal();
+            });
+
             resetConfirmButton.addEventListener('click', () => {
                 const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+                if (!currentInstance) return;
+
                 const ctx = currentInstance.context;
-                
+
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, currentInstance.canvas.width, currentInstance.canvas.height);
-                
+
                 if (AppState.baseTextureCanvas) {
                     ctx.drawImage(AppState.baseTextureCanvas, 0, 0);
                 }
@@ -103,25 +115,29 @@ export function createDrawingControls(drawingControlsPanel) {
                 currentInstance.coloredFaces = new Set();
                 currentInstance.questionnaireData = null;
                 currentInstance.texture.needsUpdate = true;
+
                 hideDrawResetModal();
-            }); 
+            });
+
+            resetListenersAttached = true;
         }
+
+        showDrawResetModal();
     });
 
-    // Create a style element for dynamic thumb sizing
+    // --- Dynamic thumb sizing ---
+
     const thumbStyleSheet = document.createElement('style');
     thumbStyleSheet.id = 'brush-thumb-style';
     document.head.appendChild(thumbStyleSheet);
 
     function updateThumbSize(value) {
-    
         const minBrush = 5, maxBrush = 30;
         const minThumb = 18, maxThumb = 30;
-        
-        // Linear interpolation: 5→18, 30→30
+
         const t = (value - minBrush) / (maxBrush - minBrush);
         const thumbSize = minThumb + t * (maxThumb - minThumb);
-        
+
         thumbStyleSheet.textContent = `
             .vertical-slider::-webkit-slider-thumb {
                 width: ${thumbSize}px !important;
@@ -145,15 +161,13 @@ export function createDrawingControls(drawingControlsPanel) {
 
     updateThumbSize(brushSizeSlider.value);
 
-    // Assemble the container
+    // --- Assemble the container ---
+
     drawingToolsContainer.appendChild(drawButton);
     drawingToolsContainer.appendChild(eraseButton);
     drawingToolsContainer.appendChild(resetDrawingButton);
     drawingToolsContainer.appendChild(divider);
     drawingToolsContainer.appendChild(sliderContainer);
 
-    // Append to panel
     drawingControlsPanel.appendChild(drawingToolsContainer);
 }
-
-
