@@ -350,11 +350,8 @@ function setStage(stage) {
   }
 }
 
-// Optional: Set callback for when onboarding is completed
 setOnOnboardingComplete(() => {
   console.log('Onboarding completed');
-  // Tigger Driver.js tooltip
-  runSummaryTooltips();
 });
 
 // Start application logic
