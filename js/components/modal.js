@@ -24,6 +24,10 @@ let resetModalEl, resetModalText, resetReturnButton, resetConfirmButton;
 // Delete Empty Modal
 let deleteEmptyModalEl, deleteEmptyText, deleteEmptyReturnButton, deleteEmptyContinueButton;
 
+// Delete Area Confirmation Modal (replaces window.confirm)
+let deleteAreaModalEl, deleteAreaText, deleteAreaReturnButton, deleteAreaConfirmButton;
+let onDeleteAreaConfirm = null;
+
 // Region Selector Modal
 let regionModalEl, regionModalOverlay, mainAreaSelect, subAreaSelect, regionConfirmBtn;
 let selectedMainArea = null;
@@ -167,6 +171,18 @@ export function hideOnboardingModal() {
     }, 300);
 }
 
+/**
+ * Check whether onboarding has already been shown this browser.
+ * @returns {boolean}
+ */
+export function hasOnboardingBeenShown() {
+    try {
+        return localStorage.getItem(ONBOARDING_SHOWN_KEY) === 'true';
+    } catch (e) {
+        return false;
+    }
+}
+
 export function setOnOnboardingComplete(callback) {
     onOnboardingCompleteCallback = callback;
 }
@@ -285,6 +301,58 @@ export function showDeleteEmptyModal(message) {
 
 export function hideDeleteEmptyModal() {
     deleteEmptyModalEl.style.display = 'none';
+}
+
+// ============================================
+// DELETE AREA CONFIRMATION MODAL
+// Replaces the native window.confirm() in the
+// summary-view delete flow.
+// ============================================
+
+export function initDeleteAreaModal(container) {
+    deleteAreaModalEl = createModal('delete-area-modal');
+    const modalContent = createModalContent();
+
+    deleteAreaText = document.createElement('h2');
+    deleteAreaText.id = 'delete-area-text';
+
+    deleteAreaReturnButton = createButton('delete-area-return', 'Cancel');
+    deleteAreaConfirmButton = createButton('delete-area-confirm', 'Delete');
+
+    const buttonGroup = createButtonGroup(deleteAreaReturnButton, deleteAreaConfirmButton);
+
+    modalContent.appendChild(deleteAreaText);
+    modalContent.appendChild(buttonGroup);
+    deleteAreaModalEl.appendChild(modalContent);
+    container.appendChild(deleteAreaModalEl);
+
+    // Wire button handlers once during init
+    deleteAreaReturnButton.addEventListener('click', () => {
+        hideDeleteAreaModal();
+    });
+
+    deleteAreaConfirmButton.addEventListener('click', () => {
+        const callback = onDeleteAreaConfirm;
+        hideDeleteAreaModal();
+        if (callback) callback();
+    });
+}
+
+/**
+ * Show the delete-area confirmation modal.
+ *
+ * @param {string}   message    Text shown in the modal body
+ * @param {Function} onConfirm  Called if the user clicks "Delete"
+ */
+export function showDeleteAreaModal(message, onConfirm) {
+    deleteAreaText.textContent = message;
+    onDeleteAreaConfirm = onConfirm || null;
+    deleteAreaModalEl.style.display = 'flex';
+}
+
+export function hideDeleteAreaModal() {
+    deleteAreaModalEl.style.display = 'none';
+    onDeleteAreaConfirm = null;
 }
 
 // ============================================
@@ -584,6 +652,7 @@ export function getModalElements(modalType) {
         },
         reset: { resetReturnButton, resetConfirmButton },
         deleteEmpty: { deleteEmptyReturnButton, deleteEmptyContinueButton },
+        deleteArea: { deleteAreaReturnButton, deleteAreaConfirmButton },
         regionSelector: { mainAreaSelect, subAreaSelect, regionConfirmBtn },
         onboarding: { onboardingStartButton }
     };

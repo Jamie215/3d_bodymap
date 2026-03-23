@@ -1970,6 +1970,12 @@ input[type="range"]::-moz-range-thumb {
   stroke: var(--danger-color, #ef4444);
 }
 
+#delete-area-confirm:hover {
+  background: var(--danger-color-light, #fee2e2) !important;
+  border-color: var(--danger-color, #ef4444) !important;
+  color: var(--danger-color, #ef4444) !important;
+}
+
 /* Responsive - Mobile */
 @media (max-width: 480px) {
   .area-item {

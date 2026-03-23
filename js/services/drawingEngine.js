@@ -138,44 +138,62 @@ function pointInTriangle(p, a, b, c) {
     return s >= 0 && t >= 0 && u >= 0;
 }
 
-// Draw or erase a specific UV coordinate
+// ============================================================================
+// drawAtUV — OPTIMISED
+//
+// Previous implementation created a full-canvas (1024×1024) temporary mask
+// and iterated every pixel on each stroke.
+//
+// New approach:
+//   1. Skip the mask canvas entirely — use a simple radius² distance check
+//   2. Iterate only the brush's bounding box (at max radius 30 → 60×60 = 3 600
+//      pixels vs 1 048 576)
+//   3. In erase mode, batch-read the base texture region once instead of
+//      calling getImageData(px, py, 1, 1) per pixel
+// ============================================================================
 export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitRegion = null) {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     const cx = Math.floor(uv.x * canvas.width);
     const cy = Math.floor((1 - uv.y) * canvas.height);
 
-    const maskCanvas = document.createElement('canvas');
-    maskCanvas.width = canvas.width;
-    maskCanvas.height = canvas.height;
-    const maskCtx = maskCanvas.getContext('2d');
+    const radiusSq = radius * radius;
 
-    maskCtx.fillStyle = '#000';
-    maskCtx.beginPath();
-    maskCtx.arc(cx, cy, radius, 0, 2 * Math.PI);
-    maskCtx.fill();
+    // Bounding box clamped to canvas
+    const minPx = Math.max(0, cx - radius);
+    const maxPx = Math.min(canvas.width - 1, cx + radius);
+    const minPy = Math.max(0, cy - radius);
+    const maxPy = Math.min(canvas.height - 1, cy + radius);
 
-    const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
-    const maskPixels = maskData.data;
-
-    const baseCtx = AppState.baseTextureContext;
+    const regionW = maxPx - minPx + 1;
+    const regionH = maxPy - minPy + 1;
 
     if (!isErasing) {
         context.fillStyle = currentInstance.color;
     }
 
-    for (let py = 0; py < canvas.height; py++) {
-        for (let px = 0; px < canvas.width; px++) {
-            const offset = (py * canvas.width + px) * 4;
-            const alpha = maskPixels[offset + 3];
-            if (alpha === 0) continue;
+    // Batch-read the base texture once for erase mode
+    const baseCtx = AppState.baseTextureContext;
+    let baseData = null;
+    if (isErasing && baseCtx) {
+        baseData = baseCtx.getImageData(minPx, minPy, regionW, regionH).data;
+    }
+
+    for (let py = minPy; py <= maxPy; py++) {
+        for (let px = minPx; px <= maxPx; px++) {
+            const dx = px - cx;
+            const dy = py - cy;
+            if (dx * dx + dy * dy > radiusSq) continue;
 
             const key = `${px},${py}`;
             if (!AppState.globalUVMap.has(key)) continue;
 
-            if (isErasing && baseCtx) {
-                const basePixel = baseCtx.getImageData(px, py, 1, 1).data;
-                context.fillStyle = `rgba(${basePixel[0]},${basePixel[1]},${basePixel[2]},${basePixel[3] / 255})`;
+            if (isErasing && baseData) {
+                const localX = px - minPx;
+                const localY = py - minPy;
+                const offset = (localY * regionW + localX) * 4;
+                context.fillStyle = `rgba(${baseData[offset]},${baseData[offset + 1]},${baseData[offset + 2]},${baseData[offset + 3] / 255})`;
             }
+
             context.fillRect(px, py, 1, 1);
         }
     }
@@ -247,6 +265,8 @@ function processHit(hit, isErasing) {
 
 // Track which regions have been drawn on
 function updateRegionMapFromHit(hit, instance, regionName) {
+    if (!regionName) return;
+
     const x = Math.round(hit.uv.x * instance.canvas.width);
     const y = Math.round((1 - hit.uv.y) * instance.canvas.height);
     const key = `${x},${y}`;

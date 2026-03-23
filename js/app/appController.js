@@ -6,7 +6,7 @@ import { setVisibleRegions } from '../utils/regionVisibility.js';
 import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance, buildGlobalUVMap, initializeRegionMappings, updateInstanceColors } from '../services/drawingEngine.js';
 import texturePool from '../utils/textureManager.js';
 import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement, syncEraserState } from '../utils/interaction.js';
-import { getModalElements, showMoveToSurveyModal, hideDrawContinueModal, showDeleteEmptyModal, hideDeleteEmptyModal } from '../components/modal.js';
+import { getModalElements, showMoveToSurveyModal, hideDrawContinueModal, showDeleteEmptyModal, hideDeleteEmptyModal, showDeleteAreaModal } from '../components/modal.js';
 import {
   initSurveyManager,
   renderAreaSurvey,
@@ -17,6 +17,11 @@ import {
   getCurrentSurveyData,
   clearSurveyInstance
 } from '../services/surveyManager.js';
+import {
+  initSubmissionService,
+  createCombinedTexture,
+  prepareSubmissionData
+} from '../services/submissionService.js';
 import AppState from './state.js';
 import eventManager from './eventManager.js';
 import CameraUtils from '../utils/cameraUtils.js';
@@ -33,8 +38,9 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   let regionDropdownListener = null;
   let pendingAction = null;
 
-  // Wire up survey manager with its dependencies
+  // Wire up service modules with their dependencies
   initSurveyManager({ surveyView: survey, renderer, scene, camera });
+  initSubmissionService({ renderer, scene, camera, controls });
 
   const handleModelSelection = async(model) => {
     summary.addNewInstanceButton.disabled = true;
@@ -111,6 +117,29 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     }
   }
 
+  /**
+   * Helper: update the 3D model texture after an area is deleted.
+   * Shows the combined remaining drawings, or falls back to the base texture.
+   */
+  function refreshTextureAfterDelete() {
+    if (AppState.drawingInstances.length > 0) {
+      const combinedCanvas = createCombinedTexture();
+      const tempTexture = new THREE.CanvasTexture(combinedCanvas);
+      tempTexture.needsUpdate = true;
+
+      if (AppState.skinMesh) {
+        AppState.skinMesh.material.map = tempTexture;
+        AppState.skinMesh.material.needsUpdate = true;
+      }
+    } else {
+      if (AppState.skinMesh && AppState.baseTextureTexture) {
+        AppState.skinMesh.material.map = AppState.baseTextureTexture;
+        AppState.skinMesh.material.needsUpdate = true;
+      }
+    }
+    renderer.render(scene, camera);
+  }
+
   // After drawing, go directly to area specific survey
   function proceedToAreaSurvey() {
     updateCurrentDrawing();
@@ -179,38 +208,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     }
     
     renderer.render(scene, camera);
-  }
-  
-  function createCombinedTexture() {
-    const combinedCanvas = document.createElement('canvas');
-    combinedCanvas.width = texturePool.width;
-    combinedCanvas.height = texturePool.height;
-    const ctx = combinedCanvas.getContext('2d');
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
-
-    AppState.drawingInstances.forEach(instance => {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = instance.canvas.width;
-      tempCanvas.height = instance.canvas.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      
-      tempCtx.drawImage(instance.canvas, 0, 0);
-      const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-      const pixels = imageData.data;
-      
-      for (let i = 0; i < pixels.length; i += 4) {
-        if (pixels[i] === 255 && pixels[i+1] === 255 && pixels[i+2] === 255) {
-          pixels[i+3] = 0;
-        }
-      }
-
-      tempCtx.putImageData(imageData, 0, 0);
-      ctx.drawImage(tempCanvas, 0, 0);
-    });
-
-    return combinedCanvas;
   }
 
   // Generate preview image of current drawing
@@ -440,33 +437,17 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     goTo('area-survey');
   });
 
-  // Delete callback - allows user to remove a logged area
+  // Delete callback — uses a proper modal instead of window.confirm()
   summary.setDeleteCallback((index) => {
     const areaNum = index + 1;
-    if (confirm(`Are you sure you want to delete Area #${areaNum}? This will remove both the drawing and questionnaire responses.`)) {
-      deleteDrawingInstance(index);
-      summary.updateSummaryStatus();
-      
-      // Update the texture display
-      if (AppState.drawingInstances.length > 0) {
-        const combinedCanvas = createCombinedTexture();
-        const tempTexture = new THREE.CanvasTexture(combinedCanvas);
-        tempTexture.needsUpdate = true;
-
-        if (AppState.skinMesh) {
-          AppState.skinMesh.material.map = tempTexture;
-          AppState.skinMesh.material.needsUpdate = true;
-        }
-      } else {
-        // No more drawings - show base texture
-        if (AppState.skinMesh && AppState.baseTextureTexture) {
-          AppState.skinMesh.material.map = AppState.baseTextureTexture;
-          AppState.skinMesh.material.needsUpdate = true;
-        }
+    showDeleteAreaModal(
+      `Are you sure you want to delete Area #${areaNum}?\nThis will remove both the drawing and questionnaire responses.`,
+      () => {
+        deleteDrawingInstance(index);
+        summary.updateSummaryStatus();
+        refreshTextureAfterDelete();
       }
-      
-      renderer.render(scene, camera);
-    }
+    );
   });
 
   // ============================================================================
@@ -601,7 +582,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       survey.completeButton.disabled = true;
       survey.completeButton.textContent = 'Submitting...';
 
-      // TODO: Replace this line
+      // TODO: Replace this line with real API call
       // const docId = await window.firebaseService.saveSubmission(submissionData);
       const docId = true;
 
@@ -625,147 +606,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       goTo('summary');
     }
   });
-
-  // ============================================================================
-  // SUBMISSION HELPERS
-  // ============================================================================
-
-  // Helper function to capture multi view snapshots
-  async function captureMultiViewSnapshots(combinedCanvas) {
-    const tempTexture = new THREE.CanvasTexture(combinedCanvas);
-    tempTexture.needsUpdate = true;
-
-    const originalMap = AppState.skinMesh.material.map;
-    AppState.skinMesh.material.map = tempTexture;
-    AppState.skinMesh.material.needsUpdate = true;
-
-    const originalSize = renderer.getSize(new THREE.Vector2());
-    const originalPixelRatio = renderer.getPixelRatio();
-    const originalCameraPosition = camera.position.clone();
-    const originalCameraTarget = controls.target.clone();
-
-    const previewWidth = 400;
-    const previewHeight = 400;
-    renderer.setSize(previewWidth, previewHeight, false);
-    renderer.setPixelRatio(1);
-
-    // Calculate framing distance from model bounds
-    const bbox = new THREE.Box3().setFromObject(AppState.skinMesh);
-    const center = bbox.getCenter(new THREE.Vector3());
-    const size = bbox.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const fov = camera.fov * (Math.PI / 180);
-    const dist = (maxDim / 2) / Math.tan(fov / 2) * 1.3;
-
-    const viewAngles = [
-      ['front',  new THREE.Vector3(0, 0, dist)],
-      ['back',   new THREE.Vector3(0, 0, -dist)],
-      ['right',  new THREE.Vector3(dist, 0, 0)],
-      ['left',   new THREE.Vector3(-dist, 0, 0)],
-    ];
-
-    const snapshots = {};
-
-    for (const [label, offset] of viewAngles) {
-      camera.position.copy(center).add(offset);
-      camera.position.y = center.y;
-      controls.target.copy(center);
-      controls.update();
-      camera.updateProjectionMatrix();
-
-      renderer.render(scene, camera);
-      snapshots[label] = renderer.domElement.toDataURL('image/png');
-    }
-
-    // Restore everything
-    camera.position.copy(originalCameraPosition);
-    if (originalCameraTarget) controls.target.copy(originalCameraTarget);
-    controls.update();
-    renderer.setSize(originalSize.x, originalSize.y, false);
-    renderer.setPixelRatio(originalPixelRatio);
-
-    AppState.skinMesh.material.map = originalMap;
-    AppState.skinMesh.material.needsUpdate = true;
-    renderer.render(scene, camera);
-
-    tempTexture.dispose();
-
-    return snapshots;
-  }
-
-  // Helper function to prepare all submission data
-  async function prepareSubmissionData() {
-    const combinedCanvas = createCombinedTexture();
-    const snapshot = await captureMultiViewSnapshots(combinedCanvas);
-
-    const areas = AppState.drawingInstances.map((instance, index) => {
-      const coverage = coverageCalculator.calculateCoverage(instance);
-      
-      return {
-          areaNumber: index + 1,
-          areaId: instance.id,
-          drawingImageData: instance.uvDrawingData,
-          questionnaireResponses: instance.questionnaireData,
-          drawnRegions: Array.from(instance.drawnRegionNames || []),
-          coverage: coverage ? {
-              overallPercentage: coverage.overall.percentage,
-              coloredArea: coverage.overall.coloredArea,
-              regionBreakdown: coverage.regions,
-              bodyPartBreakdown: coverage.bodyParts
-          } : null
-      };
-    });
-
-    const getDeviceType = () => {
-      const ua = navigator.userAgent;
-      if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
-            return "Tablet";
-        }
-        if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
-            return "Mobile";
-        }
-        return "Desktop"; 
-    }
-
-    const getOS = () => {
-        const ua = navigator.userAgent;
-        if (/windows phone/i.test(ua)) return "Windows Phone";
-        if (/android/i.test(ua)) return "Android";
-        if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return "iOS";
-        if (/Mac/.test(ua)) return "macOS";
-        if (/Win/.test(ua)) return "Windows";
-        if (/Linux/.test(ua)) return "Linux";
-        return "Unknown";
-    };
-
-    const getBrowser = () => {
-        const ua = navigator.userAgent;
-        if (/Edg/.test(ua)) return "Edge";
-        if (/Chrome/.test(ua) && !/Edg/.test(ua)) return "Chrome";
-        if (/Safari/.test(ua) && !/Chrome/.test(ua)) return "Safari";
-        if (/Firefox/.test(ua)) return "Firefox";
-        if (/MSIE|Trident/.test(ua)) return "Internet Explorer";
-        return "Unknown";
-    };
-
-    return {
-      startTime: window.sessionStartTime || new Date().toISOString(),
-      completionTime: new Date().toISOString(),
-      durationSeconds: window.sessionStartTime ? 
-        Math.round((Date.now() - new Date(window.sessionStartTime).getTime()) / 1000) : null,
-      modelType: AppState.currentModelName,
-      combinedDrawing: snapshot,
-      totalAreas: areas.length,
-      areas: areas,
-      generalQuestionnaire: AppState.generalQuestionnaireResponse,
-      deviceInfo: {
-        deviceType: getDeviceType(),
-        operatingSystem: getOS(),
-        browser: getBrowser(),
-        userAgent: navigator.userAgent
-      }
-    }
-  }
 
   // Initialize the view
   goTo('summary');

@@ -4,10 +4,12 @@ import { initApp } from './appController.js';
 import { 
     initDrawContinueModal, 
     initDrawResetModal, 
-    initDeleteEmptyModal, 
+    initDeleteEmptyModal,
+    initDeleteAreaModal,
     initRegionSelectorModal,
     initOnboardingModal,
     showOnboardingModal,
+    hasOnboardingBeenShown,
     setOnOnboardingComplete
 } from '../components/modal.js';
 import { createScene } from '../utils/scene.js';
@@ -83,6 +85,7 @@ const survey = createSurveyViewElements();
 initDrawContinueModal(document.body);
 initDrawResetModal(document.body);
 initDeleteEmptyModal(document.body);
+initDeleteAreaModal(document.body);
 initRegionSelectorModal(document.body);
 initOnboardingModal(document.body);
 
@@ -350,6 +353,7 @@ function setStage(stage) {
   }
 }
 
+// Optional: Set callback for when onboarding is completed
 setOnOnboardingComplete(() => {
   console.log('Onboarding completed');
 });
@@ -366,6 +370,11 @@ initApp({
     selectionViewModelHandler = handler;
   },
 });
+
+// Show onboarding modal on first visit only
+if (!hasOnboardingBeenShown()) {
+  showOnboardingModal();
+}
 
 // Responsive event handling
 let currentViewport = responsive.getViewportType();
