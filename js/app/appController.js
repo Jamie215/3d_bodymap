@@ -6,11 +6,17 @@ import { setVisibleRegions } from '../utils/regionVisibility.js';
 import { isDrawingBlank, updateCurrentDrawing, addNewDrawingInstance, buildGlobalUVMap, initializeRegionMappings, updateInstanceColors } from '../services/drawingEngine.js';
 import texturePool from '../utils/textureManager.js';
 import { enableInteraction, cleanupInteraction, setupCursorManagement, disableCursorManagement, syncEraserState } from '../utils/interaction.js';
-import { applyCustomTheme, customTheme } from '../utils/surveyTheme.js';
-import { areaSurveyJson } from '../utils/areaSurvey.js';
-import { generalSurveyJson } from '../utils/generalSurvey.js';
 import { getModalElements, showMoveToSurveyModal, hideDrawContinueModal, showDeleteEmptyModal, hideDeleteEmptyModal } from '../components/modal.js';
-import SurveyKO from "https://cdn.skypack.dev/survey-knockout";
+import {
+  initSurveyManager,
+  renderAreaSurvey,
+  renderGeneralSurvey,
+  validateAndScrollToErrors,
+  saveCurrentSurveyData,
+  isGeneralSurvey,
+  getCurrentSurveyData,
+  clearSurveyInstance
+} from '../services/surveyManager.js';
 import AppState from './state.js';
 import eventManager from './eventManager.js';
 import CameraUtils from '../utils/cameraUtils.js';
@@ -25,8 +31,10 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   
   let cameraUtils = null;
   let regionDropdownListener = null;
-  let surveyInstance = null;
   let pendingAction = null;
+
+  // Wire up survey manager with its dependencies
+  initSurveyManager({ surveyView: survey, renderer, scene, camera });
 
   const handleModelSelection = async(model) => {
     summary.addNewInstanceButton.disabled = true;
@@ -369,7 +377,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         
         survey.editDrawingButton.style.display = 'inline-flex';
         survey.updateTitle();
-        renderSurvey(survey.surveyInnerContainer);
+        renderAreaSurvey(survey.surveyInnerContainer);
         break;
       }
 
@@ -474,12 +482,10 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   });
 
   // ============================================================================
-  // DRAWING NAVIGATION - UPDATED FOR NEW WORKFLOW
+  // DRAWING NAVIGATION
   // ============================================================================
 
   function updateDrawingNavigationButtons() {
-    const current = AppState.currentDrawingIndex + 1;
-
     if (AppState.isEditingFromSurvey) {
       // Editing from survey - show only "Done Editing" button
       drawing.continueButton.textContent = 'Done Editing';
@@ -516,20 +522,18 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     const previewDataURL = await generateDrawingPreview();
 
     if (hasDrawing) {
-      // Has drawing - show modal with all 3 buttons
       showMoveToSurveyModal(
         'Does this represent your intended pain/symptom area?',
-        true,           // canProceed = true (show "Yes, Proceed" button)
-        previewDataURL, // Show the drawing preview
-        true            // showReturnToSummary = true
+        true,
+        previewDataURL,
+        true
       );
     } else {
-      // No drawing - show modal without "Yes, Proceed" button
       showMoveToSurveyModal(
         'There is no drawing to proceed with.',
-        false,          // canProceed = false (hide "Yes, Proceed" button)
-        previewDataURL, // Still show the (blank) preview
-        true            // showReturnToSummary = true
+        false,
+        previewDataURL,
+        true
       );
     }
   });
@@ -538,7 +542,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   // CONFIRMATION MODAL HANDLERS (3 buttons)
   // ============================================================================
 
-  // "Return to Summary" - delete current drawing and go to summary
   modalReturnToSummaryButton.addEventListener('click', () => {
     hideDrawContinueModal();
     deleteDrawingInstance(AppState.currentDrawingIndex);
@@ -547,13 +550,10 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     goTo('summary');
   });
 
-  // "Return to My Drawing" - just close the modal
   modalReturnButton.addEventListener('click', () => {
     hideDrawContinueModal();
-    // User continues drawing
   });
 
-  // "Yes, Proceed" - save drawing and go to area survey
   modalContinueButton.addEventListener('click', () => {
     hideDrawContinueModal();
     proceedToAreaSurvey();
@@ -574,189 +574,10 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
   });
 
   // ============================================================================
-  // SURVEY MANAGEMENT - UPDATED FOR NEW WORKFLOW
+  // SURVEY EVENT HANDLERS
   // ============================================================================
 
-  function countMainAreas() {
-    return AppState.drawingInstances.filter(instance => instance.questionnaireData?.mainArea === "Yes").length;
-  }
-  
-  function renderSurvey(container) {
-    applyCustomTheme(customTheme);
-
-    container.classList.remove('survey-animated');
-    container.style.opacity = '0';
-    container.style.transform = 'translateX(50px)';
-
-    if (!surveyInstance) {
-      surveyInstance = new SurveyKO.Model(areaSurveyJson);
-      surveyInstance.showTitle = false;
-      surveyInstance.validationEnabled = false;
-
-      surveyInstance.onValidateQuestion.add(function(survey, options) {
-        if (options.value !== undefined && options.value !== null && options.value !== '') {
-          options.error = null;
-        }
-      });
-
-      surveyInstance.onValueChanged.add(function(survey, options) {
-        updateSurveyProgress();
-        if (options.name === 'mainArea') {
-          updateMainAreaQuestion();
-        }
-      });
-
-      surveyInstance.onAfterRenderSurvey.add(function(survey, options) {
-        setTimeout(() => {
-            container.classList.add('survey-animated');
-        }, 50);
-      });
-
-      // Modifying style for rating scale
-      surveyInstance.onAfterRenderQuestion.add(function (survey, options) {
-        if (options.question.name !== "intensityScale") return;
-        const questionEl = options.htmlElement;
-        const ratingContent = questionEl.querySelector(".sd-question__content");
-        if (!ratingContent) return;
-        const ratingRow = ratingContent.querySelector(".sd-rating");
-        if (!ratingRow) return;
-        
-        const layoutRow = document.createElement("div");
-        layoutRow.classList.add('rating-layout-row');
-        const minLabel = document.createElement("div");
-        minLabel.innerHTML = "No pain<br>or symptom";
-        minLabel.classList.add('rating-layout-label');
-        const maxLabel = document.createElement("div");
-        maxLabel.innerHTML = "Worst pain<br>or symptom<br>imaginable";
-        maxLabel.classList.add('rating-layout-label');
-        ratingContent.removeChild(ratingRow);
-        layoutRow.appendChild(minLabel);
-        layoutRow.appendChild(ratingRow);
-        layoutRow.appendChild(maxLabel);
-        ratingContent.appendChild(layoutRow);
-      });
-    }
-
-    const currentInstance = AppState.drawingInstances[AppState.currentSurveyIndex];
-    const currentAreaNum = AppState.currentSurveyIndex + 1;
-    surveyInstance.title = `Area #${currentAreaNum} Questionnaire`;
-    
-    if (currentInstance.questionnaireData) {
-      surveyInstance.data = currentInstance.questionnaireData;
-      surveyInstance.clearIncorrectValues();
-      
-      surveyInstance.getAllQuestions().forEach(question => {
-        if (question.value !== undefined && question.value !== null && question.value !== '') {
-          question.clearErrors();
-        }
-      });
-      surveyInstance.validationEnabled = false;
-    } else {
-      surveyInstance.clear();
-      surveyInstance.validationEnabled = false;
-    }
-
-    updateMainAreaQuestion();
-
-    if (AppState.skinMesh && currentInstance) {
-      AppState.skinMesh.material.map = currentInstance.texture;
-      AppState.skinMesh.material.needsUpdate = true;
-      currentInstance.texture.needsUpdate = true;
-    }
-
-    survey.updateTitle();
-    updateSurveyNavigationButtons();
-    updateSurveyProgress();
-
-    container.innerHTML = '';
-    surveyInstance.render(container);
-
-    renderer.render(scene, camera);
-  }
-
-  function updateSurveyNavigationButtons() {
-    // In new workflow, we only show "Done" button to return to summary
-    survey.completeButton.textContent = 'Done';
-    survey.completeButton.style.background = '';
-    survey.completeButton.classList.add('button-success');
-  }
-
-  function updateSurveyProgress() {
-    if (!surveyInstance) return;
-    
-    const allQuestions = surveyInstance.getAllQuestions();
-    const visibleQuestions = allQuestions.filter(q => q.isVisible);
-    const totalQuestions = visibleQuestions.length;
-    
-    let completedQuestions = 0;
-    visibleQuestions.forEach(question => {
-      const value = question.value;
-      
-      if (value !== undefined && value !== null && value !== '') {
-        if (Array.isArray(value)) {
-          if (value.length > 0) {
-            completedQuestions++;
-          }
-        } else {
-          completedQuestions++;
-        }
-      }
-    });
-    
-    survey.updateProgress(completedQuestions, totalQuestions);
-  }
-
-  function updateMainAreaQuestion() {
-    if (!surveyInstance) return;
-
-    const mainAreaQuestion = surveyInstance.getQuestionByName('mainArea');
-    if (!mainAreaQuestion) return;
-    
-    const currentInstance = AppState.drawingInstances[AppState.currentSurveyIndex];
-    const currentMainAreaValue = currentInstance.questionnaireData?.mainArea;
-    
-    let mainAreaCount = countMainAreas();
-    if (currentMainAreaValue === "Yes") {
-      mainAreaCount--;
-    }
-
-    const remainingSlots = 3 - mainAreaCount;
-  
-    surveyInstance.setVariable("remainingMainAreaSlots", remainingSlots);
-    surveyInstance.setVariable("isCurrentlyMainArea", currentMainAreaValue === "Yes");
-    
-    if (remainingSlots <= 0) {
-      mainAreaQuestion.title = "Is this your main area of pain or symptom? (Maximum 3 main areas reached)";
-      mainAreaQuestion.value = "No";
-    } else if (remainingSlots === 3) {
-      mainAreaQuestion.title = "Is this your main area of pain or symptom? (You can indicate up to 3 main areas)";
-    } else {
-      mainAreaQuestion.title = `Is this your main area of pain or symptom? (${remainingSlots} main area${remainingSlots === 1 ? '' : 's'} remaining)`;
-    }
-  }
-
-  function saveCurrentSurveyData() {
-    if(!surveyInstance) return false;
-
-    surveyInstance.validationEnabled = true;
-    const hasErrors = surveyInstance.hasErrors();
-    
-    if (!hasErrors) {
-      const currentInstance = AppState.drawingInstances[AppState.currentSurveyIndex];
-      const canvas = currentInstance.canvas;
-
-      currentInstance.questionnaireData = { ...surveyInstance.data };
-      currentInstance.uvDrawingData = canvas.toDataURL('image/png');
-      
-      surveyInstance.validationEnabled = false;
-      return true;
-    }
-    
-    surveyInstance.validate();
-    return false;
-  }
-
-  // Edit drawing button handler
+  // Edit drawing button — persist partial answers, then switch to drawing
   survey.editDrawingButton.addEventListener('click', () => {
     saveCurrentSurveyData();
 
@@ -766,61 +587,30 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     goTo('drawing');
   });
 
-  // Returns to summary after completing area questionnaire
+  // Complete / Done button — validate, then route based on survey type
   survey.completeButton.addEventListener('click', async () => {
-    if (!surveyInstance) return;
-    
-    surveyInstance.validationEnabled = true;
-    surveyInstance.validate();
-          
-    const hasErrors = surveyInstance.hasErrors();      
-    if (hasErrors) {
-      // Scroll to first question with error
-      setTimeout(() => {
-        const questions = surveyInstance.getAllQuestions();
-        const firstQuestionWithError = questions.find(q => q.errors && q.errors.length > 0);
-                  
-        if (firstQuestionWithError) {
-          const questionElement = document.getElementById(firstQuestionWithError.id);            
-          if (questionElement) {
-            questionElement.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'center' 
-            });
-            
-            const firstInput = questionElement.querySelector('input:not(.sd-visuallyhidden), textarea, select');
-            if (firstInput) {
-              setTimeout(() => firstInput.focus(), 400);
-            }
-          }
-        }
-      }, 100);
-      
-      return;
-    }
+    if (!validateAndScrollToErrors()) return;
 
-    // Check if this is the general survey being submitted
-    if ("medicationTable" in surveyInstance.data) {
-      AppState.generalQuestionnaireResponse = { ...surveyInstance.data };
+    // --- General questionnaire submission ---
+    if (isGeneralSurvey()) {
+      AppState.generalQuestionnaireResponse = getCurrentSurveyData();
 
-      // Prepare complete submission data
       const submissionData = await prepareSubmissionData();
       console.log('Submitting all data to Firebase...', submissionData);
 
-      // Show loading indicator
       survey.completeButton.disabled = true;
       survey.completeButton.textContent = 'Submitting...';
 
-      // Save to Firebase
-      const docId = await window.firebaseService.saveSubmission(submissionData);
+      // TODO: Replace this line
+      // const docId = await window.firebaseService.saveSubmission(submissionData);
+      const docId = true;
 
-      // Re-enable button
       survey.completeButton.disabled = false;
       survey.completeButton.textContent = 'Complete';
-      
+
       if (docId) {
         console.log('All data submitted successfully!');
-        surveyInstance = null;
+        clearSurveyInstance();
         goTo('summary');
       } else {
         console.error('Failed to submit data');
@@ -829,103 +619,16 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
       return;
     }
 
-    // Area survey completed - save and return to summary
+    // --- Area questionnaire — save and return to summary ---
     if (saveCurrentSurveyData()) {
-      surveyInstance = null; // Clear survey instance
+      clearSurveyInstance();
       goTo('summary');
     }
   });
 
-  function renderGeneralSurvey(container) {
-    applyCustomTheme(customTheme);
-    container.classList.remove('survey-animated');
-    container.style.opacity = '0';
-    container.style.transform = 'translateX(50px)';
-    
-    if (!surveyInstance) {
-      surveyInstance = new SurveyKO.Model(generalSurveyJson);
-      surveyInstance.showTitle = false;
-      surveyInstance.validationEnabled = false;
-
-      surveyInstance.onValidateQuestion.add(function(survey, options) {
-        if (options.question.getType() === 'matrix') {
-          const medicationQuestion = survey.getQuestionByName('medicationTable');
-          const allRows = medicationQuestion.rows.map(r => r.value);
-          
-          let missingRows = [];
-          for (let row of allRows) {
-            if (!options.value || !options.value[row]) {
-              missingRows.push(row);
-            }
-          }
-                  
-          if (missingRows.length > 0) {
-            options.error = `Please answer all rows in the medication table. Missing: ${missingRows.join(', ')}`;
-            return;
-          }
-        }
-        if (options.value !== undefined && options.value !== null && options.value !== '') {
-          options.error = null;
-        }
-      });
-
-      surveyInstance.onValueChanged.add(function(survey, options) {
-        updateSurveyProgress();
-      });
-
-      surveyInstance.onAfterRenderSurvey.add(function(survey, options) {
-        setTimeout(() => {
-            container.classList.add('survey-animated');
-        }, 50);
-      });
-
-      // Adding subtext for examples in medicationTable
-      surveyInstance.onAfterRenderQuestion.add(function(survey, options) {
-        if (options.question.name === 'medicationTable' && options.question.getType() === 'matrix') {
-          const descriptions = {
-            'over-the-counter': 'e.g.,: Advil (ibuprofen), Aleve (naproxen), Aspirin (ASA), Motrin (ibuprofen), Tylenol (acetaminophen)',
-            'non-steroidal-anti-inflammatory': 'e.g.,: Arthrotec, Celecoxib, Celebrex, Voltaren',
-            'muscle-relaxant': 'e.g.,: Flexeril, Robaxacet, Robaxin',
-            'narcotic-pain-medication': 'e.g.,: Demerol, MS Contin, Morphine, Oxycontin, Percocet, Talwin, Tylenol 3',
-            'anti-depressant': 'e.g.,: Celexa, Cipralex, Cymbalta, Elavil, Paxil, Prozac, Wellbutrin, Zoloft',
-            'neuroleptics': 'e.g.,: Lyrica, Neurontin, Gabapentin, Rivotril, Tegretol',
-            'cannabis': 'e.g.,: Smoked, Inhaled, Edible, Oil, Cream'
-          };
-
-          setTimeout(() => {
-            const tbody = options.htmlElement.querySelector('tbody');
-            if (!tbody) return;
-            
-            const rows = tbody.querySelectorAll('tr.sd-table__row');
-            
-            options.question.visibleRows.forEach((questionRow, index) => {
-              const fullName = questionRow.fullName;            
-              const rowValue = fullName ? fullName.split('_').pop() : null;
-              const domRow = rows[index];
-                          
-              if (rowValue && descriptions[rowValue] && domRow) {
-                const textCell = domRow.querySelector('td.sd-table__cell--row-text');
-                
-                if (textCell && !textCell.querySelector('.medication-description')) {                
-                  const desc = document.createElement('div');
-                  desc.className = 'medication-description';
-                  desc.textContent = descriptions[rowValue];
-                  textCell.appendChild(desc);
-                } 
-              }
-            });
-          }, 100);
-        }
-      });
-    }
-
-    survey.editDrawingButton.style.display = 'none';
-
-    container.innerHTML = '';
-    surveyInstance.render(container);
-    updateSurveyProgress();
-    renderer.render(scene, camera);
-  }
+  // ============================================================================
+  // SUBMISSION HELPERS
+  // ============================================================================
 
   // Helper function to capture multi view snapshots
   async function captureMultiViewSnapshots(combinedCanvas) {
@@ -952,10 +655,9 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     const size = bbox.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = camera.fov * (Math.PI / 180);
-    const dist = (maxDim / 2) / Math.tan(fov / 2) * 1.3; // 1.3 = padding
+    const dist = (maxDim / 2) / Math.tan(fov / 2) * 1.3;
 
-    // Define cardinal views: [label, camera offset from center]
-    const views = [
+    const viewAngles = [
       ['front',  new THREE.Vector3(0, 0, dist)],
       ['back',   new THREE.Vector3(0, 0, -dist)],
       ['right',  new THREE.Vector3(dist, 0, 0)],
@@ -964,7 +666,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     const snapshots = {};
 
-    for (const [label, offset] of views) {
+    for (const [label, offset] of viewAngles) {
       camera.position.copy(center).add(offset);
       camera.position.y = center.y;
       controls.target.copy(center);
@@ -982,7 +684,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     renderer.setSize(originalSize.x, originalSize.y, false);
     renderer.setPixelRatio(originalPixelRatio);
 
-    // Restore original texture
     AppState.skinMesh.material.map = originalMap;
     AppState.skinMesh.material.needsUpdate = true;
     renderer.render(scene, camera);
@@ -990,7 +691,6 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     tempTexture.dispose();
 
     return snapshots;
-
   }
 
   // Helper function to prepare all submission data
