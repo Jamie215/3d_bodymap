@@ -111,6 +111,15 @@ function runDrawingTooltips() {
     popoverClass: 'app-tooltip',
     steps: [
       {
+        element: '#region-selector-footer-btn',
+        popover: {
+          title: 'Change Your Focus Area',
+          description: 'Want to focus on a different part of the body? Click here to reopen the region selector.',
+          side: 'top',
+          align: 'start'
+        }
+      },
+      {
         element: '#draw-button',
         popover: {
           title: 'Draw Tool',

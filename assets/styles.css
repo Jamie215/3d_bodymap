@@ -1976,6 +1976,10 @@ input[type="range"]::-moz-range-thumb {
   color: var(--danger-color, #ef4444) !important;
 }
 
+#delete-area-text {
+  font-size: var(--font-title-medium);
+}
+
 /* Responsive - Mobile */
 @media (max-width: 480px) {
   .area-item {
