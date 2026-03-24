@@ -307,7 +307,7 @@ canvas {
 .canvas-floating-btn {
   position: absolute;
   top: var(--space-sm);
-  right: var(--space-md);
+  right: clamp(var(--space-md), 5vw, var(--space-xl)) !important;
   z-index: var(--z-sticky);
   display: inline-flex;
   align-items: center;
