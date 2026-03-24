@@ -334,7 +334,9 @@ function setStage(stage) {
         setupRegionSelectorForDrawing(drawing.footerLeft, !AppState.isEditingFromSurvey, drawing.updateStatusBar);
       }
 
-
+      // Add help button
+      canvasContent.appendChild(drawing.helpButton);
+      
       // Close any open drawers from other stages
       const scrim = document.body.querySelector('.drawer-scrim');
       const l = document.body.querySelector('.drawer.left');

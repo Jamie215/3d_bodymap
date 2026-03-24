@@ -61,6 +61,15 @@ export function createDrawingViewElements(controls) {
 
     updateStatusBar();
 
+    const helpButton = document.createElement('button');
+    helpButton.id = "help-button";
+    helpButton.classList.add('button', 'canvas-floating-btn');
+    helpButton.innerHTML = '<span>Help</span><i class="fa-solid fa-circle-question"></i>'
+    helpButton.addEventListener('click', () => {
+        // TODO: Add the video help tutorials
+        console.log('Help button clicked');
+    })
+
     // Footer with left, center, and right sections
     const drawingFooter = document.createElement('div');
     drawingFooter.id = 'footer-drawing';
@@ -98,6 +107,7 @@ export function createDrawingViewElements(controls) {
         root: drawingView,
         drawingControlsPanel,
         headerContent,
+        helpButton,
         footerLeft,
         footerRight,
         continueButton,

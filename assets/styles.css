@@ -304,6 +304,28 @@ canvas {
   border: none;
 }
 
+.canvas-floating-btn {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-md);
+  z-index: var(--z-sticky);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent !important;
+  font-size: var(--font-button-large);
+  color: var(--dark-blue);
+  cursor: pointer;
+  border: none;
+  min-height: 48px;
+}
+
+.canvas-floating-btn:hover {
+  color: var(--primary-color);
+  background: transparent !important;
+}
+
 #canvas-toolbar #edit-drawing-button:hover {
   color: var(--primary-color);
   background: transparent !important;
@@ -3376,6 +3398,66 @@ input[type="range"]::-moz-range-thumb {
 [data-viewport="mobile"][data-orientation="landscape"] .canvas-rotate-btn svg {
   width: 22px;
   height: 22px;
+}
+
+/* ============================================
+   CANVAS FLOATING BUTTON (Help / Tutorial)
+   Positioned absolutely over the canvas content
+   ============================================ */
+
+.canvas-floating-btn {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  z-index: var(--z-sticky);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 255, 255, 0.85);
+  font-size: var(--font-button-medium);
+  color: var(--dark-blue);
+  cursor: pointer;
+  border: none;
+  border-radius: var(--border-radius);
+  min-height: 44px;
+  pointer-events: auto;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.canvas-floating-btn:hover {
+  color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .canvas-floating-btn {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-button-small);
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 400px) {
+  .canvas-floating-btn span {
+    display: none;
+  }
+  
+  .canvas-floating-btn {
+    padding: var(--space-xs);
+    min-height: 40px;
+    min-width: 40px;
+    justify-content: center;
+  }
+}
+
+/* Only show in drawing stage */
+[data-stage="summary"] .canvas-floating-btn,
+[data-stage="selection"] .canvas-floating-btn,
+[data-stage="area-survey"] .canvas-floating-btn,
+[data-stage="general-survey"] .canvas-floating-btn {
+  display: none;
 }
 
 /* ============================================
