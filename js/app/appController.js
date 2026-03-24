@@ -55,6 +55,9 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     
     await initializeRegionMappings();
 
+    // Build the camera regionMap from loaded vertex group names
+    cameraUtils.initRegionMap(Object.values(AppState.idToRegionMap));
+
     const { globalUVMap, globalPixelRegionMap, faceRegionMap } = buildGlobalUVMap(
         AppState.skinMesh.geometry,
         texturePool.width,

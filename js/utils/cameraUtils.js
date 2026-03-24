@@ -1,6 +1,7 @@
 // utils/cameraUtils.js
 // Comprehensive camera control for 3D body model navigation
 import AppState from "../app/state.js";
+import { buildRegionMap } from './regionMapBuilder.js';
 
 export default class CameraUtils {
     constructor(camera, controls, mesh) {
@@ -30,8 +31,8 @@ export default class CameraUtils {
         this.rotationIncrement = Math.PI / 4; // 45 degrees
         
         // Region mapping: UI region names -> anatomical vertex group names
-        // Built from region_id_mapping.json
-        this.regionMap = this.buildRegionMap();
+        // Populated by initRegionMap() after region_id_mapping.json loads
+        this.regionMap = {};
 
         // Bind methods
         this.handleControlsChange = this.handleControlsChange.bind(this);
@@ -41,325 +42,19 @@ export default class CameraUtils {
     }
 
     // ==========================================
-    // REGION MAP BUILDER
+    // REGION MAP INITIALISATION
     // ==========================================
-    
-    buildRegionMap() {
-        return {
-            // Head & Face
-            'Head': [
-                'face_frontal.L', 'face_frontal.R', 'face_maxilla.L', 'face_maxilla.R',
-                'face_mandible.L', 'face_mandible.R', 'head_lateral_temporal.L', 'head_lateral_temporal.R',
-                'head_lateral_tmj.L', 'head_lateral_tmj.R', 'head_parietal.L', 'head_parietal.R',
-                'head_inferior_occipital.L', 'head_inferior_occipital.R',
-                'head_superior_occipital.L', 'head_superior_occipital.R'
-            ],
-            
-            // Neck
-            'Neck': [
-                'neck_posterior.M', 'neck_posterolateral.L', 'neck_posterolateral.R',
-                'neck_anterior.M', 'neck_anterolateral.L', 'neck_anterolateral.R',
-                'neck_lateral.L', 'neck_lateral.R'
-            ],
-            
-            // Torso - Front
-            'Chest': [
-                'chest_anterior.L', 'chest_anterior.R', 'chest_lateral.L', 'chest_lateral.R',
-                'axilla.L', 'axilla.R'
-            ],
-            'Abdomen': [
-                'abdomen_anterior.L', 'abdomen_anterior.R', 'abdomen_lateral.L', 'abdomen_lateral.R'
-            ],
-            'Pelvis': [
-                'pelvis_anterior.L', 'pelvis_anterior.R', 'pubicSymphysis', 'hip.L', 'hip.R'
-            ],
-            
-            // Torso - Back
-            'Upper Back': [
-                'back_upper.L', 'back_upper.R', 'back_upper.M'
-            ],
-            'Mid Back': [
-                'back_mid.L', 'back_mid.R', 'back_mid.M'
-            ],
-            'Lower Back': [
-                'back_lower.L', 'back_lower.R', 'back_lower.M', 'sacrum', 'apexSacrum', 'coccyx',
-                'psis.L', 'psis.R', 'buttock.L', 'buttock.R'
-            ],
-            
-            // Torso - Composite (all torso sub-regions combined)
-            'Torso': [
-                'chest_anterior.L', 'chest_anterior.R', 'chest_lateral.L', 'chest_lateral.R',
-                'axilla.L', 'axilla.R',
-                'abdomen_anterior.L', 'abdomen_anterior.R', 'abdomen_lateral.L', 'abdomen_lateral.R',
-                'pelvis_anterior.L', 'pelvis_anterior.R', 'pubicSymphysis', 'hip.L', 'hip.R',
-                'back_upper.L', 'back_upper.R', 'back_upper.M',
-                'back_mid.L', 'back_mid.R', 'back_mid.M',
-                'back_lower.L', 'back_lower.R', 'back_lower.M', 'sacrum', 'apexSacrum', 'coccyx',
-                'psis.L', 'psis.R', 'buttock.L', 'buttock.R'
-            ],
-            
-            // Left Shoulder
-            'Left Shoulder': [
-                'shoulder_anterior.L', 'shoulder_posterior.L', 'shoulder_superior.L', 'shoulder_lateral.L'
-            ],
-            
-            // Left Upper Arm
-            'Left Upper Arm': [
-                'upperArm_anteromedial.L', 'upperArm_anterior.L', 'upperArm_anterolateral.L',
-                'upperArm_lateral.L', 'upperArm_medial.L', 'upperArm_posterior.L',
-                'upperArm_posterolateral.L', 'upperArm_posteromedial.L'
-            ],
-            
-            // Left Elbow
-            'Left Elbow': [
-                'elbow_anterior.L', 'elbow_anterolateral.L', 'elbow_lateral.L',
-                'elbow_posterolateral.L', 'elbow_posterior.L', 'elbow_posteromedial.L',
-                'elbow_medial.L', 'elbow_anteromedial.L'
-            ],
-            
-            // Left Forearm
-            'Left Forearm': [
-                'forearm_anterior.L', 'forearm_anterolateral.L', 'forearm_lateral.L',
-                'forearm_posterolateral.L', 'forearm_posterior.L', 'forearm_posteromedial.L',
-                'forearm_medial.L', 'forearm_anteromedial.L'
-            ],
-            
-            // Left Wrist
-            'Left Wrist': [
-                'wrist_anterior.L', 'wrist_anterolateral.L', 'wrist_lateral.L',
-                'wrist_posterolateral.L', 'wrist_posterior.L', 'wrist_posteromedial.L',
-                'wrist_medial.L', 'wrist_anteromedial.L'
-            ],
-            
-            // Left Hand
-            'Left Hand': [
-                'hand_volar_radial.L', 'hand_volar_ulnar.L', 'hand_dorsal_radial.L', 'hand_dorsal_ulnar.L',
-                'thumb_proximalSegment_volar.L', 'thumb_proximalSegment_dorsal.L',
-                'thumb_distalSegment_volar.L', 'thumb_distalSegment_dorsal.L',
-                'indexFinger_proximalSegment_volar.L', 'indexFinger_proximalSegment_dorsal.L',
-                'indexFinger_intermediateSegment_volar.L', 'indexFinger_intermediateSegment_dorsal.L',
-                'indexFinger_distalSegment_volar.L', 'indexFinger_distalSegment_dorsal.L',
-                'middleFinger_proximalSegment_volar.L', 'middleFinger_proximalSegment_dorsal.L',
-                'middleFinger_intermediateSegment_volar.L', 'middleFinger_intermediateSegment_dorsal.L',
-                'middleFinger_distalSegment_volar.L', 'middleFinger_distalSegment_dorsal.L',
-                'ringFinger_proximalSegment_volar_radial.L', 'ringFinger_proximalSegment_volar_ulnar.L',
-                'ringFinger_proximalSegment_dorsal_radial.L', 'ringFinger_proximalSegment_dorsal_ulnar.L',
-                'ringFinger_intermediateSegment_volar_radial.L', 'ringFinger_intermediateSegment_volar_ulnar.L',
-                'ringFinger_intermediateSegment_dorsal_radial.L', 'ringFinger_intermediateSegment_dorsal_ulnar.L',
-                'ringFinger_distalSegment_volar_radial.L', 'ringFinger_distalSegment_volar_ulnar.L',
-                'ringFinger_distalSegment_dorsal_radial.L', 'ringFinger_distalSegment_dorsal_ulnar.L',
-                'littleFinger_proximalSegment_volar.L', 'littleFinger_proximalSegment_dorsal.L',
-                'littleFinger_intermediateSegment_volar.L', 'littleFinger_intermediateSegment_dorsal.L',
-                'littleFinger_distalSegment_volar.L', 'littleFinger_distalSegment_dorsal.L'
-            ],
-            
-            // Left Hand (Front) - palm/volar side
-            'Left Hand (Front)': [
-                'hand_volar_radial.L', 'hand_volar_ulnar.L',
-                'thumb_proximalSegment_volar.L', 'thumb_distalSegment_volar.L',
-                'indexFinger_proximalSegment_volar.L', 'indexFinger_intermediateSegment_volar.L', 'indexFinger_distalSegment_volar.L',
-                'middleFinger_proximalSegment_volar.L', 'middleFinger_intermediateSegment_volar.L', 'middleFinger_distalSegment_volar.L',
-                'ringFinger_proximalSegment_volar_radial.L', 'ringFinger_proximalSegment_volar_ulnar.L',
-                'ringFinger_intermediateSegment_volar_radial.L', 'ringFinger_intermediateSegment_volar_ulnar.L',
-                'ringFinger_distalSegment_volar_radial.L', 'ringFinger_distalSegment_volar_ulnar.L',
-                'littleFinger_proximalSegment_volar.L', 'littleFinger_intermediateSegment_volar.L', 'littleFinger_distalSegment_volar.L'
-            ],
-            
-            // Left Hand (Back) - dorsal side
-            'Left Hand (Back)': [
-                'hand_dorsal_radial.L', 'hand_dorsal_ulnar.L',
-                'thumb_proximalSegment_dorsal.L', 'thumb_distalSegment_dorsal.L',
-                'indexFinger_proximalSegment_dorsal.L', 'indexFinger_intermediateSegment_dorsal.L', 'indexFinger_distalSegment_dorsal.L',
-                'middleFinger_proximalSegment_dorsal.L', 'middleFinger_intermediateSegment_dorsal.L', 'middleFinger_distalSegment_dorsal.L',
-                'ringFinger_proximalSegment_dorsal_radial.L', 'ringFinger_proximalSegment_dorsal_ulnar.L',
-                'ringFinger_intermediateSegment_dorsal_radial.L', 'ringFinger_intermediateSegment_dorsal_ulnar.L',
-                'ringFinger_distalSegment_dorsal_radial.L', 'ringFinger_distalSegment_dorsal_ulnar.L',
-                'littleFinger_proximalSegment_dorsal.L', 'littleFinger_intermediateSegment_dorsal.L', 'littleFinger_distalSegment_dorsal.L'
-            ],
-            
-            // Right Shoulder
-            'Right Shoulder': [
-                'shoulder_anterior.R', 'shoulder_posterior.R', 'shoulder_superior.R', 'shoulder_lateral.R'
-            ],
-            
-            // Right Upper Arm
-            'Right Upper Arm': [
-                'upperArm_anterior.R', 'upperArm_anteromedial.R', 'upperArm_medial.R',
-                'upperArm_lateral.R', 'upperArm_anterolateral.R', 'upperArm_posterior.R',
-                'upperArm_posterolateral.R', 'upperArm_posteromedial.R'
-            ],
-            
-            // Right Elbow
-            'Right Elbow': [
-                'elbow_anterior.R', 'elbow_anterolateral.R', 'elbow_lateral.R',
-                'elbow_posterolateral.R', 'elbow_posterior.R', 'elbow_posteromedial.R',
-                'elbow_medial.R', 'elbow_anteromedial.R'
-            ],
-            
-            // Right Forearm
-            'Right Forearm': [
-                'forearm_anterior.R', 'forearm_anterolateral.R', 'forearm_lateral.R',
-                'forearm_posterolateral.R', 'forearm_posterior.R', 'forearm_posteromedial.R',
-                'forearm_medial.R', 'forearm_anteromedial.R'
-            ],
-            
-            // Right Wrist
-            'Right Wrist': [
-                'wrist_anterior.R', 'wrist_anterolateral.R', 'wrist_lateral.R',
-                'wrist_posterolateral.R', 'wrist_posterior.R', 'wrist_posteromedial.R',
-                'wrist_medial.R', 'wrist_anteromedial.R'
-            ],
-            
-            // Right Hand
-            'Right Hand': [
-                'hand_volar_radial.R', 'hand_volar_ulnar.R', 'hand_dorsal_radial.R', 'hand_dorsal_ulnar.R',
-                'thumb_proximalSegment_volar.R', 'thumb_proximalSegment_dorsal.R',
-                'thumb_distalSegment_volar.R', 'thumb_distalSegment_dorsal.R',
-                'indexFinger_proximalSegment_volar.R', 'indexFinger_proximalSegment_dorsal.R',
-                'indexFinger_intermediateSegment_volar.R', 'indexFinger_intermediateSegment_dorsal.R',
-                'indexFinger_distalSegment_volar.R', 'indexFinger_distalSegment_dorsal.R',
-                'middleFinger_proximalSegment_volar.R', 'middleFinger_proximalSegment_dorsal.R',
-                'middleFinger_intermediateSegment_volar.R', 'middleFinger_intermediateSegment_dorsal.R',
-                'middleFinger_distalSegment_volar.R', 'middleFinger_distalSegment_dorsal.R',
-                'ringFinger_proximalSegment_volar_radial.R', 'ringFinger_proximalSegment_volar_ulnar.R',
-                'ringFinger_proximalSegment_dorsal_radial.R', 'ringFinger_proximalSegment_dorsal_ulnar.R',
-                'ringFinger_intermediateSegment_volar_radial.R', 'ringFinger_intermediateSegment_volar_ulnar.R',
-                'ringFinger_intermediateSegment_dorsal_radial.R', 'ringFinger_intermediateSegment_dorsal_ulnar.R',
-                'ringFinger_distalSegment_volar_radial.R', 'ringFinger_distalSegment_volar_ulnar.R',
-                'ringFinger_distalSegment_dorsal_radial.R', 'ringFinger_distalSegment_dorsal_ulnar.R',
-                'littleFinger_proximalSegment_volar.R', 'littleFinger_proximalSegment_dorsal.R',
-                'littleFinger_intermediateSegment_volar.R', 'littleFinger_intermediateSegment_dorsal.R',
-                'littleFinger_distalSegment_volar.R', 'littleFinger_distalSegment_dorsal.R'
-            ],
-            
-            // Right Hand (Front) - palm/volar side
-            'Right Hand (Front)': [
-                'hand_volar_radial.R', 'hand_volar_ulnar.R',
-                'thumb_proximalSegment_volar.R', 'thumb_distalSegment_volar.R',
-                'indexFinger_proximalSegment_volar.R', 'indexFinger_intermediateSegment_volar.R', 'indexFinger_distalSegment_volar.R',
-                'middleFinger_proximalSegment_volar.R', 'middleFinger_intermediateSegment_volar.R', 'middleFinger_distalSegment_volar.R',
-                'ringFinger_proximalSegment_volar_radial.R', 'ringFinger_proximalSegment_volar_ulnar.R',
-                'ringFinger_intermediateSegment_volar_radial.R', 'ringFinger_intermediateSegment_volar_ulnar.R',
-                'ringFinger_distalSegment_volar_radial.R', 'ringFinger_distalSegment_volar_ulnar.R',
-                'littleFinger_proximalSegment_volar.R', 'littleFinger_intermediateSegment_volar.R', 'littleFinger_distalSegment_volar.R'
-            ],
-            
-            // Right Hand (Back) - dorsal side
-            'Right Hand (Back)': [
-                'hand_dorsal_radial.R', 'hand_dorsal_ulnar.R',
-                'thumb_proximalSegment_dorsal.R', 'thumb_distalSegment_dorsal.R',
-                'indexFinger_proximalSegment_dorsal.R', 'indexFinger_intermediateSegment_dorsal.R', 'indexFinger_distalSegment_dorsal.R',
-                'middleFinger_proximalSegment_dorsal.R', 'middleFinger_intermediateSegment_dorsal.R', 'middleFinger_distalSegment_dorsal.R',
-                'ringFinger_proximalSegment_dorsal_radial.R', 'ringFinger_proximalSegment_dorsal_ulnar.R',
-                'ringFinger_intermediateSegment_dorsal_radial.R', 'ringFinger_intermediateSegment_dorsal_ulnar.R',
-                'ringFinger_distalSegment_dorsal_radial.R', 'ringFinger_distalSegment_dorsal_ulnar.R',
-                'littleFinger_proximalSegment_dorsal.R', 'littleFinger_intermediateSegment_dorsal.R', 'littleFinger_distalSegment_dorsal.R'
-            ],
-            
-            // Left Thigh
-            'Left Thigh': [
-                'thigh_anterior_groin.L', 'thigh_anteromedial.L', 'thigh_anterior.L',
-                'thigh_anterolateral.L', 'thigh_lateral.L', 'thigh_perinium.L',
-                'thigh_medial.L', 'thigh_posteromedial.L', 'thigh_posterior.L', 'thigh_posterolateral.L'
-            ],
-            
-            // Left Knee
-            'Left Knee': [
-                'knee_anterior.L', 'knee_anteromedial.L', 'knee_anterolateral.L', 'knee_lateral.L',
-                'knee_medial.L', 'knee_posteromedial.L', 'knee_posterior.L', 'knee_posterolateral.L'
-            ],
-            
-            // Left Knee (Front) - anterior/patella side
-            'Left Knee (Front)': [
-                'knee_anterior.L', 'knee_anteromedial.L', 'knee_anterolateral.L',
-                'knee_medial.L', 'knee_lateral.L'
-            ],
-            
-            // Left Knee (Back) - posterior/popliteal side
-            'Left Knee (Back)': [
-                'knee_posterior.L', 'knee_posteromedial.L', 'knee_posterolateral.L',
-                'knee_medial.L', 'knee_lateral.L'
-            ],
-            
-            // Left Calf
-            'Left Calf': [
-                'lowerLeg_anteromedial.L', 'lowerLeg_anterolateral.L',
-                'lowerLeg_posterolateral.L', 'lowerLeg_posteromedial.L',
-                'lowerLeg_medial.L', 'lowerLeg_anterior.L', 'lowerLeg_lateral.L', 'lowerLeg_posterior.L'
-            ],
-            
-            // Left Ankle
-            'Left Ankle': [
-                'ankle_anteromedial.L', 'ankle_anterolateral.L',
-                'ankle_posteromedial.L', 'ankle_posterolateral.L',
-                'ankle_anterior.L', 'ankle_medial.L', 'ankle_lateral.L', 'ankle_posterior.L'
-            ],
-            
-            // Left Foot
-            'Left Foot': [
-                'heel_lateral.L', 'heel_medial.L',
-                'midFoot_dorsomedial.L', 'midFoot_dorsolateral.L',
-                'midFoot_plantomedial.L', 'midFoot_plantolateral.L',
-                'foreFoot_plantolateral.L', 'foreFoot_plantomedial.L',
-                'foreFoot_dorsomedial.L', 'foreFoot_dorsolateral.L',
-                'toe1_dorsal.L', 'toe1_plantar.L', 'toe2_dorsal.L', 'toe2_plantar.L',
-                'toe3_dorsal.L', 'toe3_plantar.L',
-                'toe4_dorsolateral.L', 'toe4_dorsomedial.L', 'toe4_plantolateral.L', 'toe4_plantomedial.L',
-                'toe5_dorsal.L', 'toe5_plantar.L'
-            ],
-            
-            // Right Thigh
-            'Right Thigh': [
-                'thigh_anterior_groin.R', 'thigh_anteromedial.R', 'thigh_anterior.R',
-                'thigh_anterolateral.R', 'thigh_lateral.R', 'thigh_perinium.R',
-                'thigh_medial.R', 'thigh_posteromedial.R', 'thigh_posterior.R', 'thigh_posterolateral.R'
-            ],
-            
-            // Right Knee
-            'Right Knee': [
-                'knee_anterior.R', 'knee_anteromedial.R', 'knee_anterolateral.R', 'knee_lateral.R',
-                'knee_medial.R', 'knee_posteromedial.R', 'knee_posterior.R', 'knee_posterolateral.R'
-            ],
-            
-            // Right Knee (Front) - anterior/patella side
-            'Right Knee (Front)': [
-                'knee_anterior.R', 'knee_anteromedial.R', 'knee_anterolateral.R',
-                'knee_medial.R', 'knee_lateral.R'
-            ],
-            
-            // Right Knee (Back) - posterior/popliteal side
-            'Right Knee (Back)': [
-                'knee_posterior.R', 'knee_posteromedial.R', 'knee_posterolateral.R',
-                'knee_medial.R', 'knee_lateral.R'
-            ],
-            
-            // Right Calf
-            'Right Calf': [
-                'lowerLeg_anteromedial.R', 'lowerLeg_anterolateral.R',
-                'lowerLeg_posterolateral.R', 'lowerLeg_posteromedial.R',
-                'lowerLeg_medial.R', 'lowerLeg_anterior.R', 'lowerLeg_lateral.R', 'lowerLeg_posterior.R'
-            ],
-            
-            // Right Ankle
-            'Right Ankle': [
-                'ankle_anteromedial.R', 'ankle_anterolateral.R',
-                'ankle_posteromedial.R', 'ankle_posterolateral.R',
-                'ankle_anterior.R', 'ankle_medial.R', 'ankle_lateral.R', 'ankle_posterior.R'
-            ],
-            
-            // Right Foot
-            'Right Foot': [
-                'heel_lateral.R', 'heel_medial.R',
-                'midFoot_dorsomedial.R', 'midFoot_dorsolateral.R',
-                'midFoot_plantomedial.R', 'midFoot_plantolateral.R',
-                'foreFoot_plantolateral.R', 'foreFoot_plantomedial.R',
-                'foreFoot_dorsomedial.R', 'foreFoot_dorsolateral.R',
-                'toe1_dorsal.R', 'toe1_plantar.R', 'toe2_dorsal.R', 'toe2_plantar.R',
-                'toe3_dorsal.R', 'toe3_plantar.R',
-                'toe4_dorsolateral.R', 'toe4_dorsomedial.R', 'toe4_plantomedial.R', 'toe4_plantolateral.R',
-                'toe5_dorsal.R', 'toe5_plantar.R'
-            ],
-        };
+
+    /**
+     * Build the regionMap from loaded vertex group names.
+     * Call once, after initializeRegionMappings() has populated
+     * AppState.idToRegionMap.
+     *
+     * @param {string[]} regionNames — all vertex group names
+     *                                  (typically Object.values(AppState.idToRegionMap))
+     */
+    initRegionMap(regionNames) {
+        this.regionMap = buildRegionMap(regionNames);
     }
 
     // ==========================================
@@ -1145,7 +840,6 @@ export default class CameraUtils {
         console.log("Dominant body part:", dominantBodyPart);
 
         const orientation = this.analyzeDrawingOrientation(drawnRegionNames);
-        // console.log("Drawing orientation:", orientation.octant, "angle:", (orientation.angle * 180 / Math.PI).toFixed(0) + "°");
         
         const regions = this.regionMap[dominantBodyPart];
         if (!regions) {
