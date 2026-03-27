@@ -186,7 +186,7 @@ responsive.on('breakpointChange', (newBreakpoint, oldBreakpoint) => {
         currentViewport = newViewport;
         const currentStage = document.documentElement.getAttribute('data-stage');
         requestAnimationFrame(() => {
-            if (currentStage) setStage(currentStage);
+            if (currentStage) setStage(currentStage, true);
         });
     }
 });
@@ -204,7 +204,9 @@ responsive.on('prefersReducedMotion', (prefersReduced) => {
 // ====================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (window.firebaseService) window.firebaseService.init();
+    // Firebase removed for integration handover.
+    // To re-enable, add firebaseService.js to index.html and uncomment:
+    // if (window.firebaseService) window.firebaseService.init();
 
     document.documentElement.setAttribute('data-viewport', responsive.getViewportType());
     document.documentElement.setAttribute('data-orientation', responsive.is('isLandscape') ? 'landscape' : 'portrait');

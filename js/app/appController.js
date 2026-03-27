@@ -10,9 +10,6 @@
 
 import { loadModel, cleanupAllModels } from '../services/modelLoader.js';
 import {
-    isDrawingBlank,
-    updateCurrentDrawing,
-    addNewDrawingInstance,
     buildGlobalUVMap,
     initializeRegionMappings
 } from '../services/drawingEngine.js';
@@ -43,6 +40,9 @@ import coverageCalculator from '../utils/coverageUtils.js';
 import { initStageRouter, goTo } from './stageRouter.js';
 import {
     initInstanceManager,
+    addNewDrawingInstance,
+    isDrawingBlank,
+    updateCurrentDrawing,
     deleteDrawingInstance,
     refreshTextureAfterDelete,
     generateDrawingPreview,
@@ -280,19 +280,19 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
             AppState.generalQuestionnaireResponse = getCurrentSurveyData();
 
             const submissionData = await prepareSubmissionData();
-            console.log('Submitting all data...', submissionData);
+            console.log('Submission data prepared:', submissionData);
 
-            survey.completeButton.disabled  = true;
-            survey.completeButton.textContent = 'Submitting...';
+            // ── Integration point ──────────────────────────────────────
+            // Replace with your platform's API call:
+            //   const response = await apiService.submit(submissionData);
+            //   const success = response.ok;
+            //
+            // For now, simulate success to keep the app testable:
+            const success = true;
+            // ───────────────────────────────────────────────────────────
 
-            // TODO: Replace with real API call
-            const docId = true;
-
-            survey.completeButton.disabled  = false;
-            survey.completeButton.textContent = 'Complete';
-
-            if (docId) {
-                console.log('All data submitted successfully!');
+            if (success) {
+                console.log('Submission complete (no backend connected — data logged above).');
                 clearSurveyInstance();
                 goTo('summary');
             } else {

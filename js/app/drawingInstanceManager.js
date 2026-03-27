@@ -1,14 +1,28 @@
 // drawingInstanceManager.js
-// Manages drawing instance lifecycle: creation/deletion, empty-drawing
-// guards, texture refresh after deletion, and preview generation.
+// Manages drawing instance lifecycle: creation, deletion, blank-check,
+// texture update, color assignment, empty-drawing guards, texture
+// refresh after deletion, and preview generation.
+//
+// Instance lifecycle functions (addNewDrawingInstance, isDrawingBlank,
+// updateCurrentDrawing, updateInstanceColors) migrated here from
+// drawingEngine.js so that all instance state management is co-located.
 //
 // Dependencies are injected via initInstanceManager() so this module
 // has no direct coupling to the stage router or view layer.
 
 import AppState from './state.js';
-import { isDrawingBlank, updateInstanceColors } from '../services/drawingEngine.js';
 import { createCombinedTexture } from '../services/submissionService.js';
 import { showDeleteEmptyModal } from '../components/modal.js';
+import texturePool from '../utils/textureManager.js';
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const COLOR_PALETTE = [
+    '#4269d0', '#efb118', '#ff725c', '#6cc5b0', '#03831c',
+    '#ff8ab7', '#a463f2', '#97bbf5', '#9c6b4e', '#333399'
+];
 
 // ============================================================================
 // MODULE STATE
@@ -42,7 +56,145 @@ export function initInstanceManager(deps) {
 }
 
 // ============================================================================
-// INSTANCE CRUD
+// INSTANCE CREATION
+// ============================================================================
+
+/**
+ * Create a new drawing instance with a fresh texture from the pool.
+ * Assigns a colour from the palette and overlays the base texture.
+ */
+export function addNewDrawingInstance() {
+    const instanceId    = `drawing-${AppState.drawingInstances.length + 1}`;
+    const textureBundle = texturePool.getNewTexture(instanceId);
+
+    const newInstance = {
+        id: instanceId,
+        canvas: textureBundle.canvas,
+        context: textureBundle.context,
+        texture: textureBundle.texture,
+        drawnRegionNames: new Set(),
+        regionPixelMap: {},
+        coloredFaces: new Set(),
+        questionnaireData: null,
+        uvDrawingData: null,
+        color: COLOR_PALETTE[AppState.drawingInstances.length % COLOR_PALETTE.length]
+    };
+
+    // Overlay the persistent base texture
+    if (AppState.baseTextureCanvas) {
+        const snapshot = document.createElement('canvas');
+        snapshot.width  = AppState.baseTextureCanvas.width;
+        snapshot.height = AppState.baseTextureCanvas.height;
+        snapshot.getContext('2d').drawImage(AppState.baseTextureCanvas, 0, 0);
+        newInstance.context.drawImage(snapshot, 0, 0);
+    }
+
+    AppState.drawingInstances.push(newInstance);
+    AppState.currentDrawingIndex = AppState.drawingInstances.length - 1;
+    updateCurrentDrawing();
+}
+
+// ============================================================================
+// BLANK-CHECK
+// ============================================================================
+
+/**
+ * Check whether the current drawing instance is visually blank.
+ * Scans pixel data for any non-white content.
+ *
+ * @returns {boolean} true if the canvas contains only white pixels
+ */
+export function isDrawingBlank() {
+    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+    if (!currentInstance || !currentInstance.canvas) return true;
+
+    const ctx = currentInstance.context;
+    const { width, height } = currentInstance.canvas;
+    const imageData = ctx.getImageData(0, 0, width, height).data;
+
+    for (let i = 0; i < imageData.length; i += 4) {
+        if (!(imageData[i] === 255 && imageData[i + 1] === 255 && imageData[i + 2] === 255 && imageData[i + 3] === 255)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ============================================================================
+// TEXTURE UPDATE
+// ============================================================================
+
+/**
+ * Apply the current drawing instance's texture to the 3D model
+ * and rebuild drawnRegionNames from the regionPixelMap.
+ */
+export function updateCurrentDrawing() {
+    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
+    if (!currentInstance || !AppState.skinMesh?.material) return;
+
+    AppState.skinMesh.userData.canvas  = currentInstance.canvas;
+    AppState.skinMesh.userData.context = currentInstance.context;
+    AppState.skinMesh.userData.texture = currentInstance.texture;
+
+    AppState.skinMesh.material.map        = currentInstance.texture;
+    AppState.skinMesh.material.needsUpdate = true;
+    currentInstance.texture.needsUpdate    = true;
+
+    // Rebuild drawnRegionNames from the regionPixelMap
+    const pixelMap = currentInstance.regionPixelMap;
+    currentInstance.drawnRegionNames = new Set(
+        Object.keys(pixelMap).filter(group => pixelMap[group].size > 0)
+    );
+}
+
+// ============================================================================
+// INSTANCE RECOLORING
+// ============================================================================
+
+/**
+ * Reassign palette colors to all drawing instances.
+ * Called after deletion/re-indexing to keep colours sequential.
+ */
+export function updateInstanceColors() {
+    AppState.drawingInstances.forEach((instance, index) => {
+        const newColor = COLOR_PALETTE[index % COLOR_PALETTE.length];
+        instance.color = newColor;
+        redrawInstanceWithNewColor(instance);
+    });
+}
+
+/**
+ * Repaint all non-white pixels with the instance's current color.
+ * @param {Object} instance — a drawing instance object
+ */
+function redrawInstanceWithNewColor(instance) {
+    const { canvas, context, color } = instance;
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels    = imageData.data;
+    const newColor  = hexToRgb(color);
+
+    for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2], a = pixels[i + 3];
+        if (a > 0 && !(r === 255 && g === 255 && b === 255)) {
+            pixels[i]     = newColor.r;
+            pixels[i + 1] = newColor.g;
+            pixels[i + 2] = newColor.b;
+        }
+    }
+
+    context.putImageData(imageData, 0, 0);
+    instance.texture.needsUpdate = true;
+}
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+        ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
+        : { r: 0, g: 0, b: 0 };
+}
+
+// ============================================================================
+// INSTANCE DELETION
 // ============================================================================
 
 /**
@@ -163,17 +315,13 @@ export function handleEmptyDrawing(actionType) {
 
     pendingAction = { type: actionType };
 
-    const isLastInstance = AppState.drawingInstances.length === 1;
-
     const messages = {
-        returnToSummary: isLastInstance
-            ? "You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the home view."
-            : "You haven't made a drawing yet. If you proceed, this area will be deleted.",
+        returnToSummary: 
+            "You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the home view.",
         proceedToSurvey:
             "You haven't made a drawing yet. Please draw an area before continuing to the questionnaire.",
-        returnFromEdit: isLastInstance
-            ? "You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the home view."
-            : "You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the survey."
+        returnFromEdit: 
+            "You haven't made a drawing yet. If you proceed, this area will be deleted and you will return to the home view."
     };
 
     showDeleteEmptyModal(
@@ -203,17 +351,11 @@ export function executePendingAction() {
 
         case 'returnFromEdit':
             deleteDrawingInstance(currentIndex);
-            if (AppState.drawingInstances.length === 0) {
-                AppState.isEditingFromSurvey = false;
-                goTo('summary');
-            } else {
-                if (AppState.currentSurveyIndex >= AppState.drawingInstances.length) {
-                    AppState.currentSurveyIndex = AppState.drawingInstances.length - 1;
-                }
-                AppState.currentDrawingIndex = AppState.currentSurveyIndex;
-                AppState.isEditingFromSurvey = false;
-                goTo('area-survey');
-            }
+            // User erased their drawing and confirmed deletion — they want
+            // to abandon this area entirely, so always return to summary
+            // regardless of how many other areas exist.
+            AppState.isEditingFromSurvey = false;
+            goTo('summary');
             break;
 
         case 'proceedToSurvey':

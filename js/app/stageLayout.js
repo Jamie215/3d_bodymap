@@ -57,11 +57,15 @@ export function initStageLayout(deps) {
 
 /**
  * Swap DOM slot contents and set data-stage / data-viewport attributes.
- * Called by stageRouter.goTo() after state + texture work is done.
+ * Called by stageRouter.goTo() after state + texture work is done,
+ * or by main.js on viewport change (with isRelayout = true).
  *
  * @param {'summary'|'selection'|'drawing'|'area-survey'|'general-survey'} stage
+ * @param {boolean} [isRelayout=false] — true when called due to viewport/breakpoint
+ *        change rather than a genuine stage transition. Suppresses one-time actions
+ *        like showing the region selector modal.
  */
-export function setStage(stage) {
+export function setStage(stage, isRelayout = false) {
     document.documentElement.setAttribute('data-stage', stage);
 
     const viewportType = responsive.getViewportType();
@@ -78,7 +82,7 @@ export function setStage(stage) {
 
     switch (stage) {
         case 'summary':
-            layoutSummary(summary);
+            layoutSummary(summary, isRelayout);
             break;
 
         case 'selection':
@@ -86,7 +90,7 @@ export function setStage(stage) {
             break;
 
         case 'drawing':
-            layoutDrawing(drawing, survey);
+            layoutDrawing(drawing, survey, isRelayout);
             break;
 
         case 'area-survey':
@@ -103,7 +107,7 @@ export function setStage(stage) {
 // PER-STAGE LAYOUT HELPERS
 // ============================================================================
 
-function layoutSummary(summary) {
+function layoutSummary(summary, isRelayout) {
     canvasToolbar.appendChild(summary.changeModelButton);
     slotRight.appendChild(summary.summaryStatusPanel);
     slotFooter.appendChild(summary.summaryFooter);
@@ -120,7 +124,9 @@ function layoutSummary(summary) {
     }
 
     // Return-to-summary tooltips (once, after first completed area)
+    // Skip on relayout — tooltips track their own shown-state internally
     if (
+        !isRelayout &&
         AppState.drawingInstances.length > 0 &&
         !AppState.generalQuestionnaireResponse
     ) {
@@ -133,7 +139,7 @@ function layoutSelection(selection) {
     slotFooter.appendChild(selection.selectionFooter);
 }
 
-function layoutDrawing(drawing, survey) {
+function layoutDrawing(drawing, survey, isRelayout) {
     // Header: status bar
     slotHeader.appendChild(drawing.headerContent);
 
@@ -145,8 +151,9 @@ function layoutDrawing(drawing, survey) {
 
     const isFirstDrawingEntry = !AppState.isEditingFromSurvey;
 
-    // Setup region selector — adds button to footerLeft
-    if (isFirstDrawingEntry) {
+    // Setup region selector — adds button to footerLeft.
+    // Only show the modal on genuine stage entry (not viewport relayouts).
+    if (isFirstDrawingEntry && !isRelayout) {
         setupRegionSelectorForDrawing(drawing.footerLeft, true, (regionName) => {
             drawing.updateStatusBar(regionName);
 

@@ -1,10 +1,13 @@
 // surveyManager.js
-// Extracted from appController.js — owns the SurveyJS instance lifecycle,
-// survey rendering, validation, progress tracking, and data persistence.
+// Owns the SurveyJS instance lifecycle: model creation, rendering,
+// validation, progress tracking, and data persistence.
+//
+// Custom onAfterRenderQuestion hooks extracted to surveyCustomRenderers.js.
 
 import { applyCustomTheme, customTheme } from '../utils/surveyTheme.js';
 import { areaSurveyJson } from '../utils/areaSurvey.js';
 import { generalSurveyJson } from '../utils/generalSurvey.js';
+import { applyRatingLayout, injectMedicationDescriptions } from './surveyCustomRenderers.js';
 import AppState from '../app/state.js';
 import SurveyKO from "https://cdn.skypack.dev/survey-knockout";
 
@@ -77,32 +80,8 @@ export function renderAreaSurvey(container) {
       setTimeout(() => container.classList.add('survey-animated'), 50);
     });
 
-    // Custom rating-scale layout (intensity question)
-    surveyInstance.onAfterRenderQuestion.add((_survey, options) => {
-      if (options.question.name !== 'intensityScale') return;
-      const questionEl = options.htmlElement;
-      const ratingContent = questionEl.querySelector('.sd-question__content');
-      if (!ratingContent) return;
-      const ratingRow = ratingContent.querySelector('.sd-rating');
-      if (!ratingRow) return;
-
-      const layoutRow = document.createElement('div');
-      layoutRow.classList.add('rating-layout-row');
-
-      const minLabel = document.createElement('div');
-      minLabel.innerHTML = 'No pain<br>or symptom';
-      minLabel.classList.add('rating-layout-label');
-
-      const maxLabel = document.createElement('div');
-      maxLabel.innerHTML = 'Worst pain<br>or symptom<br>imaginable';
-      maxLabel.classList.add('rating-layout-label');
-
-      ratingContent.removeChild(ratingRow);
-      layoutRow.appendChild(minLabel);
-      layoutRow.appendChild(ratingRow);
-      layoutRow.appendChild(maxLabel);
-      ratingContent.appendChild(layoutRow);
-    });
+    // Custom rendering hooks (extracted to surveyCustomRenderers.js)
+    surveyInstance.onAfterRenderQuestion.add(applyRatingLayout);
   }
 
   // Populate with any existing data for this instance
@@ -193,43 +172,8 @@ export function renderGeneralSurvey(container) {
       setTimeout(() => container.classList.add('survey-animated'), 50);
     });
 
-    // Medication description sub-text injection
-    surveyInstance.onAfterRenderQuestion.add((_survey, options) => {
-      if (options.question.name !== 'medicationTable' || options.question.getType() !== 'matrix') return;
-
-      const descriptions = {
-        'over-the-counter':              'e.g.,: Advil (ibuprofen), Aleve (naproxen), Aspirin (ASA), Motrin (ibuprofen), Tylenol (acetaminophen)',
-        'non-steroidal-anti-inflammatory':'e.g.,: Arthrotec, Celecoxib, Celebrex, Voltaren',
-        'muscle-relaxant':               'e.g.,: Flexeril, Robaxacet, Robaxin',
-        'narcotic-pain-medication':       'e.g.,: Demerol, MS Contin, Morphine, Oxycontin, Percocet, Talwin, Tylenol 3',
-        'anti-depressant':               'e.g.,: Celexa, Cipralex, Cymbalta, Elavil, Paxil, Prozac, Wellbutrin, Zoloft',
-        'neuroleptics':                  'e.g.,: Lyrica, Neurontin, Gabapentin, Rivotril, Tegretol',
-        'cannabis':                      'e.g.,: Smoked, Inhaled, Edible, Oil, Cream',
-      };
-
-      setTimeout(() => {
-        const tbody = options.htmlElement.querySelector('tbody');
-        if (!tbody) return;
-
-        const rows = tbody.querySelectorAll('tr.sd-table__row');
-
-        options.question.visibleRows.forEach((questionRow, index) => {
-          const fullName = questionRow.fullName;
-          const rowValue = fullName ? fullName.split('_').pop() : null;
-          const domRow   = rows[index];
-
-          if (rowValue && descriptions[rowValue] && domRow) {
-            const textCell = domRow.querySelector('td.sd-table__cell--row-text');
-            if (textCell && !textCell.querySelector('.medication-description')) {
-              const desc = document.createElement('div');
-              desc.className = 'medication-description';
-              desc.textContent = descriptions[rowValue];
-              textCell.appendChild(desc);
-            }
-          }
-        });
-      }, 100);
-    });
+    // Custom rendering hooks (extracted to surveyCustomRenderers.js)
+    surveyInstance.onAfterRenderQuestion.add(injectMedicationDescriptions);
   }
 
   surveyView.editDrawingButton.style.display = 'none';
