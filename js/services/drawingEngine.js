@@ -1,8 +1,16 @@
 // drawingEngine.js
+// Core drawing service: texture painting, pointer dispatch, and
+// drawing-instance lifecycle (create, blank-check, update, recolor).
+//
+// UV rasterization math → utils/uvRasterizer.js
+// Region pixel tracking → utils/regionTracker.js
+
 import AppState from '../app/state.js';
 import texturePool from '../utils/textureManager.js';
+import { buildGlobalUVMap as rasterizeBuildGlobalUVMap } from '../utils/uvRasterizer.js';
+import { updateRegionMapFromHit, eraseFromRegionMap } from '../utils/regionTracker.js';
 
-const raycaster = new THREE.Raycaster();
+const raycaster         = new THREE.Raycaster();
 const mirroredRaycaster = new THREE.Raycaster();
 
 const colorPalette = [
@@ -10,155 +18,56 @@ const colorPalette = [
     '#ff8ab7', '#a463f2', '#97bbf5', '#9c6b4e', '#333399'
 ];
 
-let idToRegionMap = null;
-let regionToIdMap = null;
+// ============================================================================
+// REGION MAPPINGS
+// ============================================================================
 
-// Load region-to-ID mappings to AppState
 export async function initializeRegionMappings() {
     try {
-        const response = await fetch('../../assets/region_id_mapping.json');
+        const response    = await fetch('../../assets/region_id_mapping.json');
         const mappingData = await response.json();
 
-        idToRegionMap = {};
+        const idToRegionMap = {};
         for (const [id, region] of Object.entries(mappingData.id_to_region)) {
             idToRegionMap[parseInt(id)] = region;
         }
 
-        regionToIdMap = mappingData.region_to_id;
-
-        AppState.regionToIdMap = regionToIdMap;
+        AppState.regionToIdMap = mappingData.region_to_id;
         AppState.idToRegionMap = idToRegionMap;
     } catch (error) {
-        console.error("Failed to load vertex group mappings", error);
-        idToRegionMap = { 0: "unassigned" };
-        regionToIdMap = {};
+        console.error('Failed to load vertex group mappings', error);
+        AppState.idToRegionMap = { 0: 'unassigned' };
+        AppState.regionToIdMap = {};
     }
 }
 
-// Get the regionID for a specific vertex
-function getVertexRegion(regionIDAttr, vertexIndex) {
-    const regionID = regionIDAttr.getX(vertexIndex);
-    return idToRegionMap[regionID] || null;
-}
+// ============================================================================
+// UV MAP BUILDING — thin wrapper around uvRasterizer
+// ============================================================================
 
-// Determine which anatomical region a 3D face belongs to
-function getDominantRegionForFace(regionIDAttr, vertexA, vertexB, vertexC) {
-    const regionA = getVertexRegion(regionIDAttr, vertexA);
-    const regionB = getVertexRegion(regionIDAttr, vertexB);
-    const regionC = getVertexRegion(regionIDAttr, vertexC);
-
-    const regions = [regionA, regionB, regionC].filter(r => r && r !== "unassigned");
-
-    if (regions.length === 0) return null;
-
-    const counts = {};
-    regions.forEach(region => {
-        counts[region] = (counts[region] || 0) + 1;
-    });
-
-    return Object.keys(counts).reduce((a, b) =>
-        counts[a] > counts[b] ? a : b
-    );
-}
-
-// Create mapping between UV texture coordinates and anatomical regions
+/**
+ * Build the global UV map by delegating to the pure rasterizer.
+ * Passes AppState.idToRegionMap so the rasterizer stays stateless.
+ */
 export function buildGlobalUVMap(geometry, canvasWidth, canvasHeight) {
-    const indexAttr = geometry.index;
-    const uvAttr = geometry.attributes.uv;
-    const regionIDAttr = geometry.attributes._regionid;
-
-    if (!regionIDAttr) {
-        console.error("No regionID attribute available to identify location");
-    }
-
-    const faceCount = indexAttr.count / 3;
-    const globalUVMap = new Map();
-    const globalPixelRegionMap = new Map();
-    const faceRegionMap = new Map();
-
-    for (let faceIdx = 0; faceIdx < faceCount; faceIdx++) {
-        const a = indexAttr.getX(faceIdx * 3);
-        const b = indexAttr.getX(faceIdx * 3 + 1);
-        const c = indexAttr.getX(faceIdx * 3 + 2);
-
-        const uvA = uvToPixel(uvAttr, a, canvasWidth, canvasHeight);
-        const uvB = uvToPixel(uvAttr, b, canvasWidth, canvasHeight);
-        const uvC = uvToPixel(uvAttr, c, canvasWidth, canvasHeight);
-
-        const dominantRegion = getDominantRegionForFace(regionIDAttr, a, b, c);
-        faceRegionMap.set(faceIdx, dominantRegion);
-        rasterizeTriangle(uvA, uvB, uvC, canvasWidth, canvasHeight, globalUVMap, globalPixelRegionMap, dominantRegion);
-    }
-
-    return { globalUVMap, globalPixelRegionMap, faceRegionMap };
-}
-
-// Convert UV coordinates to pixel coordinates
-function uvToPixel(uvAttr, vertexIndex, canvasWidth, canvasHeight) {
-    const u = uvAttr.getX(vertexIndex);
-    const v = uvAttr.getY(vertexIndex);
-    const x = Math.floor(u * canvasWidth);
-    const y = Math.floor((1 - v) * canvasHeight);
-    return { x, y };
-}
-
-// Fill triangle area in UV space with region data
-function rasterizeTriangle(p0, p1, p2, canvasWidth, canvasHeight, globalUVMap, globalPixelRegionMap, dominantRegion) {
-    const minX = Math.max(0, Math.min(p0.x, p1.x, p2.x));
-    const maxX = Math.min(canvasWidth - 1, Math.max(p0.x, p1.x, p2.x));
-    const minY = Math.max(0, Math.min(p0.y, p1.y, p2.y));
-    const maxY = Math.min(canvasHeight - 1, Math.max(p0.y, p1.y, p2.y));
-
-    const dilation = 1;
-
-    for (let y = minY; y <= maxY; y++) {
-        for (let x = minX; x <= maxX; x++) {
-            if (pointInTriangle({ x, y }, p0, p1, p2)) {
-                for (let dy = -dilation; dy <= dilation; dy++) {
-                    for (let dx = -dilation; dx <= dilation; dx++) {
-                        const px = x + dx;
-                        const py = y + dy;
-                        if (px < 0 || py < 0 || px >= canvasWidth || py >= canvasHeight) continue;
-                        const key = `${px},${py}`;
-                        globalUVMap.set(key, true);
-                        globalPixelRegionMap.set(key, dominantRegion);
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Check if the point is in a triangle
-function pointInTriangle(p, a, b, c) {
-    const area = 0.5 * (-b.y * c.x + a.y * (-b.x + c.x) + a.x * (b.y - c.y) + b.x * c.y);
-    const s = (1 / (2 * area)) * (a.y * c.x - a.x * c.y + (c.y - a.y) * p.x + (a.x - c.x) * p.y);
-    const t = (1 / (2 * area)) * (a.x * b.y - a.y * b.x + (a.y - b.y) * p.x + (b.x - a.x) * p.y);
-    const u = 1 - s - t;
-    return s >= 0 && t >= 0 && u >= 0;
+    return rasterizeBuildGlobalUVMap(geometry, canvasWidth, canvasHeight, AppState.idToRegionMap);
 }
 
 // ============================================================================
-// drawAtUV — OPTIMISED
-//
-// Previous implementation created a full-canvas (1024×1024) temporary mask
-// and iterated every pixel on each stroke.
-//
-// New approach:
-//   1. Skip the mask canvas entirely — use a simple radius² distance check
-//   2. Iterate only the brush's bounding box (at max radius 30 → 60×60 = 3 600
-//      pixels vs 1 048 576)
-//   3. In erase mode, batch-read the base texture region once instead of
-//      calling getImageData(px, py, 1, 1) per pixel
+// CORE DRAWING
 // ============================================================================
-export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitRegion = null) {
+
+/**
+ * Paint or erase a circular brush stroke at a UV coordinate.
+ * Only iterates the brush bounding box (not the full 1024×1024 canvas).
+ */
+export function drawAtUV(uv, canvas, context, radius, isErasing = false) {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     const cx = Math.floor(uv.x * canvas.width);
     const cy = Math.floor((1 - uv.y) * canvas.height);
 
     const radiusSq = radius * radius;
 
-    // Bounding box clamped to canvas
     const minPx = Math.max(0, cx - radius);
     const maxPx = Math.min(canvas.width - 1, cx + radius);
     const minPy = Math.max(0, cy - radius);
@@ -173,7 +82,7 @@ export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitRegi
 
     // Batch-read the base texture once for erase mode
     const baseCtx = AppState.baseTextureContext;
-    let baseData = null;
+    let baseData  = null;
     if (isErasing && baseCtx) {
         baseData = baseCtx.getImageData(minPx, minPy, regionW, regionH).data;
     }
@@ -199,7 +108,11 @@ export function drawAtUV(uv, canvas, context, radius, isErasing = false, hitRegi
     }
 }
 
-// Main drawing function
+// ============================================================================
+// POINTER DISPATCH
+// ============================================================================
+
+/** Cast a ray from the camera through the pointer and draw/erase on the hit. */
 export function drawAtPointer(camera, pointer, isErasing = false) {
     if (!AppState.skinMesh) {
         console.warn("Doesn't have a skinmesh");
@@ -210,7 +123,7 @@ export function drawAtPointer(camera, pointer, isErasing = false) {
 
     raycaster.setFromCamera(pointer, camera);
     raycaster.near = camera.near;
-    raycaster.far = camera.far;
+    raycaster.far  = camera.far;
 
     const intersects = raycaster.intersectObject(AppState.skinMesh, true);
 
@@ -218,16 +131,17 @@ export function drawAtPointer(camera, pointer, isErasing = false) {
         const hit = intersects[0];
         processHit(hit, isErasing);
 
+        // Mirror drawing across the body centerline seam
         const distanceFromCenter = Math.abs(hit.point.x);
         const seamThreshold = 0.0075;
 
         if (distanceFromCenter <= seamThreshold) {
             const mirroredOrigin = raycaster.ray.origin.clone().multiply(new THREE.Vector3(-1, 1, 1));
-            const mirroredDir = raycaster.ray.direction.clone().multiply(new THREE.Vector3(-1, 1, 1));
+            const mirroredDir    = raycaster.ray.direction.clone().multiply(new THREE.Vector3(-1, 1, 1));
 
             mirroredRaycaster.set(mirroredOrigin, mirroredDir);
             mirroredRaycaster.near = camera.near;
-            mirroredRaycaster.far = camera.far;
+            mirroredRaycaster.far  = camera.far;
 
             const mirroredHits = mirroredRaycaster.intersectObject(AppState.skinMesh, true);
             if (mirroredHits.length > 0) {
@@ -237,24 +151,51 @@ export function drawAtPointer(camera, pointer, isErasing = false) {
     }
 }
 
-// Process a raycast hit to draw/erase on texture
+/** Process a single raycast hit — paint pixels and update tracking. */
 function processHit(hit, isErasing) {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     const { canvas, context, texture } = currentInstance;
 
     const hitRegion = AppState.faceRegionMap?.get(hit.faceIndex) || null;
 
-    drawAtUV(hit.uv, canvas, context, AppState.brushRadius, isErasing, hitRegion);
+    drawAtUV(hit.uv, canvas, context, AppState.brushRadius, isErasing);
 
     if (!isErasing) {
         updateRegionMapFromHit(hit, currentInstance, hitRegion);
 
-        if (!currentInstance.coloredFaces) {
-            currentInstance.coloredFaces = new Set();
-        }
+        if (!currentInstance.coloredFaces) currentInstance.coloredFaces = new Set();
         currentInstance.coloredFaces.add(hit.faceIndex);
     } else {
-        eraseFromRegionMap(hit, currentInstance, AppState.brushRadius, hitRegion);
+        // Snapshot which regions still have pixels BEFORE erasing
+        const regionsBefore = currentInstance.regionPixelMap
+            ? new Set(Object.keys(currentInstance.regionPixelMap))
+            : new Set();
+
+        eraseFromRegionMap(hit, currentInstance, AppState.brushRadius);
+
+        // Find regions that were fully cleared by this erase stroke
+        const regionsAfter = currentInstance.regionPixelMap
+            ? new Set(Object.keys(currentInstance.regionPixelMap))
+            : new Set();
+
+        const clearedRegions = new Set();
+        for (const region of regionsBefore) {
+            if (!regionsAfter.has(region)) {
+                clearedRegions.add(region);
+            }
+        }
+
+        // Remove face indices belonging to fully-cleared regions
+        if (clearedRegions.size > 0 && currentInstance.coloredFaces && AppState.faceRegionMap) {
+            for (const faceIdx of currentInstance.coloredFaces) {
+                const faceRegion = AppState.faceRegionMap.get(faceIdx);
+                if (faceRegion && clearedRegions.has(faceRegion)) {
+                    currentInstance.coloredFaces.delete(faceIdx);
+                }
+            }
+        }
+
+        // Always remove the directly-hit face as before
         if (currentInstance.coloredFaces) {
             currentInstance.coloredFaces.delete(hit.faceIndex);
         }
@@ -263,106 +204,13 @@ function processHit(hit, isErasing) {
     texture.needsUpdate = true;
 }
 
-// Track which regions have been drawn on
-function updateRegionMapFromHit(hit, instance, regionName) {
-    if (!regionName) return;
+// ============================================================================
+// INSTANCE LIFECYCLE
+// ============================================================================
 
-    const x = Math.round(hit.uv.x * instance.canvas.width);
-    const y = Math.round((1 - hit.uv.y) * instance.canvas.height);
-    const key = `${x},${y}`;
-
-    instance.drawnRegionNames = instance.drawnRegionNames || new Set();
-    instance.drawnRegionNames.add(regionName);
-
-    if (!instance.regionPixelMap) instance.regionPixelMap = {};
-    if (!instance.regionPixelMap[regionName]) {
-        instance.regionPixelMap[regionName] = new Set();
-    }
-    instance.regionPixelMap[regionName].add(key);
-}
-
-// Remove pixel from region tracking when erasing
-function eraseFromRegionMap(hit, instance, radius, regionName) {
-    const x = Math.round(hit.uv.x * instance.canvas.width);
-    const y = Math.round((1 - hit.uv.y) * instance.canvas.height);
-
-    if (!instance.regionPixelMap) return;
-
-    for (let dx = -radius; dx <= radius; dx++) {
-        for (let dy = -radius; dy <= radius; dy++) {
-            if (dx * dx + dy * dy > radius * radius) continue;
-
-            const px = x + dx;
-            const py = y + dy;
-            if (px < 0 || py < 0 || px >= instance.canvas.width || py >= instance.canvas.height) continue;
-
-            const eraseKey = `${px},${py}`;
-
-            // Check ALL regions for this pixel, not just the hit region
-            for (const region of Object.keys(instance.regionPixelMap)) {
-                const pixelSet = instance.regionPixelMap[region];
-                if (pixelSet && pixelSet.has(eraseKey)) {
-                    pixelSet.delete(eraseKey);
-                    if (pixelSet.size === 0) {
-                        delete instance.regionPixelMap[region];
-                        instance.drawnRegionNames.delete(region);
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Update painting colors for drawing instances
-export function updateInstanceColors() {
-    AppState.drawingInstances.forEach((instance, index) => {
-        const newColor = colorPalette[index % colorPalette.length];
-        instance.color = newColor;
-        redrawInstanceWithNewColor(instance);
-    });
-}
-
-// Repaint all non-white pixels with the instance's current color
-function redrawInstanceWithNewColor(instance) {
-    const { canvas, context, color } = instance;
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const pixels = imageData.data;
-
-    const newColor = hexToRgb(color);
-
-    for (let i = 0; i < pixels.length; i += 4) {
-        const r = pixels[i];
-        const g = pixels[i + 1];
-        const b = pixels[i + 2];
-        const a = pixels[i + 3];
-
-        if (!(r === 255 && g === 255 && b === 255 && a === 255)) {
-            if (a > 0 && !(r === 255 && g === 255 && b === 255)) {
-                pixels[i] = newColor.r;
-                pixels[i + 1] = newColor.g;
-                pixels[i + 2] = newColor.b;
-            }
-        }
-    }
-
-    context.putImageData(imageData, 0, 0);
-    instance.texture.needsUpdate = true;
-}
-
-/**
- * Convert hex color to RGB object
- */
-function hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : { r: 0, g: 0, b: 0 };
-}
-
+/** Create a new drawing instance with a fresh texture from the pool. */
 export function addNewDrawingInstance() {
-    const instanceId = `drawing-${AppState.drawingInstances.length + 1}`;
+    const instanceId    = `drawing-${AppState.drawingInstances.length + 1}`;
     const textureBundle = texturePool.getNewTexture(instanceId);
 
     const newInstance = {
@@ -375,13 +223,13 @@ export function addNewDrawingInstance() {
         coloredFaces: new Set(),
         questionnaireData: null,
         uvDrawingData: null,
-        color: colorPalette[AppState.drawingInstances.length % colorPalette.length],
+        color: colorPalette[AppState.drawingInstances.length % colorPalette.length]
     };
 
-    // Overlay persistent base drawing
+    // Overlay the persistent base texture
     if (AppState.baseTextureCanvas) {
         const snapshot = document.createElement('canvas');
-        snapshot.width = AppState.baseTextureCanvas.width;
+        snapshot.width  = AppState.baseTextureCanvas.width;
         snapshot.height = AppState.baseTextureCanvas.height;
         snapshot.getContext('2d').drawImage(AppState.baseTextureCanvas, 0, 0);
         newInstance.context.drawImage(snapshot, 0, 0);
@@ -392,6 +240,7 @@ export function addNewDrawingInstance() {
     updateCurrentDrawing();
 }
 
+/** Check whether the current drawing instance is visually blank (all-white). */
 export function isDrawingBlank() {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     if (!currentInstance || !currentInstance.canvas) return true;
@@ -401,38 +250,69 @@ export function isDrawingBlank() {
     const imageData = ctx.getImageData(0, 0, width, height).data;
 
     for (let i = 0; i < imageData.length; i += 4) {
-        const r = imageData[i];
-        const g = imageData[i + 1];
-        const b = imageData[i + 2];
-        const a = imageData[i + 3];
-
-        if (!(r === 255 && g === 255 && b === 255 && a === 255)) {
+        if (!(imageData[i] === 255 && imageData[i + 1] === 255 && imageData[i + 2] === 255 && imageData[i + 3] === 255)) {
             return false;
         }
     }
     return true;
 }
 
+/** Apply the current drawing instance's texture to the 3D model. */
 export function updateCurrentDrawing() {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-    if (!currentInstance || !AppState.skinMesh || !AppState.skinMesh.material) return;
+    if (!currentInstance || !AppState.skinMesh?.material) return;
 
-    const material = AppState.skinMesh.material;
-    if (!material) {
-        console.warn("SkinMesh.material is not ready.");
-        return;
-    }
-
-    AppState.skinMesh.userData.canvas = currentInstance.canvas;
+    AppState.skinMesh.userData.canvas  = currentInstance.canvas;
     AppState.skinMesh.userData.context = currentInstance.context;
     AppState.skinMesh.userData.texture = currentInstance.texture;
 
-    material.map = currentInstance.texture;
-    material.needsUpdate = true;
-    currentInstance.texture.needsUpdate = true;
+    AppState.skinMesh.material.map        = currentInstance.texture;
+    AppState.skinMesh.material.needsUpdate = true;
+    currentInstance.texture.needsUpdate    = true;
 
+    // Rebuild drawnRegionNames from the regionPixelMap
     const pixelMap = currentInstance.regionPixelMap;
     currentInstance.drawnRegionNames = new Set(
         Object.keys(pixelMap).filter(group => pixelMap[group].size > 0)
     );
+}
+
+// ============================================================================
+// INSTANCE RECOLORING
+// ============================================================================
+
+/** Reassign palette colors to all drawing instances (after deletion/reindex). */
+export function updateInstanceColors() {
+    AppState.drawingInstances.forEach((instance, index) => {
+        const newColor = colorPalette[index % colorPalette.length];
+        instance.color = newColor;
+        redrawInstanceWithNewColor(instance);
+    });
+}
+
+/** Repaint all non-white pixels with the instance's current color. */
+function redrawInstanceWithNewColor(instance) {
+    const { canvas, context, color } = instance;
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels    = imageData.data;
+    const newColor  = hexToRgb(color);
+
+    for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2], a = pixels[i + 3];
+        if (a > 0 && !(r === 255 && g === 255 && b === 255)) {
+            pixels[i]     = newColor.r;
+            pixels[i + 1] = newColor.g;
+            pixels[i + 2] = newColor.b;
+        }
+    }
+
+    context.putImageData(imageData, 0, 0);
+    instance.texture.needsUpdate = true;
+}
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+        ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
+        : { r: 0, g: 0, b: 0 };
 }
