@@ -20,9 +20,49 @@ let regionModalOverlay = null;
 let mainAreaSelect = null;
 let subAreaSelect = null;
 let regionConfirmBtn = null;
+let subAreaGroup = null;
 let selectedMainArea = null;
 let selectedSubArea = null;
 let onRegionSelectedCallback = null;
+
+// ============================================
+// DOM HELPERS
+// ============================================
+
+/**
+ * Build an <option> element. Values are set via DOM properties,
+ * never interpolated into markup strings.
+ *
+ * @param {string} value
+ * @param {string} label
+ * @param {boolean} [selected=false]
+ * @returns {HTMLOptionElement}
+ */
+function createOption(value, label, selected = false) {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    if (selected) opt.selected = true;
+    return opt;
+}
+
+/**
+ * Replace all options in a <select> element.
+ *
+ * @param {HTMLSelectElement} selectEl
+ * @param {Array<{value: string, label: string}>} options
+ * @param {string} [placeholderText] — if provided, adds a disabled placeholder first
+ * @param {string} [selectedValue] — pre-select this value if present
+ */
+function populateSelect(selectEl, options, placeholderText = null, selectedValue = null) {
+    selectEl.textContent = '';
+    if (placeholderText) {
+        selectEl.appendChild(createOption('', placeholderText));
+    }
+    for (const { value, label } of options) {
+        selectEl.appendChild(createOption(value, label, value === selectedValue));
+    }
+}
 
 // ============================================
 // INIT
@@ -37,44 +77,85 @@ export function initRegionSelectorModal(container) {
     regionModalEl.className = 'region-modal modal-container';
     regionModalEl.id = 'region-selector-modal';
 
-    regionModalEl.innerHTML = `
-        <div class="region-modal-content modal-body">
-            <h1 class="region-modal-icon modal-icon"><i class="fa-solid fa-location-dot"></i></h1>
-            <h2 class="region-modal-title modal-title">Where Do You Experience Your Pain or Symptom?</h2>
-            <p class="region-modal-instruction">Select the area where you feel this pain or symptom. Draw only one area at a time — you can add more after.</p>
-            
-            <div class="region-selectors">
-                <div class="selector-group">
-                    <label for="main-area-select">Body Area: </label>
-                    <select id="main-area-select" class="region-select">
-                        <option value="">-- Select Area --</option>
-                        <option value="Entire Body">Entire Body</option>
-                        ${Object.entries(REGION_HIERARCHY).map(([area, config]) => 
-                            `<option value="${area}">${config.displayName || area}</option>`
-                        ).join('')}
-                    </select>
-                </div>
-                
-                <div class="selector-group sub-area-group" id="sub-area-group" style="display: none;">
-                    <label for="sub-area-select">Specific Region: </label>
-                    <select id="sub-area-select" class="region-select">
-                        <option value="">-- Select Region --</option>
-                    </select>
-                </div>
-                
-                <button id="region-confirm-btn" class="region-confirm-btn modal-btn-primary" disabled>
-                    Focus on This Region
-                </button>
-            </div>
-        </div>
-    `;
+    // ── Modal content ──────────────────────────────────────────────
+    const content = document.createElement('div');
+    content.className = 'region-modal-content modal-body';
 
+    // Icon
+    const iconWrapper = document.createElement('h1');
+    iconWrapper.className = 'region-modal-icon modal-icon';
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-location-dot';
+    iconWrapper.appendChild(icon);
+
+    // Title
+    const title = document.createElement('h2');
+    title.className = 'region-modal-title modal-title';
+    title.textContent = 'Where Do You Experience Your Pain or Symptom?';
+
+    // Instruction
+    const instruction = document.createElement('p');
+    instruction.className = 'region-modal-instruction';
+    instruction.textContent = 'Select the area where you feel this pain or symptom. Draw only one area at a time — you can add more after.';
+
+    // Selectors container
+    const selectors = document.createElement('div');
+    selectors.className = 'region-selectors';
+
+    // ── Main area selector ─────────────────────────────────────────
+    const mainGroup = document.createElement('div');
+    mainGroup.className = 'selector-group';
+
+    const mainLabel = document.createElement('label');
+    mainLabel.htmlFor = 'main-area-select';
+    mainLabel.textContent = 'Body Area: ';
+
+    mainAreaSelect = document.createElement('select');
+    mainAreaSelect.id = 'main-area-select';
+    mainAreaSelect.className = 'region-select';
+
+    // Build main-area options from REGION_HIERARCHY
+    const mainOptions = [
+        { value: 'Entire Body', label: 'Entire Body' },
+        ...Object.entries(REGION_HIERARCHY).map(([area, config]) => ({
+            value: area,
+            label: config.displayName || area
+        }))
+    ];
+    populateSelect(mainAreaSelect, mainOptions, '-- Select Area --');
+
+    mainGroup.append(mainLabel, mainAreaSelect);
+
+    // ── Sub-area selector (hidden by default) ──────────────────────
+    subAreaGroup = document.createElement('div');
+    subAreaGroup.className = 'selector-group sub-area-group';
+    subAreaGroup.id = 'sub-area-group';
+    subAreaGroup.style.display = 'none';
+
+    const subLabel = document.createElement('label');
+    subLabel.htmlFor = 'sub-area-select';
+    subLabel.textContent = 'Specific Region: ';
+
+    subAreaSelect = document.createElement('select');
+    subAreaSelect.id = 'sub-area-select';
+    subAreaSelect.className = 'region-select';
+    populateSelect(subAreaSelect, [], '-- Select Region --');
+
+    subAreaGroup.append(subLabel, subAreaSelect);
+
+    // ── Confirm button ─────────────────────────────────────────────
+    regionConfirmBtn = document.createElement('button');
+    regionConfirmBtn.id = 'region-confirm-btn';
+    regionConfirmBtn.className = 'region-confirm-btn modal-btn-primary';
+    regionConfirmBtn.textContent = 'Focus on This Region';
+    regionConfirmBtn.disabled = true;
+
+    // Assemble
+    selectors.append(mainGroup, subAreaGroup, regionConfirmBtn);
+    content.append(iconWrapper, title, instruction, selectors);
+    regionModalEl.appendChild(content);
     regionModalOverlay.appendChild(regionModalEl);
     container.appendChild(regionModalOverlay);
-
-    mainAreaSelect = regionModalEl.querySelector('#main-area-select');
-    subAreaSelect = regionModalEl.querySelector('#sub-area-select');
-    regionConfirmBtn = regionModalEl.querySelector('#region-confirm-btn');
 
     setupRegionModalEvents();
 }
@@ -84,33 +165,27 @@ export function initRegionSelectorModal(container) {
 // ============================================
 
 function setupRegionModalEvents() {
-    const subGroup = regionModalEl.querySelector('#sub-area-group');
-
     mainAreaSelect.addEventListener('change', (e) => {
         selectedMainArea = e.target.value;
         selectedSubArea = null;
 
         if (selectedMainArea === 'Entire Body') {
-            subGroup.style.display = 'none';
+            subAreaGroup.style.display = 'none';
             regionConfirmBtn.disabled = false;
         } else if (selectedMainArea && REGION_HIERARCHY[selectedMainArea]) {
             const config = REGION_HIERARCHY[selectedMainArea];
 
             if (config.subAreas && config.subAreas.length > 0) {
-                subGroup.style.display = 'block';
-                subAreaSelect.innerHTML = `
-                    <option value="">-- Select Region --</option>
-                    ${config.subAreas.map(sub => 
-                        `<option value="${sub}">${sub}</option>`
-                    ).join('')}
-                `;
+                subAreaGroup.style.display = 'block';
+                const subOptions = config.subAreas.map(sub => ({ value: sub, label: sub }));
+                populateSelect(subAreaSelect, subOptions, '-- Select Region --');
             } else {
-                subGroup.style.display = 'none';
+                subAreaGroup.style.display = 'none';
             }
 
             regionConfirmBtn.disabled = false;
         } else {
-            subGroup.style.display = 'none';
+            subAreaGroup.style.display = 'none';
             regionConfirmBtn.disabled = true;
         }
     });
@@ -193,8 +268,6 @@ function confirmRegionSelection() {
 }
 
 function resetRegionSelections(preselect = null) {
-    const subGroup = regionModalEl?.querySelector('#sub-area-group');
-
     if (preselect && preselect.mainArea) {
         selectedMainArea = preselect.mainArea;
         selectedSubArea = preselect.subArea;
@@ -204,17 +277,13 @@ function resetRegionSelections(preselect = null) {
         const config = REGION_HIERARCHY[preselect.mainArea];
 
         if (config && config.subAreas && config.subAreas.length > 0) {
-            if (subGroup) subGroup.style.display = 'block';
+            if (subAreaGroup) subAreaGroup.style.display = 'block';
             if (subAreaSelect) {
-                subAreaSelect.innerHTML = `
-                    <option value="">-- Select Region --</option>
-                    ${config.subAreas.map(sub =>
-                        `<option value="${sub}"${sub === preselect.subArea ? ' selected' : ''}>${sub}</option>`
-                    ).join('')}
-                `;
+                const subOptions = config.subAreas.map(sub => ({ value: sub, label: sub }));
+                populateSelect(subAreaSelect, subOptions, '-- Select Region --', preselect.subArea);
             }
         } else {
-            if (subGroup) subGroup.style.display = 'none';
+            if (subAreaGroup) subAreaGroup.style.display = 'none';
         }
 
         if (regionConfirmBtn) regionConfirmBtn.disabled = false;
@@ -224,10 +293,10 @@ function resetRegionSelections(preselect = null) {
 
         if (mainAreaSelect) mainAreaSelect.value = '';
         if (subAreaSelect) {
-            subAreaSelect.innerHTML = '<option value="">-- Select Region --</option>';
+            populateSelect(subAreaSelect, [], '-- Select Region --');
         }
 
-        if (subGroup) subGroup.style.display = 'none';
+        if (subAreaGroup) subAreaGroup.style.display = 'none';
         if (regionConfirmBtn) regionConfirmBtn.disabled = true;
     }
 }
@@ -315,7 +384,10 @@ export function createRegionSelectorFooterButton() {
     const button = document.createElement('button');
     button.id = 'region-selector-footer-btn';
     button.className = 'region-selector-footer-btn button button-secondary';
-    button.innerHTML = '<span>Select Body Region</span>';
+
+    const label = document.createElement('span');
+    label.textContent = 'Select Body Region';
+    button.appendChild(label);
 
     button.addEventListener('click', () => {
         showRegionSelectorModal();

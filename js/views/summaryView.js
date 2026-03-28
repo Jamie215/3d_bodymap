@@ -1,8 +1,6 @@
 // summaryView.js
 // Summary stage: shows logged pain/symptom areas with edit/delete actions,
 // or the getting-started video when no areas exist yet.
-//
-// Video embed component extracted to components/videoEmbed.js.
 
 import AppState from '../app/state.js';
 import { createVideoEmbed } from '../components/videoEmbed.js';
@@ -73,14 +71,36 @@ export function createSummaryView() {
     // ── Render states ──────────────────────────────────────────────────
 
     function renderComplete(count) {
-        summaryStatusPanel.innerHTML = `
-            <div class="summary-complete">
-                <i class="fa-solid fa-circle-check" style="color: var(--success-color); font-size: var(--font-title-large);"></i>
-                <span class="summary-title">Submission Complete</span>
-                <p style="margin-top: var(--space-md);">Thank you for completing your pain assessment.</p>
-                <p>You logged <strong>${count}</strong> pain or symptom area${count !== 1 ? 's' : ''}.</p>
-            </div>
-        `;
+        summaryStatusPanel.textContent = '';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'summary-complete';
+
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-circle-check';
+        icon.style.color = 'var(--success-color)';
+        icon.style.fontSize = 'var(--font-title-large)';
+
+        const title = document.createElement('span');
+        title.className = 'summary-title';
+        title.textContent = 'Submission Complete';
+
+        const thankYou = document.createElement('p');
+        thankYou.style.marginTop = 'var(--space-md)';
+        thankYou.textContent = 'Thank you for completing your pain assessment.';
+
+        const logged = document.createElement('p');
+        const countStrong = document.createElement('strong');
+        countStrong.textContent = String(count);
+        logged.append(
+            'You logged ',
+            countStrong,
+            ` pain or symptom area${count !== 1 ? 's' : ''}.`
+        );
+
+        wrapper.append(icon, title, thankYou, logged);
+        summaryStatusPanel.appendChild(wrapper);
+
         summaryDoneButton.style.display      = 'none';
         addNewInstanceButton.style.display    = 'none';
     }
@@ -89,7 +109,7 @@ export function createSummaryView() {
         changeModelButton.style.display   = 'inline-flex';
         summaryDoneButton.style.display   = 'none';
 
-        summaryStatusPanel.innerHTML = '';
+        summaryStatusPanel.textContent = '';
         summaryStatusPanel.appendChild(createVideoEmbed());
     }
 
@@ -98,49 +118,79 @@ export function createSummaryView() {
         summaryDoneButton.style.display = '';
         summaryDoneButton.disabled      = false;
 
-        const areasHtml = AppState.drawingInstances.map((instance, index) => {
-            const areaNum = index + 1;
-            return `
-                <div class="area-item" data-index="${index}">
-                    <div class="area-info">
-                        <span class="area-number" style="color: ${instance.color || 'var(--primary-color)'}">
-                            Area #${areaNum}
-                        </span>
-                    </div>
-                    <div class="area-actions">
-                        <button class="area-edit-btn" data-index="${index}" title="Edit this area">
-                            <i class="fa-solid fa-user-pen"></i> Edit
-                        </button>
-                        <button class="area-delete-btn" data-index="${index}" title="Delete this area">
-                            <i class="fa-solid fa-trash"></i> Delete
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        summaryStatusPanel.textContent = '';
 
-        summaryStatusPanel.innerHTML = `
-            <div class="summary-with-areas">
-                <span class="summary-title">Your Pain/Symptom Areas</span>
-                <p class="summary-instruction">You can add more areas or proceed to the general questionnaire.</p>
-                <div class="areas-list">${areasHtml}</div>
-            </div>
-        `;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'summary-with-areas';
 
-        // Wire edit/delete buttons
-        summaryStatusPanel.querySelectorAll('.area-edit-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = parseInt(e.currentTarget.dataset.index);
-                if (onEditArea) onEditArea(idx);
-            });
+        const title = document.createElement('span');
+        title.className = 'summary-title';
+        title.textContent = 'Your Pain/Symptom Areas';
+
+        const instruction = document.createElement('p');
+        instruction.className = 'summary-instruction';
+        instruction.textContent = 'You can add more areas or proceed to the general questionnaire.';
+
+        const areasList = document.createElement('div');
+        areasList.className = 'areas-list';
+
+        AppState.drawingInstances.forEach((instance, index) => {
+            areasList.appendChild(createAreaItem(instance, index));
         });
 
-        summaryStatusPanel.querySelectorAll('.area-delete-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = parseInt(e.currentTarget.dataset.index);
-                if (onDeleteArea) onDeleteArea(idx);
-            });
+        wrapper.append(title, instruction, areasList);
+        summaryStatusPanel.appendChild(wrapper);
+    }
+
+    /**
+     * Build a single area card with edit/delete buttons.
+     * All dynamic values (color, index) are set via DOM properties,
+     * never interpolated into markup strings.
+     */
+    function createAreaItem(instance, index) {
+        const areaNum = index + 1;
+
+        const item = document.createElement('div');
+        item.className = 'area-item';
+        item.dataset.index = index;
+
+        // Area info
+        const info = document.createElement('div');
+        info.className = 'area-info';
+
+        const number = document.createElement('span');
+        number.className = 'area-number';
+        number.style.color = instance.color || 'var(--primary-color)';
+        number.textContent = `Area #${areaNum}`;
+
+        info.appendChild(number);
+
+        // Action buttons
+        const actions = document.createElement('div');
+        actions.className = 'area-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'area-edit-btn';
+        editBtn.dataset.index = index;
+        editBtn.title = 'Edit this area';
+        editBtn.innerHTML = '<i class="fa-solid fa-user-pen"></i> Edit';
+        editBtn.addEventListener('click', () => {
+            if (onEditArea) onEditArea(index);
         });
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'area-delete-btn';
+        deleteBtn.dataset.index = index;
+        deleteBtn.title = 'Delete this area';
+        deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i> Delete';
+        deleteBtn.addEventListener('click', () => {
+            if (onDeleteArea) onDeleteArea(index);
+        });
+
+        actions.append(editBtn, deleteBtn);
+        item.append(info, actions);
+
+        return item;
     }
 
     // ── Public interface ───────────────────────────────────────────────

@@ -42,18 +42,23 @@ export function createSurveyViewElements() {
   editDrawingButton.classList.add('button');
   editDrawingButton.innerHTML = '<i class="fa-solid fa-user-pen"></i><span>Edit Drawing</span>';
 
-  function updateTitle(type='area') {
+  /**
+   * Update the survey title using DOM construction.
+   * The area number is set via textContent, never interpolated into markup.
+   *
+   * @param {'area'|'general'} type
+   */
+  function updateTitle(type = 'area') {
+    surveyTitle.textContent = '';
+
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-clipboard-list';
+
     if (type === 'general') {
-      surveyTitle.innerHTML = `<i class="fa-solid fa-clipboard-list"></i> General Questionnaire`;
+      surveyTitle.append(icon, ' General Questionnaire');
     } else {
       const current = AppState.currentSurveyIndex + 1;
-      const titleText = `<i class="fa-solid fa-clipboard-list"></i> Area #${current} Questionnaire`;
-      surveyTitle.innerHTML = titleText;
-
-      // Also update the surveyJson title if it exists
-      if (window.surveyInstance) {
-        window.surveyInstance.title = titleText;
-      }
+      surveyTitle.append(icon, ` Area #${current} Questionnaire`);
     }
   }
 

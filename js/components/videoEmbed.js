@@ -9,6 +9,22 @@
 let videoOverlay = null;   // Created once, reused across updateSummaryStatus calls
 
 // ============================================================================
+// INTERNAL — SANITISE VIDEO ID
+// ============================================================================
+
+/**
+ * Sanitise a YouTube video ID to prevent injection.
+ * Valid IDs contain only alphanumeric characters, hyphens, and underscores.
+ *
+ * @param {string} videoId
+ * @returns {string} sanitised ID, or empty string if invalid
+ */
+function sanitiseVideoId(videoId) {
+    if (typeof videoId !== 'string') return '';
+    return videoId.replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+// ============================================================================
 // PUBLIC API
 // ============================================================================
 
@@ -19,27 +35,45 @@ let videoOverlay = null;   // Created once, reused across updateSummaryStatus ca
  * @returns {HTMLElement}  — container ready to append into the DOM
  */
 export function createVideoEmbed(videoId = 'TeL9O6yiCMs') {
+    const safeId = sanitiseVideoId(videoId);
+
     const container = document.createElement('div');
     container.classList.add('summary-video-container');
 
-    container.innerHTML = `
-        <span class="summary-title">Getting Started</span>
-        <p class="summary-instruction">Watch this video to learn how to use this application.</p>
-        <div class="video-thumbnail" id="video-thumbnail">
-            <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg"
-                 alt="Video Tutorial Thumbnail"
-                 class="video-thumbnail-img">
-            <div class="video-play-btn">
-                <i class="fa-solid fa-play"></i>
-            </div>
-        </div>
-    `;
+    // Title
+    const title = document.createElement('span');
+    title.className = 'summary-title';
+    title.textContent = 'Getting Started';
 
-    ensureOverlay(videoId);
+    // Instruction
+    const instruction = document.createElement('p');
+    instruction.className = 'summary-instruction';
+    instruction.textContent = 'Watch this video to learn how to use this application.';
+
+    // Thumbnail wrapper
+    const thumbnail = document.createElement('div');
+    thumbnail.className = 'video-thumbnail';
+    thumbnail.id = 'video-thumbnail';
+
+    const img = document.createElement('img');
+    img.src = `https://img.youtube.com/vi/${safeId}/hqdefault.jpg`;
+    img.alt = 'Video Tutorial Thumbnail';
+    img.className = 'video-thumbnail-img';
+
+    const playBtn = document.createElement('div');
+    playBtn.className = 'video-play-btn';
+    const playIcon = document.createElement('i');
+    playIcon.className = 'fa-solid fa-play';
+    playBtn.appendChild(playIcon);
+
+    thumbnail.append(img, playBtn);
+
+    container.append(title, instruction, thumbnail);
+
+    ensureOverlay();
 
     // Open overlay on thumbnail click
-    const thumbnail = container.querySelector('#video-thumbnail');
-    thumbnail.addEventListener('click', () => openOverlay(videoId));
+    thumbnail.addEventListener('click', () => openOverlay(safeId));
 
     return container;
 }
@@ -51,6 +85,8 @@ export function createVideoEmbed(videoId = 'TeL9O6yiCMs') {
 /**
  * Lazily create the fullscreen overlay. Idempotent — safe to call
  * multiple times; only builds the DOM once.
+ *
+ * Uses static markup only — no interpolated values.
  */
 function ensureOverlay() {
     if (videoOverlay) return;
@@ -59,23 +95,31 @@ function ensureOverlay() {
     videoOverlay.classList.add('video-overlay');
     videoOverlay.id = 'video-overlay';
 
-    videoOverlay.innerHTML = `
-        <button class="video-overlay-close" id="video-overlay-close" title="Close Video">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="video-overlay-content">
-            <iframe
-                id="summary-video-iframe"
-                src=""
-                title="Pain Assessment Tool — How to Use"
-                frameborder="0"
-                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
-            ></iframe>
-        </div>
-    `;
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'video-overlay-close';
+    closeBtn.id = 'video-overlay-close';
+    closeBtn.title = 'Close Video';
+    const closeIcon = document.createElement('i');
+    closeIcon.className = 'fa-solid fa-xmark';
+    closeBtn.appendChild(closeIcon);
 
-    videoOverlay.querySelector('#video-overlay-close').addEventListener('click', closeOverlay);
+    // Content wrapper + iframe
+    const content = document.createElement('div');
+    content.className = 'video-overlay-content';
+
+    const iframe = document.createElement('iframe');
+    iframe.id = 'summary-video-iframe';
+    iframe.src = '';
+    iframe.title = 'Pain Assessment Tool — How to Use';
+    iframe.setAttribute('frameborder', '0');
+    iframe.allow = 'accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+    iframe.allowFullscreen = true;
+
+    content.appendChild(iframe);
+    videoOverlay.append(closeBtn, content);
+
+    closeBtn.addEventListener('click', closeOverlay);
     videoOverlay.addEventListener('click', (e) => {
         if (e.target === videoOverlay) closeOverlay();
     });
@@ -85,7 +129,7 @@ function ensureOverlay() {
 
 function openOverlay(videoId) {
     const iframe = videoOverlay.querySelector('#summary-video-iframe');
-    iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0`;
+    iframe.src = `https://www.youtube.com/embed/${sanitiseVideoId(videoId)}?rel=0`;
     videoOverlay.classList.add('is-active');
     document.body.style.overflow = 'hidden';
 }
