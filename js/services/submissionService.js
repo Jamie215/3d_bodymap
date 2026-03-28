@@ -5,6 +5,68 @@ import AppState from '../app/state.js';
 import texturePool from './texturePool.js';
 import coverageCalculator from './coverageService.js';
 
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/**
+ * Front/back/left/right base-64 PNG snapshots of the combined drawing.
+ *
+ * @typedef {Object} MultiViewSnapshots
+ * @property {string} front — base-64 PNG data URL
+ * @property {string} back
+ * @property {string} left
+ * @property {string} right
+ */
+
+/**
+ * Coverage data attached to a single submitted area.
+ *
+ * @typedef {Object} AreaCoverageData
+ * @property {number} overallPercentage                                — % of total body surface area
+ * @property {number} coloredArea                                      — Absolute area in world units²
+ * @property {Object<string, import('./coverageService.js').RegionCoverageEntry>}   regionBreakdown
+ * @property {Object<string, import('./coverageService.js').BodyPartCoverageEntry>} bodyPartBreakdown
+ */
+
+/**
+ * A single pain/symptom area in the submission payload.
+ *
+ * @typedef {Object} SubmissionArea
+ * @property {number}              areaNumber              — 1-based area index
+ * @property {string}              areaId                  — e.g. "drawing-1"
+ * @property {string|null}         drawingImageData        — Base-64 PNG of the UV canvas
+ * @property {Object|null}         questionnaireResponses  — Area survey answers
+ * @property {string[]}            drawnRegions            — Vertex group names with drawn content
+ * @property {AreaCoverageData|null} coverage
+ */
+
+/**
+ * Browser and device metadata.
+ *
+ * @typedef {Object} DeviceInfo
+ * @property {'Desktop'|'Tablet'|'Mobile'}  deviceType
+ * @property {string}                        operatingSystem
+ * @property {string}                        browser
+ * @property {string}                        userAgent
+ */
+
+/**
+ * The complete data payload assembled by {@link prepareSubmissionData}.
+ * This is the object that would be sent to the EmPOWER backend.
+ *
+ * @typedef {Object} SubmissionPayload
+ * @property {string}               startTime             — ISO 8601 session start
+ * @property {string}               completionTime        — ISO 8601 submission time
+ * @property {number|null}          durationSeconds        — Wall-clock session duration
+ * @property {string}               modelType              — e.g. "Type 1"
+ * @property {MultiViewSnapshots}   combinedDrawing        — 4-angle model snapshots
+ * @property {number}               totalAreas             — Number of pain/symptom areas
+ * @property {SubmissionArea[]}     areas                  — Per-area data
+ * @property {Object|null}          generalQuestionnaire   — General survey answers
+ * @property {DeviceInfo}           deviceInfo
+ */
+
 // Dependencies injected via initSubmissionService()
 let renderer = null;
 let scene    = null;
@@ -88,7 +150,7 @@ export function createCombinedTexture() {
  * restores everything to its original state before returning.
  *
  * @param {HTMLCanvasElement} combinedCanvas
- * @returns {Promise<Object>} { front, back, left, right } base-64 PNGs
+ * @returns {Promise<MultiViewSnapshots>}
  */
 export async function captureMultiViewSnapshots(combinedCanvas) {
     const tempTexture = new THREE.CanvasTexture(combinedCanvas);
@@ -163,7 +225,7 @@ export async function captureMultiViewSnapshots(combinedCanvas) {
  *   - General questionnaire responses
  *   - Session timing and device metadata
  *
- * @returns {Promise<Object>}
+ * @returns {Promise<SubmissionPayload>}
  */
 export async function prepareSubmissionData() {
     const combinedCanvas = createCombinedTexture();

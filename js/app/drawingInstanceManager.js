@@ -11,6 +11,32 @@ import { clearSurveyInstance } from '../services/surveyManager.js';
 import texturePool from '../services/texturePool.js';
 
 // ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/**
+ * A single pain/symptom drawing area.
+ *
+ * Created by addNewDrawingInstance(), stored in AppState.drawingInstances.
+ * Each instance owns its own texture canvas and tracks which anatomical
+ * regions have been drawn on.
+ *
+ * @typedef {Object} DrawingInstance
+ *
+ * @property {string}                    id               — Unique identifier, e.g. "drawing-1"
+ * @property {HTMLCanvasElement}         canvas           — 1024×1024 texture canvas
+ * @property {CanvasRenderingContext2D}  context          — 2D drawing context for the canvas
+ * @property {THREE.CanvasTexture}      texture          — Three.js texture bound to the canvas
+ * @property {Set<string>}              drawnRegionNames  — Vertex group names that have drawn pixels
+ * @property {Object<string, Set<string>>} regionPixelMap — Region name → set of "x,y" pixel keys
+ * @property {Set<number>}              coloredFaces      — Face indices with drawn content
+ * @property {Object|null}              questionnaireData  — Saved area survey responses (null until saved)
+ * @property {string|null}              uvDrawingData      — Base-64 PNG of the drawing canvas (set on survey save)
+ * @property {string}                   color              — Hex colour from the palette, e.g. "#4269d0"
+ * @property {boolean}                  [initialized]      — Set to true after first white-fill + base overlay
+ */
+
+// ============================================================================
 // CONSTANTS
 // ============================================================================
 
@@ -57,11 +83,14 @@ export function initInstanceManager(deps) {
 /**
  * Create a new drawing instance with a fresh texture from the pool.
  * Assigns a colour from the palette and overlays the base texture.
+ *
+ * @returns {void}
  */
 export function addNewDrawingInstance() {
     const instanceId    = `drawing-${AppState.drawingInstances.length + 1}`;
     const textureBundle = texturePool.getNewTexture(instanceId);
 
+    /** @type {DrawingInstance} */
     const newInstance = {
         id: instanceId,
         canvas: textureBundle.canvas,
@@ -122,6 +151,8 @@ export function isDrawingBlank() {
 /**
  * Apply the current drawing instance's texture to the 3D model
  * and rebuild drawnRegionNames from the regionPixelMap.
+ *
+ * @returns {void}
  */
 export function updateCurrentDrawing() {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
@@ -160,7 +191,8 @@ export function updateInstanceColors() {
 
 /**
  * Repaint all non-white pixels with the instance's current color.
- * @param {Object} instance — a drawing instance object
+ *
+ * @param {DrawingInstance} instance
  */
 function redrawInstanceWithNewColor(instance) {
     const { canvas, context, color } = instance;
@@ -181,6 +213,7 @@ function redrawInstanceWithNewColor(instance) {
     instance.texture.needsUpdate = true;
 }
 
+/** @param {string} hex @returns {{ r: number, g: number, b: number }} */
 function hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
@@ -196,6 +229,8 @@ function hexToRgb(hex) {
  * Remove a drawing instance by index.
  * Disposes its texture, re-indexes remaining instances, and updates
  * AppState.currentDrawingIndex / currentSurveyIndex to stay in bounds.
+ *
+ * @param {number} index
  */
 export function deleteDrawingInstance(index) {
     if (index < 0 || index >= AppState.drawingInstances.length) return;
@@ -338,9 +373,6 @@ export function executePendingAction() {
     const action       = pendingAction.type;
     pendingAction      = null;
 
-    // The user may have been in the area survey before editing the drawing
-    // and triggering this action. Clear any stale survey instance so the
-    // next survey render (area or general) starts fresh.
     clearSurveyInstance();
 
     switch (action) {
@@ -351,15 +383,11 @@ export function executePendingAction() {
 
         case 'returnFromEdit':
             deleteDrawingInstance(currentIndex);
-            // User erased their drawing and confirmed deletion — they want
-            // to abandon this area entirely, so always return to summary
-            // regardless of how many other areas exist.
             AppState.isEditingFromSurvey = false;
             goTo('summary');
             break;
 
         case 'proceedToSurvey':
-            // Don't delete — this case only shows the warning message
             break;
     }
 

@@ -5,6 +5,43 @@
 import * as THREE from 'three';
 import AppState from '../app/state.js';
 
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/**
+ * Coverage metrics for a single fine-grained anatomical region.
+ *
+ * @typedef {Object} RegionCoverageEntry
+ * @property {number} coloredArea       — 3D surface area of drawn pixels (world units²)
+ * @property {number} totalArea         — Total 3D surface area of the region
+ * @property {number} percentage        — coloredArea / totalArea × 100
+ * @property {number} bodyContribution  — coloredArea / totalBodyArea × 100
+ */
+
+/**
+ * Coverage metrics for a body part (e.g. "Left Knee", "Chest").
+ * Same shape as RegionCoverageEntry but aggregated across all
+ * fine-grained regions belonging to the body part.
+ *
+ * @typedef {Object} BodyPartCoverageEntry
+ * @property {number} coloredArea
+ * @property {number} totalArea
+ * @property {number} percentage
+ * @property {number} bodyContribution
+ */
+
+/**
+ * Complete coverage result returned by {@link CoverageCalculator#calculateCoverage}.
+ *
+ * @typedef {Object} CoverageResult
+ * @property {Object<string, RegionCoverageEntry>}   regions    — Keyed by vertex group name
+ * @property {Object<string, BodyPartCoverageEntry>}  bodyParts  — Keyed by body part name (e.g. "Left Knee")
+ * @property {{ coloredArea: number, totalArea: number, percentage: number }} overall
+ * @property {number} coloredFaceCount — Number of mesh faces with drawn content
+ * @property {number} totalFaceCount   — Total mesh face count
+ */
+
 /**
  * Maps a fine-grained anatomical region name to its parent body part.
  * Body part keys align with REGION_HIERARCHY in modal.js.
@@ -183,13 +220,8 @@ class CoverageCalculator {
      * 
      * Returns fine-grained region coverage AND body part coverage in a single pass.
      * 
-     * Return shape:
-     * {
-     *   regions: { [regionName]: { coloredArea, totalArea, percentage, bodyContribution } },
-     *   bodyParts: { [bodyPartName]: { coloredArea, totalArea, percentage, bodyContribution } },
-     *   overall: { coloredArea, totalArea, percentage },
-     *   coloredFaceCount, totalFaceCount
-     * }
+     * @param {DrawingInstance} instance
+     * @returns {CoverageResult|null}
      */
     calculateCoverage(instance) {
         if (!this.initialized) {
@@ -256,7 +288,9 @@ class CoverageCalculator {
     }
 
     /**
-     * Debug: Log coverage breakdown to console
+     * Debug: Log coverage breakdown to console.
+     *
+     * @param {DrawingInstance} instance
      */
     logCoverage(instance) {
         if (!this.initialized) {
