@@ -9,16 +9,11 @@
 
 import AppState from './state.js';
 import { setVisibleRegions } from '../utils/regionVisibility.js';
-import {
-    enableInteraction,
-    cleanupInteraction,
-    setupCursorManagement,
-    disableCursorManagement,
-    syncEraserState
-} from '../utils/interaction.js';
+import { enableInteraction, cleanupInteraction, syncEraserState } from '../utils/interaction.js';
+import { setupCursorManagement, disableCursorManagement } from '../utils/cursorManager.js';
 import { createCombinedTexture } from '../services/submissionService.js';
 import { renderAreaSurvey, renderGeneralSurvey } from '../services/surveyManager.js';
-import coverageCalculator from '../utils/coverageUtils.js';
+import coverageCalculator from '../services/coverageService.js';
 
 // ============================================================================
 // MODULE STATE

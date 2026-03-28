@@ -4,7 +4,7 @@
 
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import AppState from '../app/state.js';
-import texturePool from '../utils/textureManager.js';
+import texturePool from './texturePool.js';
 import { showLoadingProgress, updateLoadingProgress, hideLoadingProgress } from '../components/loadingIndicator.js';
 
 const loader = new GLTFLoader();

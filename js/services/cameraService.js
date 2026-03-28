@@ -1,16 +1,16 @@
-// utils/cameraUtils.js
+// cameraService.js
 // Camera control for 3D body model navigation.
 // This class retains: region focusing, rotation mechanics,
 // camera animation, control-limit management, and backface detection.
 
 import AppState from '../app/state.js';
-import { buildRegionMap } from './regionMapBuilder.js';
+import { buildRegionMap } from '../utils/regionMapBuilder.js';
 import {
     analyzeDrawingOrientation,
     isBackFacingRegion,
     findDominantBodyPart
-} from './orientationAnalyzer.js';
-import { getElevationAngle, getOrbitCenterOffset } from './orbitOffsets.js';
+} from '../utils/orientationAnalyzer.js';
+import { getElevationAngle, getOrbitCenterOffset } from '../utils/orbitOffsets.js';
 
 export default class CameraUtils {
     constructor(camera, controls, mesh) {

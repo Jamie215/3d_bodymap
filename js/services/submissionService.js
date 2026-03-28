@@ -1,8 +1,8 @@
 // submissionService.js
 
 import AppState from '../app/state.js';
-import texturePool from '../utils/textureManager.js';
-import coverageCalculator from '../utils/coverageUtils.js';
+import texturePool from './texturePool.js';
+import coverageCalculator from './coverageService.js';
 
 // Dependencies injected via initSubmissionService()
 let renderer = null;

@@ -13,7 +13,8 @@
 import AppState from './state.js';
 import { createCombinedTexture } from '../services/submissionService.js';
 import { showDeleteEmptyModal } from '../components/modal.js';
-import texturePool from '../utils/textureManager.js';
+import { clearSurveyInstance } from '../services/surveyManager.js';
+import texturePool from '../services/texturePool.js';
 
 // ============================================================================
 // CONSTANTS
@@ -342,6 +343,11 @@ export function executePendingAction() {
     const currentIndex = AppState.currentDrawingIndex;
     const action       = pendingAction.type;
     pendingAction      = null;
+
+    // The user may have been in the area survey before editing the drawing
+    // and triggering this action. Clear any stale survey instance so the
+    // next survey render (area or general) starts fresh.
+    clearSurveyInstance();
 
     switch (action) {
         case 'returnToSummary':

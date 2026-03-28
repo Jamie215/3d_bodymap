@@ -13,8 +13,9 @@ import {
     buildGlobalUVMap,
     initializeRegionMappings
 } from '../services/drawingEngine.js';
-import texturePool from '../utils/textureManager.js';
-import { cleanupInteraction, disableCursorManagement } from '../utils/interaction.js';
+import texturePool from '../services/texturePool.js';
+import { cleanupInteraction } from '../utils/interaction.js';
+import { disableCursorManagement } from '../utils/cursorManager.js';
 import {
     getModalElements,
     showMoveToSurveyModal,
@@ -33,8 +34,8 @@ import {
 import { initSubmissionService, prepareSubmissionData } from '../services/submissionService.js';
 import AppState from './state.js';
 import eventManager from './eventManager.js';
-import CameraUtils from '../utils/cameraUtils.js';
-import coverageCalculator from '../utils/coverageUtils.js';
+import CameraUtils from '../services/cameraService.js';
+import coverageCalculator from '../services/coverageService.js';
 
 // Extracted modules
 import { initStageRouter, goTo } from './stageRouter.js';

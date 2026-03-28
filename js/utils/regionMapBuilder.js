@@ -1,7 +1,5 @@
 // regionMapBuilder.js
 // Auto-generates the camera regionMap from vertex group names in region_id_mapping.json.
-// Replaces the ~300-line hardcoded buildRegionMap() in CameraUtils.
-//
 // Classification rules follow the Blender vertex group naming convention:
 //   {bodyPart}_{orientation}.{side}
 //   e.g. "knee_anterolateral.L" → Left Knee, Left Knee (Front)

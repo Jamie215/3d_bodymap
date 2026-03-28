@@ -4,9 +4,9 @@
 //
 // Custom onAfterRenderQuestion hooks extracted to surveyCustomRenderers.js.
 
-import { applyCustomTheme, customTheme } from '../utils/surveyTheme.js';
-import { areaSurveyJson } from '../utils/areaSurvey.js';
-import { generalSurveyJson } from '../utils/generalSurvey.js';
+import { applyCustomTheme, customTheme } from '../data/surveyTheme.js';
+import { areaSurveyJson } from '../data/areaSurvey.js';
+import { generalSurveyJson } from '../data/generalSurvey.js';
 import { applyRatingLayout, injectMedicationDescriptions } from './surveyCustomRenderers.js';
 import AppState from '../app/state.js';
 import SurveyKO from "https://cdn.skypack.dev/survey-knockout";
@@ -128,8 +128,11 @@ export function renderAreaSurvey(container) {
 // ============================================================================
 
 /**
- * Build (or re-use) the general SurveyJS model and render it
- * into the supplied container.
+ * Build a fresh general SurveyJS model and render it into the supplied
+ * container. Always creates a new instance — unlike the area survey,
+ * the general survey has no edit-drawing round-trip that would benefit
+ * from reuse, and a stale area survey instance would render the wrong
+ * questions entirely.
  */
 export function renderGeneralSurvey(container) {
   applyCustomTheme(customTheme);
@@ -138,43 +141,43 @@ export function renderGeneralSurvey(container) {
   container.style.opacity = '0';
   container.style.transform = 'translateX(50px)';
 
-  if (!surveyInstance) {
-    surveyInstance = new SurveyKO.Model(generalSurveyJson);
-    surveyInstance.showTitle = false;
-    surveyInstance.validationEnabled = false;
+  // Always start fresh — prevents stale area survey instances from
+  // rendering area-specific questions on the general questionnaire page.
+  surveyInstance = new SurveyKO.Model(generalSurveyJson);
+  surveyInstance.showTitle = false;
+  surveyInstance.validationEnabled = false;
 
-    surveyInstance.onValidateQuestion.add((_survey, options) => {
-      if (options.question.getType() === 'matrix') {
-        const medicationQuestion = _survey.getQuestionByName('medicationTable');
-        const allRows = medicationQuestion.rows.map(r => r.value);
+  surveyInstance.onValidateQuestion.add((_survey, options) => {
+    if (options.question.getType() === 'matrix') {
+      const medicationQuestion = _survey.getQuestionByName('medicationTable');
+      const allRows = medicationQuestion.rows.map(r => r.value);
 
-        const missingRows = [];
-        for (const row of allRows) {
-          if (!options.value || !options.value[row]) {
-            missingRows.push(row);
-          }
-        }
-        if (missingRows.length > 0) {
-          options.error = `Please answer all rows in the medication table. Missing: ${missingRows.join(', ')}`;
-          return;
+      const missingRows = [];
+      for (const row of allRows) {
+        if (!options.value || !options.value[row]) {
+          missingRows.push(row);
         }
       }
-      if (options.value !== undefined && options.value !== null && options.value !== '') {
-        options.error = null;
+      if (missingRows.length > 0) {
+        options.error = `Please answer all rows in the medication table. Missing: ${missingRows.join(', ')}`;
+        return;
       }
-    });
+    }
+    if (options.value !== undefined && options.value !== null && options.value !== '') {
+      options.error = null;
+    }
+  });
 
-    surveyInstance.onValueChanged.add(() => {
-      updateSurveyProgress();
-    });
+  surveyInstance.onValueChanged.add(() => {
+    updateSurveyProgress();
+  });
 
-    surveyInstance.onAfterRenderSurvey.add(() => {
-      setTimeout(() => container.classList.add('survey-animated'), 50);
-    });
+  surveyInstance.onAfterRenderSurvey.add(() => {
+    setTimeout(() => container.classList.add('survey-animated'), 50);
+  });
 
-    // Custom rendering hooks (extracted to surveyCustomRenderers.js)
-    surveyInstance.onAfterRenderQuestion.add(injectMedicationDescriptions);
-  }
+  // Custom rendering hooks (extracted to surveyCustomRenderers.js)
+  surveyInstance.onAfterRenderQuestion.add(injectMedicationDescriptions);
 
   surveyView.editDrawingButton.style.display = 'none';
 

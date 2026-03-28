@@ -1,4 +1,6 @@
-// textureManager.js
+// texturePool.js
+// Manages reusable canvas/texture pairs for drawing instances.
+// Stateful singleton — tracks available and in-use textures.
 
 const texturePool = {
     available: [],

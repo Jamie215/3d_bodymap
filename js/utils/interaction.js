@@ -2,15 +2,13 @@
 // Pointer event handling for the drawing stage: pointerdown, pointermove,
 // pointerup/cancel, and the raycast → draw dispatch.
 //
-// Custom cursor management extracted to cursorManager.js.
+// Custom cursor management lives in cursorManager.js — import directly
+// from there (setupCursorManagement, disableCursorManagement).
 
 import AppState from '../app/state.js';
 import eventManager from '../app/eventManager.js';
 import { drawAtPointer } from '../services/drawingEngine.js';
 import { isRegionVisible } from './regionVisibility.js';
-
-// Re-export cursor functions so existing import paths keep working
-export { setupCursorManagement, disableCursorManagement } from './cursorManager.js';
 
 const raycaster = new THREE.Raycaster();
 const pointer   = new THREE.Vector2();
