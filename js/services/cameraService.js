@@ -3,6 +3,7 @@
 // This class retains: region focusing, rotation mechanics,
 // camera animation, control-limit management, and backface detection.
 
+import * as THREE from 'three';
 import AppState from '../app/state.js';
 import { buildRegionMap } from '../utils/regionMapBuilder.js';
 import {
@@ -68,8 +69,7 @@ export default class CameraUtils {
 
     focusOnRegion(regionName, preserveRotation = true) {
         if (!regionName || regionName === 'Entire Body') {
-            this.resetView();
-            return;
+            return this.resetView();
         }
 
         const regions = this.regionMap[regionName];
@@ -95,7 +95,7 @@ export default class CameraUtils {
                 }
             }
 
-            this.applyRotation(false);
+            return this.applyRotation(false);
         } else {
             console.warn('Could not calculate bounds for region:', regionName);
         }
@@ -257,19 +257,19 @@ export default class CameraUtils {
         if (this.isAnimating) return;
         this.rotationAngle -= this.rotationIncrement;
         this.normalizeAngle();
-        this.applyRotation(true);
+        return this.applyRotation(true);
     }
 
     rotateRight() {
         if (this.isAnimating) return;
         this.rotationAngle += this.rotationIncrement;
         this.normalizeAngle();
-        this.applyRotation(true);
+        return this.applyRotation(true);
     }
 
     rotate(direction) {
-        if (direction === 'left') this.rotateLeft();
-        else if (direction === 'right') this.rotateRight();
+        if (direction === 'left') return this.rotateLeft();
+        else if (direction === 'right') return this.rotateRight();
     }
 
     rotateTo(viewName) {
@@ -288,12 +288,12 @@ export default class CameraUtils {
 
         if (angles[viewName] !== undefined) {
             this.rotationAngle = angles[viewName];
-            this.applyRotation(true);
+            return this.applyRotation(true);
         }
     }
 
     reorientCamera(direction) {
-        this.rotateTo(direction);
+        return this.rotateTo(direction);
     }
 
     normalizeAngle() {
@@ -378,7 +378,7 @@ export default class CameraUtils {
     }
 
     moveTo(position, lookAt, duration = 800) {
-        this.animateCamera(position, lookAt, duration);
+        return this.animateCamera(position, lookAt, duration);
     }
 
     // ==========================================

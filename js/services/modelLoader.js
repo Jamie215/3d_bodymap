@@ -1,7 +1,7 @@
 // modelLoader.js
 // GLTF model loading, material setup, and cleanup.
-// Loading progress UI extracted to components/loadingIndicator.js.
 
+import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import AppState from '../app/state.js';
 import texturePool from './texturePool.js';

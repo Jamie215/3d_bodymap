@@ -1,10 +1,8 @@
 // interaction.js
 // Pointer event handling for the drawing stage: pointerdown, pointermove,
 // pointerup/cancel, and the raycast → draw dispatch.
-//
-// Custom cursor management lives in cursorManager.js — import directly
-// from there (setupCursorManagement, disableCursorManagement).
 
+import * as THREE from 'three';
 import AppState from '../app/state.js';
 import eventManager from '../app/eventManager.js';
 import { drawAtPointer } from '../services/drawingEngine.js';

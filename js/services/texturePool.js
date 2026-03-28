@@ -2,6 +2,8 @@
 // Manages reusable canvas/texture pairs for drawing instances.
 // Stateful singleton — tracks available and in-use textures.
 
+import * as THREE from 'three';
+
 const texturePool = {
     available: [],
     inUse: new Map(),

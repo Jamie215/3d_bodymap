@@ -7,6 +7,7 @@
 //
 // Dependencies are injected via initStageRouter() at startup.
 
+import * as THREE from 'three';
 import AppState from './state.js';
 import { setVisibleRegions } from '../utils/regionVisibility.js';
 import { enableInteraction, cleanupInteraction, syncEraserState } from '../utils/interaction.js';

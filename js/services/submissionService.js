@@ -1,5 +1,6 @@
 // submissionService.js
 
+import * as THREE from 'three';
 import AppState from '../app/state.js';
 import texturePool from './texturePool.js';
 import coverageCalculator from './coverageService.js';

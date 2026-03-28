@@ -2,6 +2,7 @@
 // Calculates body region coverage using 3D surface area as the base unit.
 // Stateful singleton — initialized once after region mappings are loaded.
 
+import * as THREE from 'three';
 import AppState from '../app/state.js';
 
 /**

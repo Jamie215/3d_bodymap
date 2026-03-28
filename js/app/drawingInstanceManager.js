@@ -2,14 +2,8 @@
 // Manages drawing instance lifecycle: creation, deletion, blank-check,
 // texture update, color assignment, empty-drawing guards, texture
 // refresh after deletion, and preview generation.
-//
-// Instance lifecycle functions (addNewDrawingInstance, isDrawingBlank,
-// updateCurrentDrawing, updateInstanceColors) migrated here from
-// drawingEngine.js so that all instance state management is co-located.
-//
-// Dependencies are injected via initInstanceManager() so this module
-// has no direct coupling to the stage router or view layer.
 
+import * as THREE from 'three';
 import AppState from './state.js';
 import { createCombinedTexture } from '../services/submissionService.js';
 import { showDeleteEmptyModal } from '../components/modal.js';

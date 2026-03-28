@@ -1,12 +1,8 @@
 // drawingEngine.js
 // Core drawing service: texture painting, pointer dispatch, and
 // region mapping initialization.
-//
-// Instance lifecycle (create, blank-check, update, recolor) migrated
-// to drawingInstanceManager.js.
-// UV rasterization math → utils/uvRasterizer.js
-// Region pixel tracking → utils/regionTracker.js
 
+import * as THREE from 'three';
 import AppState from '../app/state.js';
 import { buildGlobalUVMap as rasterizeBuildGlobalUVMap } from '../utils/uvRasterizer.js';
 import { updateRegionMapFromHit, eraseFromRegionMap } from '../utils/regionTracker.js';

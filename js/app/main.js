@@ -2,11 +2,7 @@
 // Application entry point.
 // Responsibilities: DOM scaffolding, scene creation, view instantiation,
 // modal initialisation, resize handling, responsive listeners, and startup.
-//
-// Stage layout (setStage) extracted to stageLayout.js
-// Tooltip definitions extracted to tooltipSteps.js / tooltipRunner.js
 
-import './three_global.js';
 import { initApp } from './appController.js';
 import {
     initDrawContinueModal,
