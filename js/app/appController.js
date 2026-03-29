@@ -280,26 +280,34 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         if (isGeneralSurvey()) {
             AppState.generalQuestionnaireResponse = getCurrentSurveyData();
 
-            const submissionData = await prepareSubmissionData();
-            console.log('Submission data prepared:', submissionData);
+            try {
+                const submissionData = await prepareSubmissionData();
+                console.log('Submission data prepared:', submissionData);
 
-            // ── Integration point ──────────────────────────────────────
-            // Replace with your platform's API call:
-            //   const response = await apiService.submit(submissionData);
-            //   const success = response.ok;
-            //
-            // For now, simulate success to keep the app testable:
-            const success = true;
-            // ───────────────────────────────────────────────────────────
+                // ── Integration point ──────────────────────────────────────
+                // Replace with your platform's API call:
+                //   const response = await apiService.submit(submissionData);
+                //   const success = response.ok;
+                //
+                // For now, simulate success to keep the app testable:
+                const success = true;
+                // ───────────────────────────────────────────────────────────
 
-            if (success) {
-                console.log('Submission complete (no backend connected — data logged above).');
-                clearSurveyInstance();
-                goTo('summary');
-            } else {
-                console.error('Failed to submit data');
-                alert('There was an error submitting your data. Please try again.');
+                if (success) {
+                    console.log('Submission complete (no backend connected — data logged above).');
+                    clearSurveyInstance();
+                    goTo('summary');
+                } else {
+                    console.error('Failed to submit data');
+                    alert('There was an error submitting your data. Please try again.');
+                }
+            } catch (error) {
+                console.error('Submission failed:', error);
+                alert('There was an error preparing your submission. Please try again.');
+                // Roll back so the user can retry
+                AppState.generalQuestionnaireResponse = null;
             }
+
             return;
         }
 

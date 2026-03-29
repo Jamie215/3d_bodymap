@@ -164,7 +164,12 @@ function setupSkinMesh(child, modelName) {
     const textureId = `model-${modelName}-skin`;
     const { canvas, context, texture } = texturePool.getTexture(textureId);
 
-    const aoTexture = new THREE.TextureLoader().load('../assets/body_ao_modified.png');
+    const aoTexture = new THREE.TextureLoader().load(
+        '../assets/body_ao_modified.png',
+        null,  // onLoad — not needed, texture is usable immediately
+        null,  // onProgress
+        (err) => console.warn('AO texture failed to load — model will render without ambient occlusion', err)
+    );
     aoTexture.flipY = false;
 
     child.material = new THREE.MeshLambertMaterial({

@@ -276,12 +276,20 @@ export function deleteDrawingInstance(index) {
 export function refreshTextureAfterDelete() {
     if (AppState.drawingInstances.length > 0) {
         const combinedCanvas = createCombinedTexture();
-        const tempTexture = new THREE.CanvasTexture(combinedCanvas);
-        tempTexture.needsUpdate = true;
+        if (combinedCanvas) {
+            const tempTexture = new THREE.CanvasTexture(combinedCanvas);
+            tempTexture.needsUpdate = true;
 
-        if (AppState.skinMesh) {
-            AppState.skinMesh.material.map = tempTexture;
-            AppState.skinMesh.material.needsUpdate = true;
+            if (AppState.skinMesh) {
+                AppState.skinMesh.material.map = tempTexture;
+                AppState.skinMesh.material.needsUpdate = true;
+            }
+        } else {
+            console.warn('refreshTextureAfterDelete: compositing failed, showing base texture');
+            if (AppState.skinMesh && AppState.baseTextureTexture) {
+                AppState.skinMesh.material.map = AppState.baseTextureTexture;
+                AppState.skinMesh.material.needsUpdate = true;
+            }
         }
     } else {
         if (AppState.skinMesh && AppState.baseTextureTexture) {

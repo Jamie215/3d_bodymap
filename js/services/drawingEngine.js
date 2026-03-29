@@ -106,10 +106,7 @@ export function drawAtUV(uv, canvas, context, radius, isErasing = false) {
 
 /** Cast a ray from the camera through the pointer and draw/erase on the hit. */
 export function drawAtPointer(camera, pointer, isErasing = false) {
-    if (!AppState.skinMesh) {
-        console.warn("Doesn't have a skinmesh");
-        return;
-    }
+    if (!AppState.skinMesh) return;
 
     AppState.skinMesh.updateMatrixWorld(true);
 

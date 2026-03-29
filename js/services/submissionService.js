@@ -104,38 +104,48 @@ export function initSubmissionService(deps) {
  * Used by the summary view (to show all areas at once) and by
  * the submission flow (snapshot capture).
  *
- * @returns {HTMLCanvasElement}
+ * @returns {HTMLCanvasElement|null} null if compositing fails
  */
 export function createCombinedTexture() {
-    const combinedCanvas = document.createElement('canvas');
-    combinedCanvas.width = texturePool.width;
-    combinedCanvas.height = texturePool.height;
-    const ctx = combinedCanvas.getContext('2d');
+    try {
+        const combinedCanvas = document.createElement('canvas');
+        combinedCanvas.width = texturePool.width;
+        combinedCanvas.height = texturePool.height;
+        const ctx = combinedCanvas.getContext('2d');
 
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
-
-    AppState.drawingInstances.forEach(instance => {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = instance.canvas.width;
-        tempCanvas.height = instance.canvas.height;
-        const tempCtx = tempCanvas.getContext('2d');
-
-        tempCtx.drawImage(instance.canvas, 0, 0);
-        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-        const pixels = imageData.data;
-
-        for (let i = 0; i < pixels.length; i += 4) {
-            if (pixels[i] === 255 && pixels[i + 1] === 255 && pixels[i + 2] === 255) {
-                pixels[i + 3] = 0;
-            }
+        if (!ctx) {
+            console.error('createCombinedTexture: failed to get 2D context');
+            return null;
         }
 
-        tempCtx.putImageData(imageData, 0, 0);
-        ctx.drawImage(tempCanvas, 0, 0);
-    });
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
 
-    return combinedCanvas;
+        AppState.drawingInstances.forEach(instance => {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = instance.canvas.width;
+            tempCanvas.height = instance.canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            tempCtx.drawImage(instance.canvas, 0, 0);
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const pixels = imageData.data;
+
+            for (let i = 0; i < pixels.length; i += 4) {
+                if (pixels[i] === 255 && pixels[i + 1] === 255 && pixels[i + 2] === 255) {
+                    pixels[i + 3] = 0;
+                }
+            }
+
+            tempCtx.putImageData(imageData, 0, 0);
+            ctx.drawImage(tempCanvas, 0, 0);
+        });
+
+        return combinedCanvas;
+    } catch (error) {
+        console.error('createCombinedTexture: failed to composite drawing instances', error);
+        return null;
+    }
 }
 
 // ============================================================================
@@ -153,65 +163,76 @@ export function createCombinedTexture() {
  * @returns {Promise<MultiViewSnapshots>}
  */
 export async function captureMultiViewSnapshots(combinedCanvas) {
+    if (!AppState.skinMesh) {
+        console.error('captureMultiViewSnapshots: no skin mesh available');
+        return null;
+    }
+
     const tempTexture = new THREE.CanvasTexture(combinedCanvas);
     tempTexture.needsUpdate = true;
 
-    const originalMap = AppState.skinMesh.material.map;
-    AppState.skinMesh.material.map = tempTexture;
-    AppState.skinMesh.material.needsUpdate = true;
-
-    const originalSize = renderer.getSize(new THREE.Vector2());
-    const originalPixelRatio = renderer.getPixelRatio();
+    // Save original state — must be restored even on error
+    const originalMap            = AppState.skinMesh.material.map;
+    const originalSize           = renderer.getSize(new THREE.Vector2());
+    const originalPixelRatio     = renderer.getPixelRatio();
     const originalCameraPosition = camera.position.clone();
-    const originalCameraTarget = controls.target.clone();
+    const originalCameraTarget   = controls.target.clone();
 
-    const previewWidth = 400;
-    const previewHeight = 400;
-    renderer.setSize(previewWidth, previewHeight, false);
-    renderer.setPixelRatio(1);
+    try {
+        AppState.skinMesh.material.map = tempTexture;
+        AppState.skinMesh.material.needsUpdate = true;
 
-    // Calculate framing distance from model bounds
-    const bbox = new THREE.Box3().setFromObject(AppState.skinMesh);
-    const center = bbox.getCenter(new THREE.Vector3());
-    const size = bbox.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const fov = camera.fov * (Math.PI / 180);
-    const dist = (maxDim / 2) / Math.tan(fov / 2) * 1.3;
+        const previewWidth = 400;
+        const previewHeight = 400;
+        renderer.setSize(previewWidth, previewHeight, false);
+        renderer.setPixelRatio(1);
 
-    const viewAngles = [
-        ['front', new THREE.Vector3(0, 0, dist)],
-        ['back',  new THREE.Vector3(0, 0, -dist)],
-        ['right', new THREE.Vector3(dist, 0, 0)],
-        ['left',  new THREE.Vector3(-dist, 0, 0)],
-    ];
+        // Calculate framing distance from model bounds
+        const bbox = new THREE.Box3().setFromObject(AppState.skinMesh);
+        const center = bbox.getCenter(new THREE.Vector3());
+        const size = bbox.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = camera.fov * (Math.PI / 180);
+        const dist = (maxDim / 2) / Math.tan(fov / 2) * 1.3;
 
-    const snapshots = {};
+        const viewAngles = [
+            ['front', new THREE.Vector3(0, 0, dist)],
+            ['back',  new THREE.Vector3(0, 0, -dist)],
+            ['right', new THREE.Vector3(dist, 0, 0)],
+            ['left',  new THREE.Vector3(-dist, 0, 0)],
+        ];
 
-    for (const [label, offset] of viewAngles) {
-        camera.position.copy(center).add(offset);
-        camera.position.y = center.y;
-        controls.target.copy(center);
+        const snapshots = {};
+
+        for (const [label, offset] of viewAngles) {
+            camera.position.copy(center).add(offset);
+            camera.position.y = center.y;
+            controls.target.copy(center);
+            controls.update();
+            camera.updateProjectionMatrix();
+
+            renderer.render(scene, camera);
+            snapshots[label] = renderer.domElement.toDataURL('image/png');
+        }
+
+        return snapshots;
+    } catch (error) {
+        console.error('captureMultiViewSnapshots: snapshot capture failed', error);
+        return null;
+    } finally {
+        // Always restore renderer/camera state
+        camera.position.copy(originalCameraPosition);
+        controls.target.copy(originalCameraTarget);
         controls.update();
-        camera.updateProjectionMatrix();
+        renderer.setSize(originalSize.x, originalSize.y, false);
+        renderer.setPixelRatio(originalPixelRatio);
 
+        AppState.skinMesh.material.map = originalMap;
+        AppState.skinMesh.material.needsUpdate = true;
         renderer.render(scene, camera);
-        snapshots[label] = renderer.domElement.toDataURL('image/png');
+
+        tempTexture.dispose();
     }
-
-    // Restore everything
-    camera.position.copy(originalCameraPosition);
-    controls.target.copy(originalCameraTarget);
-    controls.update();
-    renderer.setSize(originalSize.x, originalSize.y, false);
-    renderer.setPixelRatio(originalPixelRatio);
-
-    AppState.skinMesh.material.map = originalMap;
-    AppState.skinMesh.material.needsUpdate = true;
-    renderer.render(scene, camera);
-
-    tempTexture.dispose();
-
-    return snapshots;
 }
 
 // ============================================================================
@@ -226,10 +247,18 @@ export async function captureMultiViewSnapshots(combinedCanvas) {
  *   - Session timing and device metadata
  *
  * @returns {Promise<SubmissionPayload>}
+ * @throws {Error} if texture compositing or snapshot capture fails
  */
 export async function prepareSubmissionData() {
     const combinedCanvas = createCombinedTexture();
+    if (!combinedCanvas) {
+        throw new Error('Failed to create combined drawing texture');
+    }
+
     const snapshot = await captureMultiViewSnapshots(combinedCanvas);
+    if (!snapshot) {
+        throw new Error('Failed to capture multi-view snapshots');
+    }
 
     const areas = AppState.drawingInstances.map((instance, index) => {
         const coverage = coverageCalculator.calculateCoverage(instance);

@@ -248,6 +248,15 @@ export function goTo(stage) {
  */
 function applyCombinedTexture() {
     const combinedCanvas = createCombinedTexture();
+    if (!combinedCanvas) {
+        console.warn('applyCombinedTexture: compositing failed, falling back to base texture');
+        if (AppState.skinMesh && AppState.baseTextureTexture) {
+            AppState.skinMesh.material.map        = AppState.baseTextureTexture;
+            AppState.skinMesh.material.needsUpdate = true;
+        }
+        return;
+    }
+
     const tempTexture    = new THREE.CanvasTexture(combinedCanvas);
     tempTexture.needsUpdate = true;
 
