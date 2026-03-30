@@ -1,11 +1,33 @@
+// regionVisibility.js
+// Controls which anatomical regions are visible on the 3D model by
+// writing to the custom region-visibility shader uniforms.
+//
+// When a limb is selected in the region selector, other body parts are
+// hidden via the GPU shader (fragment discard) rather than by manipulating
+// mesh visibility. Clothing and hair meshes are toggled via standard
+// Three.js `.visible` since they don't carry the region shader.
+//
+// Public API:
+//   setVisibleRegions(regionIds, checkedAreas) — apply a visibility filter
+//   isRegionVisible(regionId)                  — query current filter state
+
 import AppState from '../app/state.js';
 
 /**
  * Show only the specified regions on the skin mesh, hiding everything else.
- * Pass null or an empty array to show the full body.
+ * Pass `null` or an empty array to show the full body (no filter).
  *
- * @param {number[]|null} regionIds - Array of numeric _regionid values to keep visible
- * @param {string[]|null} checkedAreas - Optional array of checked area names (e.g. ['Head', 'Torso'])
+ * Writes directly to the shader uniforms injected by modelLoader.js's
+ * `onBeforeCompile` hook: `visibleIds`, `visibleCount`, `filterActive`.
+ *
+ * Also toggles clothing and hair mesh visibility based on which main
+ * body areas are selected (e.g. hide shorts when only arms are visible).
+ *
+ * @param {number[]|null}  regionIds    — Numeric `_regionid` attribute values to keep visible.
+ *                                         `null` or `[]` disables the filter (full body).
+ * @param {string[]|null}  checkedAreas — Main area names from the region selector
+ *                                         (e.g. `['Head', 'Torso']`). Used to decide
+ *                                         clothing visibility. Pass `null` when clearing.
  */
 export function setVisibleRegions(regionIds, checkedAreas = null) {
     const mesh = AppState.skinMesh;
@@ -39,6 +61,14 @@ export function setVisibleRegions(regionIds, checkedAreas = null) {
 
 /**
  * Shows or hides clothing/hair meshes based on which body areas are selected.
+ *
+ * Rules:
+ *   - Hair is visible when full body is shown, or when "Head" is in the checked set
+ *   - Top is visible when full body is shown, or when "Torso" is checked
+ *   - Shorts follows the same rule as Top
+ *
+ * @param {boolean}        isFullBody   — true when no region filter is active
+ * @param {string[]|null}  checkedAreas — main area names, or null
  */
 function updateClothingVisibility(isFullBody, checkedAreas) {
     if (!AppState.model) return;
@@ -62,7 +92,15 @@ function updateClothingVisibility(isFullBody, checkedAreas) {
 
 /**
  * Check whether a given region ID is currently visible.
- * Returns true if no filter is active (full body shown).
+ *
+ * Returns `true` if no filter is active (full body shown) or if the
+ * specific ID is in the visible set.
+ *
+ * Used by the drawing interaction layer to reject pointer hits on
+ * hidden regions so the user can't paint invisible surfaces.
+ *
+ * @param {number} regionId — numeric `_regionid` attribute value
+ * @returns {boolean}
  */
 export function isRegionVisible(regionId) {
     if (!AppState.visibleRegionIds) return true;

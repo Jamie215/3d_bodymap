@@ -181,9 +181,6 @@ export default class CameraUtils {
         this.clearFocus();
         this.rotationAngle = 0;
 
-        const dropdown = document.querySelector('.region-dropdown');
-        if (dropdown) dropdown.value = 'Entire Body';
-
         const targetPosition = new THREE.Vector3(0, 1, this.defaultDistance);
         this.controls.target.copy(this.defaultPivot);
         return this.animateCamera(targetPosition, this.defaultPivot.clone(), 600);

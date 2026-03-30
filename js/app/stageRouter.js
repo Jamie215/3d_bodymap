@@ -27,8 +27,6 @@ let controls = null;
 let views    = null;   // { summary, selection, drawing, survey }
 let setStage = null;   // callback from main.js that swaps DOM slots
 
-let regionDropdownListener = null;   // live listener on the view-controls dropdown
-
 // ============================================================================
 // INITIALISATION
 // ============================================================================
@@ -94,14 +92,6 @@ export function goTo(stage) {
     setStage(stage);
 
     // ── Shared teardown when leaving the drawing stage ──────────────────
-    if (stage !== 'drawing' && regionDropdownListener) {
-        const dropdown = document.querySelector('.region-dropdown');
-        if (dropdown) {
-            dropdown.removeEventListener('change', regionDropdownListener);
-            regionDropdownListener = null;
-        }
-    }
-
     if (stage !== 'drawing') {
         cleanupInteraction();
         disableCursorManagement();
@@ -189,17 +179,6 @@ export function goTo(stage) {
 
             updateDrawingNavigationButtons();
             drawing.updateStatusBar();
-
-            // Wire up region dropdown → camera focus (if present)
-            setTimeout(() => {
-                const regionDropdown = document.querySelector('.region-dropdown');
-                if (regionDropdown && !regionDropdownListener) {
-                    regionDropdownListener = (e) => {
-                        if (cameraUtils) cameraUtils.focusOnRegion(e.target.value);
-                    };
-                    regionDropdown.addEventListener('change', regionDropdownListener);
-                }
-            }, 100);
 
             break;
         }

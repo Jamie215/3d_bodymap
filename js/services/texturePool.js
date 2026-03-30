@@ -1,6 +1,14 @@
 // texturePool.js
 // Manages reusable canvas/texture pairs for drawing instances.
 // Stateful singleton — tracks available and in-use textures.
+//
+// Two creation modes:
+//   getOrCreate(id)  — Pooled: returns an existing texture for the given ID,
+//                      or creates one and caches it for reuse. Used for
+//                      persistent textures (skin mesh, base texture).
+//   createFresh(id)  — Unpooled: always creates a brand new canvas/texture.
+//                      Used for per-drawing-instance textures that are
+//                      independently owned and disposed.
 
 import * as THREE from 'three';
 
@@ -10,7 +18,17 @@ const texturePool = {
     width: 1024,
     height: 1024,
 
-    getTexture(id, width = 1024, height = 1024) {
+    /**
+     * Get or create a pooled texture by ID.
+     * If the same ID is requested again, returns the existing entry.
+     * Released textures are recycled into new IDs.
+     *
+     * @param {string} id     — unique key for this texture
+     * @param {number} [width=1024]
+     * @param {number} [height=1024]
+     * @returns {{ canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, texture: THREE.CanvasTexture }}
+     */
+    getOrCreate(id, width = 1024, height = 1024) {
         // If this ID already has a texture, return it
         if (this.inUse.has(id)) {
             return this.inUse.get(id);
@@ -49,7 +67,16 @@ const texturePool = {
         return entry;
     },
 
-    getNewTexture(id, width = 1024, height = 1024) {
+    /**
+     * Create a brand-new, unpooled canvas/texture.
+     * The caller owns the returned texture and is responsible for disposal.
+     *
+     * @param {string} id     — identifier attached to the returned bundle (not tracked by the pool)
+     * @param {number} [width=1024]
+     * @param {number} [height=1024]
+     * @returns {{ id: string, canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, texture: THREE.CanvasTexture }}
+     */
+    createFresh(id, width = 1024, height = 1024) {
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
@@ -66,6 +93,11 @@ const texturePool = {
         };
     },
 
+    /**
+     * Release a pooled texture back to the available pool.
+     *
+     * @param {string} id
+     */
     releaseTexture(id) {
         if (this.inUse.has(id)) {
             const entry = this.inUse.get(id);
@@ -75,6 +107,7 @@ const texturePool = {
         }
     },
 
+    /** Dispose all pooled textures and clear internal state. */
     disposeAll() {
         this.inUse.forEach(entry => {
             entry.texture.dispose();

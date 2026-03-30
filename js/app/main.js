@@ -25,7 +25,7 @@ import { getResponsiveManager } from '../utils/responsiveManager.js';
 import { initStageLayout, setStage } from './stageLayout.js';
 import AppState from './state.js';
 
-window.sessionStartTime = new Date().toISOString();
+AppState.sessionStartTime = new Date().toISOString();
 
 // ====================================================================
 // RESPONSIVE MANAGER

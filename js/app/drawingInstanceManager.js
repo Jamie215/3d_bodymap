@@ -88,7 +88,7 @@ export function initInstanceManager(deps) {
  */
 export function addNewDrawingInstance() {
     const instanceId    = `drawing-${AppState.drawingInstances.length + 1}`;
-    const textureBundle = texturePool.getNewTexture(instanceId);
+    const textureBundle = texturePool.createFresh(instanceId);
 
     /** @type {DrawingInstance} */
     const newInstance = {

@@ -324,7 +324,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     goTo('summary');
 
-    window.cleanupApplication = () => {
+    const cleanupApplication = () => {
         if (cameraUtils) cameraUtils.dispose();
         cleanupInteraction();
         cleanupAllModels();
@@ -333,5 +333,5 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         eventManager.removeAll();
     };
 
-    window.addEventListener('beforeunload', window.cleanupApplication);
+    window.addEventListener('beforeunload', cleanupApplication);
 }

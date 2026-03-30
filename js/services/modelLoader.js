@@ -162,12 +162,12 @@ function setupSkinMesh(child, modelName) {
     child.renderOrder = 0;
 
     const textureId = `model-${modelName}-skin`;
-    const { canvas, context, texture } = texturePool.getTexture(textureId);
+    const { canvas, context, texture } = texturePool.getOrCreate(textureId);
 
     const aoTexture = new THREE.TextureLoader().load(
         '../assets/body_ao_modified.png',
-        null,  // onLoad — not needed, texture is usable immediately
-        null,  // onProgress
+        undefined,   // onLoad — not needed, texture is usable immediately
+        undefined,   // onProgress
         (err) => console.warn('AO texture failed to load — model will render without ambient occlusion', err)
     );
     aoTexture.flipY = false;
@@ -257,7 +257,7 @@ function setupTransparentMesh(child, renderOrder) {
 }
 
 function setupBaseTexture(modelName) {
-    const { canvas, context, texture } = texturePool.getTexture(`base-texture-${modelName}`);
+    const { canvas, context, texture } = texturePool.getOrCreate(`base-texture-${modelName}`);
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
 

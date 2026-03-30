@@ -2,7 +2,16 @@
 // Manages the custom draw/erase cursor that follows the mouse
 // over the canvas during the drawing stage.
 //
-// Desktop-only — hidden automatically on touch devices via CSS.
+// Desktop-only — hidden automatically on touch devices via CSS
+// (`.cursor-container` uses `pointer: coarse` media query).
+//
+// The cursor icon switches between a pen (draw mode) and eraser
+// (erase mode) based on AppState.isErasing. Button click listeners
+// on the draw/erase buttons keep the icon synchronised.
+//
+// Public API:
+//   setupCursorManagement()    — create + activate the custom cursor
+//   disableCursorManagement()  — detach all listeners, hide the cursor
 
 import AppState from '../app/state.js';
 
@@ -10,9 +19,18 @@ import AppState from '../app/state.js';
 // MODULE STATE
 // ============================================================================
 
+/** @type {HTMLDivElement|null} Outer container — positioned at pointer coordinates */
 let cursorContainer = null;
+
+/** @type {HTMLDivElement|null} Inner element — holds the Font Awesome icon */
 let cursorIconEl    = null;
 
+/**
+ * References to currently attached event handlers.
+ * Stored so they can be cleanly removed by disableCursorManagement().
+ *
+ * @type {{ mousemove: Function|null, mouseleave: Function|null, drawBtnClick: Function|null, eraseBtnClick: Function|null }}
+ */
 const handlers = {
     mousemove:     null,
     mouseleave:    null,
@@ -20,6 +38,7 @@ const handlers = {
     eraseBtnClick: null
 };
 
+// Static markup — no interpolated values
 const DRAW_COLOR  = 'var(--primary-color)';
 const ERASE_COLOR = 'var(--light-red)';
 
@@ -32,8 +51,14 @@ const getEraseIcon = (c) => `<i class="fa-solid fa-eraser" style="color: ${c};">
 
 /**
  * Create (if needed) and activate the custom cursor.
- * Wires mousemove/mouseleave on the canvas panel and click
- * listeners on the draw/erase buttons to keep the icon in sync.
+ *
+ * Wires:
+ *   - `mousemove` on `#canvas-panel` — positions the cursor element
+ *   - `mouseleave` on `#canvas-panel` — hides the cursor
+ *   - `click` on `#draw-button` / `#erase-button` — syncs the icon
+ *
+ * Safe to call multiple times — calls disableCursorManagement() first
+ * to prevent duplicate listeners.
  */
 export function setupCursorManagement() {
     const canvasPanel = document.getElementById('canvas-panel');
@@ -94,7 +119,10 @@ export function setupCursorManagement() {
 }
 
 /**
- * Detach all cursor-related event listeners and hide the cursor.
+ * Detach all cursor-related event listeners and hide the cursor element.
+ * Restores the canvas panel to its default cursor style.
+ *
+ * Safe to call even if setupCursorManagement() was never called.
  */
 export function disableCursorManagement() {
     const canvasPanel = document.getElementById('canvas-panel');

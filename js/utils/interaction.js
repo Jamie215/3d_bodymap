@@ -1,6 +1,15 @@
 // interaction.js
 // Pointer event handling for the drawing stage: pointerdown, pointermove,
 // pointerup/cancel, and the raycast → draw dispatch.
+//
+// Supports single-finger drawing and two-finger pinch-to-zoom (delegates
+// to OrbitControls when a second pointer is detected).  Touch devices
+// disable orbit rotation so single-touch always draws.
+//
+// Public API:
+//   enableInteraction(renderer, camera, controls) — wire up pointer events
+//   cleanupInteraction()                          — remove all listeners
+//   syncEraserState()                             — sync button visuals to AppState
 
 import * as THREE from 'three';
 import AppState from '../app/state.js';
@@ -11,18 +20,24 @@ import { isRegionVisible } from './regionVisibility.js';
 const raycaster = new THREE.Raycaster();
 const pointer   = new THREE.Vector2();
 
+/** @type {string[]} Event manager IDs for all registered listeners */
 const eventIds = [];
 
 // Pointer state
 let pointerDown  = false;
 let pinchActive  = false;
+
+/** @type {Map<number, {x: number, y: number}>} Active pointer positions keyed by pointerId */
 const activePointers = new Map();
 
 // ============================================================================
 // PUBLIC API
 // ============================================================================
 
-/** Remove all registered event listeners and reset pointer state. */
+/**
+ * Remove all registered event listeners and reset internal pointer state.
+ * Safe to call multiple times — idempotent.
+ */
 export function cleanupInteraction() {
     eventIds.forEach(id => eventManager.remove(id));
     eventIds.length = 0;
@@ -31,7 +46,21 @@ export function cleanupInteraction() {
     activePointers.clear();
 }
 
-/** Wire up pointer events on the renderer canvas for drawing. */
+/**
+ * Wire up pointer events on the renderer's canvas for drawing/erasing.
+ *
+ * Event flow:
+ *   pointerdown  → raycast; if hit, disable orbit controls and start drawing
+ *   pointermove  → if drawing, raycast + paint at UV coordinate
+ *   pointerup    → re-enable orbit controls, stop drawing
+ *
+ * Two-finger pinch is detected by tracking active pointer count and
+ * delegating to orbit controls when count ≥ 2.
+ *
+ * @param {THREE.WebGLRenderer} renderer
+ * @param {THREE.Camera}        camera
+ * @param {OrbitControls}       controls
+ */
 export function enableInteraction(renderer, camera, controls) {
     const canvas = renderer.domElement;
     canvas.style.touchAction = 'none';
@@ -90,8 +119,9 @@ export function enableInteraction(renderer, camera, controls) {
 }
 
 /**
- * Sync the draw/erase button visual state to match AppState.isErasing.
- * Called when re-entering the drawing stage.
+ * Synchronise the draw/erase button visual state to match AppState.isErasing.
+ * Called when re-entering the drawing stage to ensure the button highlight
+ * reflects the current mode.
  */
 export function syncEraserState() {
     const drawBtn  = document.getElementById('draw-button');
@@ -119,12 +149,26 @@ export function syncEraserState() {
 // INTERNAL
 // ============================================================================
 
+/**
+ * Convert a DOM pointer event to normalised device coordinates (-1 to +1).
+ *
+ * @param {PointerEvent}     event
+ * @param {HTMLCanvasElement} canvas
+ */
 function updatePointer(event, canvas) {
     const rect = canvas.getBoundingClientRect();
     pointer.x =  ((event.clientX - rect.left) / rect.width)  * 2 - 1;
     pointer.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1;
 }
 
+/**
+ * Handle a pointerdown on the canvas: raycast into the scene, and if the
+ * hit is on a visible region, begin drawing.  Otherwise re-enable orbit
+ * controls so the user can pan/rotate.
+ *
+ * @param {THREE.Camera}  camera
+ * @param {OrbitControls} controls
+ */
 function handlePointerDown(camera, controls) {
     if (AppState.skinMesh) AppState.skinMesh.updateMatrixWorld(true);
 

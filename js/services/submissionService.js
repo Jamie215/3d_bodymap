@@ -278,11 +278,13 @@ export async function prepareSubmissionData() {
         };
     });
 
+    const startTime = AppState.sessionStartTime || new Date().toISOString();
+
     return {
-        startTime: window.sessionStartTime || new Date().toISOString(),
+        startTime,
         completionTime: new Date().toISOString(),
-        durationSeconds: window.sessionStartTime
-            ? Math.round((Date.now() - new Date(window.sessionStartTime).getTime()) / 1000)
+        durationSeconds: AppState.sessionStartTime
+            ? Math.round((Date.now() - new Date(AppState.sessionStartTime).getTime()) / 1000)
             : null,
         modelType: AppState.currentModelName,
         combinedDrawing: snapshot,

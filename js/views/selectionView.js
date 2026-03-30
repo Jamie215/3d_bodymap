@@ -13,6 +13,7 @@ export function createSelectionView(onModelSelected) {
   const modelButtonsContainer = document.createElement('div');
   modelButtonsContainer.id = 'model-buttons-container';
 
+  // Static markup — no interpolated values
   const returnSummaryButton = document.createElement('button');
   returnSummaryButton.innerHTML = '<span><i class="fa-solid fa-left-long"></i> Return to Summary';
   returnSummaryButton.classList.add('button', 'return-button');
@@ -52,15 +53,19 @@ export function createSelectionView(onModelSelected) {
 
     button.addEventListener('click', () => {
       selectedModelPath = model.file;
-      [...modelButtonsContainer.children].forEach(b => b.style.borderColor = 'transparent');
-      button.style.borderColor = 'var(--primary-color)';
+
+      // Toggle selected class instead of inline styles
+      [...modelButtonsContainer.children].forEach(b => b.classList.remove('selected'));
+      button.classList.add('selected');
+
       if (onModelSelected) {
         onModelSelected(model);
       }
     });
 
+    // Pre-select the first model
     if (model === models[0]) {
-      button.style.borderColor = 'var(--primary-color)';
+      button.classList.add('selected');
     }
   });
 

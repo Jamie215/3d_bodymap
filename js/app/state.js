@@ -33,6 +33,8 @@
  * @property {number}                      currentSurveyIndex  — Index of the drawing instance whose survey is active
  * @property {boolean}                     isEditingFromSurvey — True when editing a drawing from the survey stage
  * @property {Object|null}                 generalQuestionnaireResponse — Saved general survey data (null until submitted)
+ *
+ * @property {string|null}                 sessionStartTime    — ISO 8601 timestamp of when the session began
  */
 
 /** @type {AppStateShape} */
@@ -79,7 +81,10 @@ const AppState = {
     // Survey state
     currentSurveyIndex: 0,
     isEditingFromSurvey: false,
-    generalQuestionnaireResponse: null
+    generalQuestionnaireResponse: null,
+
+    // Session timing
+    sessionStartTime: null
 };
 
 export default AppState;

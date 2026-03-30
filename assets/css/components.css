@@ -929,7 +929,12 @@ h3.control-title { margin-bottom: 20px; }
 }
 
 .model-selection-button:hover { background: #f5f5f5; transform: translateY(-2px); }
+
 .model-selection-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.model-selection-button.selected {
+  border-color: var(--primary-color);
+}
 
 .model-selection-button img {
   width: clamp(200px, 40vw, 260px);
