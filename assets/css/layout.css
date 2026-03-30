@@ -1,0 +1,883 @@
+/* =========================
+   App Shell - Responsive Grid
+========================= */
+.app-shell {
+  display: grid;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  height: 100svh;
+  min-width: 0;
+  min-height: 0;
+  background: var(--background-color);
+  
+  grid-template-areas:
+    "header"
+    "center"
+    "footer";
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    grid-template-areas:
+      "header header"
+      "center right"
+      "footer footer";
+    grid-template-columns: 1fr minmax(320px, 420px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    grid-template-areas:
+      "header header header"
+      "left center right"
+      "footer footer footer";
+    grid-template-columns: minmax(300px, 380px) 1fr minmax(300px, 380px);
+    grid-template-rows: auto 1fr auto;
+  }
+}
+
+/* Slots */
+.slot-header { 
+  grid-area: header;
+  min-width: 0;
+}
+.slot-left { 
+  grid-area: left;
+  min-width: 0;
+  display: none;
+}
+.slot-canvas { 
+  grid-area: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}
+.slot-right { 
+  grid-area: right;
+  min-width: 0;
+  display: none;
+}
+.slot-footer { 
+  grid-area: footer;
+  z-index: var(--z-footer);
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .slot-left,
+  .slot-right {
+    display: flex;
+  }
+}
+
+/* =========================
+   Canvas Panel
+========================= */
+#canvas-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  container-type: size;
+  transition: none;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+:root[data-stage] #canvas-panel {
+  transition: none !important;
+}
+
+#canvas-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--background-color);
+  min-height: 0;
+  z-index: var(--z-sticky);
+}
+
+#canvas-toolbar:empty {
+  display: none;
+  padding: 0;
+  min-height: 0;
+  border-bottom: none;
+}
+
+#canvas-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#canvas-content canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+:root[data-stage="summary"] #canvas-panel,
+:root[data-stage="selection"] #canvas-panel {
+  padding: var(--space-md);
+}
+
+/* =========================
+   Canvas Toolbar Buttons
+========================= */
+
+#canvas-toolbar #change-model-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  font-size: var(--font-button-large);
+  color: var(--dark-blue);
+  cursor: pointer;
+  min-height: 48px;
+  border: none;
+}
+
+#canvas-toolbar #change-model-button:hover {
+  color: var(--primary-color);
+}
+
+#canvas-toolbar #edit-drawing-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  font-size: var(--font-button-large);
+  color: var(--dark-blue);
+  cursor: pointer;
+  min-height: 48px;
+  border: none;
+}
+
+#canvas-toolbar #edit-drawing-button:hover {
+  color: var(--primary-color);
+  background: transparent !important;
+}
+
+/* Stage-specific toolbar visibility */
+:root[data-stage="summary"] #canvas-toolbar:not(:empty) { display: flex; }
+:root[data-stage="selection"] #canvas-toolbar { display: none; }
+:root[data-stage="drawing"] #canvas-toolbar { display: none; }
+:root[data-stage="area-survey"] #canvas-toolbar:not(:empty) { display: flex; }
+:root[data-stage="general-survey"] #canvas-toolbar { display: none; }
+
+@media (max-width: 767px) {
+  #canvas-toolbar { padding: var(--space-xs) var(--space-sm); }
+  
+  #canvas-toolbar #change-model-button,
+  #canvas-toolbar #edit-drawing-button {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-button-small);
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 400px) {
+  #canvas-toolbar #change-model-button span,
+  #canvas-toolbar #edit-drawing-button span { display: none; }
+  
+  #canvas-toolbar #change-model-button,
+  #canvas-toolbar #edit-drawing-button { padding: var(--space-sm); }
+}
+
+@media (min-width: 768px) {
+  #canvas-toolbar { padding: var(--space-sm) var(--space-lg); }
+}
+
+/* Ensure canvas has no padding in survey stages to prevent resize */
+:root[data-stage="area-survey"] #canvas-panel,
+:root[data-stage="general-survey"] #canvas-panel {
+  padding: 0 !important;
+}
+
+/* =========================
+   Stage Layout: SUMMARY
+========================= */
+:root[data-stage="summary"] .slot-header { display: none; }
+:root[data-stage="summary"] .slot-left { display: none; }
+:root[data-stage="summary"] .app-shell {
+  grid-template-areas:
+    "center"
+    "footer";
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr auto;
+}
+
+:root[data-stage="summary"] .slot-right {
+  display: none;
+  position: fixed;
+  bottom: 80px;
+  left: var(--space-md);
+  right: var(--space-md);
+  background: var(--panel-background);
+  border-radius: var(--border-radius);
+  padding: var(--space-lg);
+  z-index: var(--z-overlay);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+:root[data-stage="summary"].show-summary-panel .slot-right {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  :root[data-stage="summary"] .app-shell {
+    grid-template-areas:
+      "center right"
+      "footer footer";
+    grid-template-columns: 1fr minmax(320px, 45%);
+  }
+  
+  :root[data-stage="summary"] .slot-right {
+    display: flex;
+    position: static;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    background: transparent;
+    box-shadow: none;
+    max-height: none;
+  }
+}
+
+/* =========================
+   Stage Layout: SELECTION
+========================= */
+:root[data-stage="selection"] .slot-header { display: none; }
+:root[data-stage="selection"] .slot-left { display: none; }
+:root[data-stage="selection"] .app-shell {
+  grid-template-areas:
+    "center"
+    "footer";
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr auto;
+}
+
+:root[data-stage="selection"] .slot-right {
+  position: fixed;
+  inset: var(--space-md);
+  background: var(--panel-background);
+  border-radius: var(--border-radius);
+  padding: var(--space-lg);
+  z-index: var(--z-overlay);
+  display: flex;
+  overflow-y: auto;
+  max-height: calc(100vh - 90px - var(--space-md));
+  max-height: calc(100dvh - 90px - var(--space-md));
+}
+
+@media (min-width: 768px) {
+  :root[data-stage="selection"] .app-shell {
+    grid-template-areas:
+      "center right"
+      "footer footer";
+    grid-template-columns: minmax(320px, 1fr) minmax(420px, 800px);
+  }
+  
+  :root[data-stage="selection"] .slot-right {
+    position: static;
+    inset: auto;
+    background: transparent;
+    box-shadow: none;
+    padding: var(--space-md);
+  }
+}
+
+/* =========================
+   Stage Layout: DRAWING
+========================= */
+:root[data-stage="drawing"] {
+  overflow: hidden;
+  height: 100vh;
+  height: 100dvh;
+}
+
+:root[data-stage="drawing"] body { overflow: hidden; }
+
+:root[data-stage="drawing"] .slot-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  width: 100%;
+}
+
+:root[data-stage="drawing"] #drawing-header-content {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+:root[data-stage="drawing"] #drawing-status-bar {
+  width: 100%;
+  max-width: fit-content;
+  text-align: center;
+}
+
+:root[data-stage="drawing"] .slot-canvas { 
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  position: relative;
+}
+
+:root[data-stage="drawing"] .slot-footer { display: none; }
+
+:root[data-stage="drawing"] #canvas-panel {
+  touch-action: none;
+  overscroll-behavior: none;
+  padding: 0 !important;
+}
+
+/* Drawing - Desktop 2-column */
+@media (min-width: 1024px) {
+  :root[data-stage="drawing"] .app-shell {
+    grid-template-areas:
+      "header header"
+      "left center"
+      "footer footer";
+    grid-template-columns: minmax(160px, 200px) 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+  
+  :root[data-stage="drawing"] .slot-header {
+    padding: var(--space-sm) var(--space-md);
+  }
+  
+  :root[data-stage="drawing"] .slot-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    overflow: hidden;
+    padding: var(--space-sm);
+  }
+  
+  :root[data-stage="drawing"] .slot-right { display: none; }
+  
+  :root[data-stage="drawing"] .slot-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+  }
+}
+
+/* Drawing - Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root[data-stage="drawing"] .app-shell {
+    grid-template-areas:
+      "header"
+      "toolbar"
+      "center"
+      "footer";
+    grid-template-rows: auto auto 1fr auto;
+  }
+  
+  :root[data-stage="drawing"] .slot-left {
+    grid-area: toolbar;
+    display: flex !important;
+    width: 100%;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+    overflow-y: hidden;
+    background: var(--panel-background);
+    border-bottom: 1px solid #e5e7eb;
+    min-height: 60px;
+  }
+  
+  :root[data-stage="drawing"] .slot-right { display: none; }
+  
+  :root[data-stage="drawing"] .slot-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md);
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container {
+    flex-direction: row;
+    gap: var(--space-md);
+    padding: var(--space-xs) var(--space-md);
+    max-height: none;
+    overflow: visible;
+    width: 100%;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-wrap: nowrap;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+
+  :root[data-stage="drawing"] .slot-left > * { flex-grow: 1; }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .divider,
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 { display: none; }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 160px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section label {
+    font-size: var(--font-body-small);
+    white-space: nowrap;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section input[type="range"] {
+    width: 110px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e5e7eb;
+    border-radius: 3px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .vertical-slider-container {
+    height: auto !important;
+    width: auto !important;
+    padding: 0 !important;
+    flex-direction: row !important;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex: 1;
+    max-width: 180px;
+  }
+
+  :root[data-stage="drawing"] .slot-left .slider-wrapper {
+    height: auto;
+    width: auto;
+    flex: 1;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .vertical-slider {
+    transform: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    max-width: 130px;
+    height: 8px !important;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control {
+    flex-direction: row !important;
+    width: auto;
+    min-width: auto;
+    min-height: 44px;
+    padding: var(--space-xs) var(--space-xs);
+    font-size: var(--font-button-large);
+    gap: var(--space-xs);
+    flex: 1;
+    max-width: 100px;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control svg {
+    width: 20px;
+    height: 20px;
+    order: 0;
+    margin: 0;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control span {
+    order: 1;
+    white-space: nowrap;
+  }
+}
+
+/* Drawing - Mobile/Portrait */
+@media (max-width: 767px) {
+  :root[data-stage="drawing"] .app-shell {
+    grid-template-areas:
+      "header"
+      "toolbar"
+      "center"
+      "footer";
+    grid-template-rows: auto auto 1fr auto;
+  }
+  
+  :root[data-stage="drawing"] .slot-header { width: 100%; }
+  
+  :root[data-stage="drawing"] #drawing-header-content { width: 100%; }
+  
+  :root[data-stage="drawing"] #drawing-status-bar {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: var(--space-xs) var(--space-sm);
+  }
+  
+  :root[data-stage="drawing"] .status-title {
+    font-size: var(--font-title-medium);
+  }
+  
+  :root[data-stage="drawing"] .slot-left {
+    grid-area: toolbar;
+    display: flex !important;
+    width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: var(--panel-background);
+    border-bottom: 1px solid #e5e7eb;
+    min-height: 64px;
+  }
+  
+  :root[data-stage="drawing"] .slot-right { display: none; }
+  
+  :root[data-stage="drawing"] .slot-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container {
+    flex-direction: row;
+    gap: var(--space-md);
+    padding: var(--space-xs) var(--space-md);
+    max-height: none;
+    overflow: visible;
+    width: 100%;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-wrap: nowrap;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .divider,
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 { display: none; }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 100px;
+    max-width: 140px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section label { display: none; }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section input[type="range"] {
+    width: 70px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e5e7eb;
+    border-radius: 3px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section .brush-size-value {
+    font-size: var(--font-body-small);
+    min-width: 24px;
+    text-align: center;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .vertical-slider-container {
+    height: auto !important;
+    width: auto !important;
+    padding: 0 !important;
+    flex-direction: row !important;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex: 1;
+    max-width: 160px;
+  }
+
+  :root[data-stage="drawing"] .slot-left .slider-wrapper {
+    height: auto;
+    width: auto;
+    flex: 1;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .vertical-slider {
+    transform: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    max-width: 110px;
+    height: 8px !important;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control {
+    flex-direction: row !important;
+    width: auto;
+    min-width: auto;
+    min-height: 44px;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-body-small);
+    gap: var(--space-xs);
+    flex: 1;
+    max-width: 130px;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control svg {
+    width: 20px;
+    height: 20px;
+    order: 0;
+    margin: 0;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control span {
+    order: 1;
+    white-space: nowrap;
+  }
+}
+
+/* Drawing nav buttons */
+:root[data-stage="drawing"] .drawing-nav {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+}
+
+:root[data-stage="drawing"] .drawing-nav:not([style*="display: none"]) ~ .button-success {
+  position: absolute;
+  right: var(--space-md);
+}
+
+:root[data-stage="drawing"] .drawing-nav[style*="display: none"] ~ .button-success {
+  position: static;
+  margin: 0 auto;
+}
+
+/* Mobile footer — portrait orientation */
+@media (max-width: 1023px) and (orientation: portrait) {
+  :root[data-stage="drawing"] .app-shell {
+    grid-template-areas:
+      "header"
+      "toolbar"
+      "center"
+      "footer" !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto 1fr auto !important;
+  }
+  
+  :root[data-stage="drawing"] .slot-header { width: 100%; }
+  :root[data-stage="drawing"] #drawing-header-content { width: 100%; }
+  
+  :root[data-stage="drawing"] #drawing-status-bar {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+  
+  :root[data-stage="drawing"] .slot-left {
+    grid-area: toolbar !important;
+    display: flex !important;
+    width: 100%;
+    background: var(--panel-background);
+    border-bottom: 1px solid #e5e7eb;
+    min-height: 60px;
+    padding: var(--space-xs) var(--space-sm);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  
+  :root[data-stage="drawing"] .slot-right { display: none !important; }
+  
+  :root[data-stage="drawing"] .slot-canvas {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+
+  :root[data-stage="drawing"] .slot-footer .button-success {
+    position: static !important;
+    padding-left: 48px !important;
+    padding-right: 48px !important;
+  }
+
+  :root[data-stage="drawing"] #canvas-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+  }
+  
+  :root[data-stage="drawing"] #canvas-content {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container {
+    flex-direction: row !important;
+    gap: var(--space-md);
+    padding: var(--space-xs) var(--space-md);
+    max-height: none;
+    overflow: visible;
+    width: 100%;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-wrap: nowrap;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .divider,
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 { display: none !important; }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 100px;
+    max-width: 140px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section label { display: none; }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section input[type="range"] {
+    width: 70px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e5e7eb;
+    border-radius: 3px;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section .brush-size-value {
+    font-size: var(--font-body-small);
+    min-width: 24px;
+    text-align: center;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .vertical-slider-container {
+    height: auto !important;
+    width: auto !important;
+    padding: 0 !important;
+    flex-direction: row !important;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  
+  :root[data-stage="drawing"] .slot-left .vertical-slider {
+    transform: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    max-width: 100% !important;
+    height: 8px !important;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control {
+    flex-direction: row !important;
+    width: auto;
+    min-width: auto;
+    max-width: none;
+    min-height: 44px;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-body-small);
+    gap: var(--space-xs);
+    flex: 0 0 20%;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  :root[data-stage="drawing"] .slot-left .button-draw-control span {
+    order: 1;
+    white-space: nowrap;
+  }
+}
+
+/* =========================
+   Stage Layout: SURVEYS
+========================= */
+:root[data-stage="area-survey"] .slot-header,
+:root[data-stage="general-survey"] .slot-header { display: none; }
+
+:root[data-stage="area-survey"] .slot-left,
+:root[data-stage="general-survey"] .slot-left { display: none; }
+
+:root[data-stage="area-survey"] .app-shell,
+:root[data-stage="general-survey"] .app-shell {
+  grid-template-areas:
+    "center"
+    "footer";
+  grid-template-columns: 1fr;
+}
+
+:root[data-stage="area-survey"] .slot-canvas,
+:root[data-stage="general-survey"] .slot-canvas { display: none; }
+
+:root[data-stage="area-survey"] .slot-right,
+:root[data-stage="general-survey"] .slot-right {
+  grid-area: center;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+@media (min-width: 768px) {
+  :root[data-stage="area-survey"] .app-shell,
+  :root[data-stage="general-survey"] .app-shell {
+    grid-template-areas:
+      "center right"
+      "footer footer";
+    grid-template-columns: minmax(320px, 1fr) minmax(420px, 1200px);
+  }
+  
+  :root[data-stage="area-survey"] .slot-canvas,
+  :root[data-stage="general-survey"] .slot-canvas { display: flex; }
+  
+  :root[data-stage="area-survey"] .slot-right,
+  :root[data-stage="general-survey"] .slot-right { grid-area: right; }
+}
+
+:root[data-stage="general-survey"] #edit-drawing-button { display: none !important; }

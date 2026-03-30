@@ -1,0 +1,9 @@
+/* styles.css — Root import sheet
+ * Split into five modules for maintainability.
+ * Import order matters: base tokens must load first. */
+
+@import url('./base.css');
+@import url('./layout.css');
+@import url('./components.css');
+@import url('./modals.css');
+@import url('./survey.css');

@@ -1,0 +1,168 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* =========================
+   Design Tokens
+========================= */
+:root {
+  /* Colours */
+  --primary-color: #0277BD;
+  --secondary-color: #333333;
+  --background-color: #f0f0f0;
+  --success-color: #10b981;
+  --panel-background: #ffffff;
+  --light-blue: #2AA3E6;
+  --dark-blue: #024dbd;
+  --light-red: #e55353;
+  --red: #a10c0c;
+  --green: #88b4a2;
+  --green-hover: #69a08a;
+  --dark-grey: #6b7280;
+  
+  /* Spacing scale (px-based) */
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  
+  /* =============================================
+     TYPOGRAPHY SCALE
+     ============================================= */
+  
+  /* Base sizes */
+  --font-2xs: 11px;
+  --font-xs: 12px;
+  --font-sm: 14px;
+  --font-md: 16px;
+  --font-lg: 18px;
+  --font-xl: 20px;
+  --font-2xl: 24px;
+  --font-3xl: 28px;
+  --font-4xl: 32px;
+  --font-5xl: 48px;
+  
+  /* Semantic typography */
+  --font-title-large: 28px;
+  --font-title-medium: 22px;
+  --font-title-small: 18px;
+  
+  --font-body-large: 20px;
+  --font-body-medium: 18px;
+  --font-body-small: 16px;
+  
+  --font-button-large: 20px;
+  --font-button-medium: 18px;
+  --font-button-small: 16px;
+  
+  --font-label: 16px;
+  --font-input: 16px;
+  
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 20px rgba(0,0,0,0.15);
+  --shadow-xl: 0 10px 30px rgba(0,0,0,0.25);
+  
+  /* Z-index scale */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-drawer: 600;
+  --z-footer: 9999;
+
+  /* Others */
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+}
+
+/* =========================
+   Base Reset
+========================= */
+*, *::before, *::after { 
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--background-color);
+  color: var(--secondary-color);
+  overscroll-behavior: none;
+  touch-action: auto;
+  overflow: hidden;
+  height: 100%;
+  line-height: 1.5;
+  font-size: var(--font-body-medium);
+}
+
+h2 {
+  font-size: var(--font-title-small);
+  line-height: 1.2;
+  text-align: center;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* =========================
+   Accessibility
+========================= */
+
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background: var(--primary-color);
+  color: white;
+  padding: var(--space-sm) var(--space-md);
+  text-decoration: none;
+  z-index: var(--z-toast);
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================
+   Print
+========================= */
+@media print {
+  .fab,
+  .drawer,
+  .drawer-scrim,
+  .footer,
+  .button {
+    display: none !important;
+  }
+}

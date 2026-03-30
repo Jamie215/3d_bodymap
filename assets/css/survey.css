@@ -1,0 +1,311 @@
+/* =========================
+   Survey Panel & Header
+========================= */
+.survey-animated {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#survey-panel { 
+  width: 100%; 
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--panel-background);
+  scrollbar-width: thin;
+  scrollbar-color: #cccccc transparent;
+  contain: layout style paint;
+}
+
+#survey-panel::-webkit-scrollbar { width: 8px; }
+#survey-panel::-webkit-scrollbar-track { background: transparent; }
+#survey-panel::-webkit-scrollbar-thumb { background-color: var(--primary-color); border-radius: 9999px; }
+
+#survey-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 20px;
+  background: white;
+  border-bottom: 2px solid #e5e7eb;
+  flex-shrink: 0;
+  position: sticky;
+  gap: 16px;
+  z-index: var(--z-sticky);
+}
+
+#survey-title {
+  font-size: var(--font-title-large) !important;
+  font-weight: 800;
+  color: var(--secondary-color);
+  margin: 0;
+  width: 100%;
+  text-align: left;
+}
+
+/* =========================
+   Survey Progress Bar
+========================= */
+#survey-progress-container {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  margin-top: auto;
+  gap: 8px;
+}
+
+#survey-progress-bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  background: transparent;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-segment {
+  flex: 1;
+  height: 100%;
+  background: #e5e7eb;
+  transition: background-color 0.3s ease;
+}
+
+.progress-segment.completed { background: #2AA3E6; }
+.progress-segment:first-child { border-radius: 5px 0 0 5px; }
+.progress-segment:last-child { border-radius: 0 5px 5px 0; }
+.progress-segment:only-child { border-radius: 5px; }
+
+#survey-progress-text {
+  font-size: var(--font-body-medium);
+  font-weight: 500;
+  color: var(--dark-grey);
+  text-align: left;
+}
+
+/* =========================
+   Survey Content — SurveyJS Overrides
+========================= */
+#survey-inner {
+  border: none !important;
+  box-shadow: none !important;
+  background-color: white !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 !important;
+  flex: 1;
+}
+
+.sd-body {
+  border: none !important;
+  box-shadow: none !important;
+  background-color: white !important;
+  padding: 0 !important;
+}
+
+.sd-body__page {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.sd-question,
+.sd-panel,
+.sd-element,
+.sd-question__content-container,
+.sd-question__content {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.sd-page { padding: 20px 20px !important; background: transparent !important; }
+
+.sd-row { margin-bottom: 16px !important; }
+.sd-row:first-child { margin-top: 0 !important; }
+.sd-row:last-child { margin-bottom: 8px !important; }
+.sd-row__question { padding: 0 !important; }
+
+.sd-question__content { padding: 8px 0 !important; }
+
+.sd-question__title {
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+  color: #1f2328 !important;
+  font-size: var(--font-body-large) !important;
+}
+
+.sd-question__description {
+  color: var(--dark-grey) !important;
+  font-size: var(--font-body-medium) !important;
+  margin-top: 4px !important;
+}
+
+/* Matrix */
+.sd-matrix__row-text { line-height: 1.5 !important; padding: 8px 0 !important; }
+
+.sd-matrix__row-text small {
+  display: block;
+  color: var(--dark-grey);
+  font-weight: normal;
+  font-size: var(--font-body-small);
+  margin-top: 4px;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.sd-matrix__row { padding: 12px 0 !important; border-bottom: 1px solid #f3f4f6; }
+.sd-matrix__row:last-child { border-bottom: none; }
+
+.sd-table__cell.sd-table__cell--header { width: 20% !important; }
+.sd-table-wrapper, .sd-matrix, .sd-question--table { overflow: visible !important; }
+
+.sd-matrix__table thead {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.medication-description {
+  font-size: var(--font-body-small);
+  color: var(--dark-grey);
+  font-weight: normal;
+  margin-top: var(--space-2xs);
+  font-style: italic;
+  line-height: 1.4;
+  display: block;
+}
+
+/* =========================
+   Survey Input Styling
+========================= */
+.sd-input,
+.sd-dropdown,
+.sd-comment,
+.sd-text {
+  background-color: white !important;
+  border: 1px solid #d1d5db !important;
+  padding: 12px !important;
+  border-radius: 6px !important;
+  min-height: 48px !important;
+  font-size: var(--font-input) !important;
+}
+
+.sd-input:focus, .sd-dropdown:focus, .sd-comment:focus {
+  outline: none !important;
+  border-color: var(--primary-color) !important;
+}
+
+/* Radio and Checkbox */
+.sd-selectbase__item {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  margin-bottom: 8px !important;
+}
+
+.sd-selectbase__item:hover {
+  background-color: rgba(2, 119, 189, 0.05) !important;
+  border-color: rgba(2, 119, 189, 0.2) !important;
+}
+
+.sd-selectbase__item--checked {
+  background-color: rgba(2, 119, 189, 0.1) !important;
+  border-color: var(--primary-color) !important;
+}
+
+/* Rating */
+.sd-rating { background: transparent !important; border: none !important; padding: 0 !important; }
+
+.sd-rating__item {
+  background: white !important;
+  border: 2px solid #d1d5db !important;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.sd-rating__item:hover { border-color: var(--primary-color) !important; background: rgba(2, 119, 189, 0.05) !important; }
+.sd-rating__item--selected { background: #2AA3E6 !important; border-color: #2AA3E6 !important; }
+.sd-question--error .sd-rating__item { border-color: #feb1b1 !important; }
+
+.rating-layout-row {
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
+  font-size: var(--font-body-large);
+  width: 100%; 
+  flex: 1; 
+  overflow-x: auto;
+}
+
+.rating-layout-label { font-size: var(--font-body-small); line-height: 1.2; text-align: left; }
+
+.sd-question--error .sd-radio__decorator { background: #feb1b1 !important; }
+
+/* Error Messages */
+.sd-question--error .sd-question__erbox {
+  display: block !important;
+  margin-top: 8px;
+  background: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  padding: 12px 32px !important;
+  border-radius: 6px !important;
+  font-size: var(--font-body-medium);
+  color: #dc2626;
+}
+
+.sd-error .sv-string-viewer { margin-left: 32px !important; }
+.sd-question:not(.sd-question--error) .sd-question__erbox { display: none !important; }
+
+/* Remove SurveyJS containers */
+.sd-container, .sd-container-modern, .sd-root-modern {
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.sd-navigation { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+
+/* Disabled radio items */
+.sd-item:has(input[type="radio"]:disabled),
+.sd-radio__item:has(input[type="radio"]:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.sd-item:has(input[type="radio"]:disabled) .sd-item__control-label,
+.sd-radio__item:has(input[type="radio"]:disabled) .sd-selectbase__label {
+  color: #9ca3af !important;
+  cursor: not-allowed;
+}
+
+.sd-item:has(input[type="radio"]:disabled) .sd-item__decorator,
+.sd-radio__item:has(input[type="radio"]:disabled) .sd-radio__decorator {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* =========================
+   Survey Responsive
+========================= */
+@media (max-width: 768px) {
+  #survey-header { padding: 16px 20px; }
+  #survey-title { font-size: var(--font-title-small); }
+  #survey-progress-container { padding: 0 !important; }
+  #survey-progress-bar { height: 8px; }
+  #survey-progress-text { font-size: var(--font-body-small); }
+  .sd-page { padding: 16px 16px !important; }
+  .sd-row { margin-bottom: 12px !important; }
+}
+
+@media (max-width: 480px) {
+  .sd-page { padding: 12px 12px !important; }
+  .sd-row { margin-bottom: 10px !important; }
+}
