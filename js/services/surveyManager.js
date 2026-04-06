@@ -9,7 +9,8 @@ import { areaSurveyJson } from '../data/areaSurvey.js';
 import { generalSurveyJson } from '../data/generalSurvey.js';
 import { applyRatingLayout, injectMedicationDescriptions } from './surveyCustomRenderers.js';
 import AppState from '../app/state.js';
-import SurveyKO from "https://cdn.skypack.dev/survey-knockout";
+
+const SurveyKO = window.Survey;
 
 // ============================================================================
 // MODULE STATE
