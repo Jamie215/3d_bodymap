@@ -43,12 +43,7 @@ export function createVideoEmbed(videoId = 'TeL9O6yiCMs') {
     // Title
     const title = document.createElement('span');
     title.className = 'summary-title';
-    title.textContent = 'Getting Started';
-
-    // Instruction
-    const instruction = document.createElement('p');
-    instruction.className = 'summary-instruction';
-    instruction.textContent = 'Watch this video to learn how to use this application.';
+    title.textContent = 'Pain & Symptom Assessment Form';
 
     // Thumbnail wrapper
     const thumbnail = document.createElement('div');
@@ -68,7 +63,7 @@ export function createVideoEmbed(videoId = 'TeL9O6yiCMs') {
 
     thumbnail.append(img, playBtn);
 
-    container.append(title, instruction, thumbnail);
+    container.append(title, thumbnail);
 
     ensureOverlay();
 
