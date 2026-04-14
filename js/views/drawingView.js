@@ -1,6 +1,7 @@
 // drawingView.js - Updated for 2-column layout with footer buttons
 // Left: Drawing controls, Center: Canvas, Footer: Change View + Done Drawing
 import { createDrawingControls } from '../components/drawingControls.js';
+import { showHelpModal } from '../components/modal.js';
 import AppState from '../app/state.js';
 
 export function createDrawingViewElements(controls) {
@@ -86,11 +87,10 @@ export function createDrawingViewElements(controls) {
     helpButton.id = 'help-button';
     helpButton.classList.add('button', 'canvas-floating-btn');
     helpButton.innerHTML = '<span>Help</span><i class="fa-solid fa-circle-question"></i>';
-    helpButton.addEventListener('click', () => {
-        // TODO: Add the video help tutorials
-        console.log('Help button clicked');
+    helpButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering canvas interactions
+        showHelpModal('drawing');
     });
-
     // Footer with left, center, and right sections
     const drawingFooter = document.createElement('div');
     drawingFooter.id = 'footer-drawing';

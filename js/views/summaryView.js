@@ -4,6 +4,7 @@
 
 import AppState from '../app/state.js';
 import { createVideoEmbed } from '../components/videoEmbed.js';
+import { showHelpModal } from '../components/modal.js';
 
 export function createSummaryView() {
     const modelSummaryView = document.createElement('div');
@@ -20,6 +21,16 @@ export function createSummaryView() {
         <span>Change My Body Type</span>
     `;
     changeModelButton.classList.add('button');
+
+    // ── Help button ────────────────────────────────────────────────────
+    const helpButton = document.createElement('button');
+    helpButton.id = 'help-button-summary';
+    helpButton.classList.add('button', 'canvas-floating-btn');
+    helpButton.style.display = 'none';
+    helpButton.innerHTML = '<span>Help</span><i class="fa-solid fa-circle-question"></i>';
+    helpButton.addEventListener('click', ()=> { 
+        showHelpModal('summary');
+    });
 
     // ── Footer ─────────────────────────────────────────────────────────
     const summaryFooter = document.createElement('div');
@@ -102,12 +113,14 @@ export function createSummaryView() {
         summaryStatusPanel.appendChild(wrapper);
 
         summaryDoneButton.style.display      = 'none';
-        addNewInstanceButton.style.display    = 'none';
+        addNewInstanceButton.style.display   = 'none';
+        helpButton.style.display             = 'none';
     }
 
     function renderEmpty() {
         changeModelButton.style.display   = 'inline-flex';
         summaryDoneButton.style.display   = 'none';
+        helpButton.style.display         = 'none';
 
         summaryStatusPanel.textContent = '';
         summaryStatusPanel.appendChild(createVideoEmbed());
@@ -117,6 +130,7 @@ export function createSummaryView() {
         changeModelButton.style.display = 'none';
         summaryDoneButton.style.display = '';
         summaryDoneButton.disabled      = false;
+        helpButton.style.display       = 'inline-flex';
 
         summaryStatusPanel.textContent = '';
 
@@ -201,6 +215,7 @@ export function createSummaryView() {
         summaryStatusPanel,
         summaryFooter,
         changeModelButton,
+        helpButton,
         addNewInstanceButton,
         summaryDoneButton,
         setEditCallback,

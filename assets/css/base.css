@@ -73,7 +73,10 @@
   --z-modal: 400;
   --z-toast: 500;
   --z-drawer: 600;
-  --z-footer: 9999;
+  --z-footer: 1000;
+  --z-onboarding: 2000;
+  --z-help-scrim: 2000;
+  --z-help: 2001;
 
   /* Others */
   --border-radius: 8px;

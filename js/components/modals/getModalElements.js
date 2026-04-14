@@ -8,11 +8,12 @@ import { getDeleteEmptyElements }     from './deleteEmptyModal.js';
 import { getDeleteAreaElements }      from './deleteAreaModal.js';
 import { getRegionSelectorElements }  from './regionSelectorModal.js';
 import { getOnboardingElements }      from './onboardingModal.js';
+import { getHelpElements }       from './helpModal.js';
 
 /**
  * Retrieve DOM references for a specific modal's interactive elements.
  *
- * @param {'continue'|'reset'|'deleteEmpty'|'deleteArea'|'regionSelector'|'onboarding'} modalType
+ * @param {'continue'|'reset'|'deleteEmpty'|'deleteArea'|'regionSelector'|'onboarding'|'help'} modalType
  * @returns {Object}
  */
 export function getModalElements(modalType) {
@@ -22,7 +23,8 @@ export function getModalElements(modalType) {
         deleteEmpty:    getDeleteEmptyElements,
         deleteArea:     getDeleteAreaElements,
         regionSelector: getRegionSelectorElements,
-        onboarding:     getOnboardingElements
+        onboarding:     getOnboardingElements,
+        help:           getHelpElements
     };
 
     const getter = modalMap[modalType];

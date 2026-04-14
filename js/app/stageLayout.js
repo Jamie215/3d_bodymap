@@ -112,6 +112,11 @@ function layoutSummary(summary, isRelayout) {
     slotRight.appendChild(summary.summaryStatusPanel);
     slotFooter.appendChild(summary.summaryFooter);
 
+    // Help button floats over the canvas (same as drawing view)
+    if (summary.helpButton) {
+        canvasContent.appendChild(summary.helpButton);
+    }
+
     // Mobile: toggle button for summary panel
     if (responsive.is('isMobile')) {
         const toggleBtn = document.createElement('button');

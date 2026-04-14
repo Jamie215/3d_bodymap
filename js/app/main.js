@@ -11,6 +11,7 @@ import {
     initDeleteAreaModal,
     initRegionSelectorModal,
     initOnboardingModal,
+    initHelpModal,
     showOnboardingModal,
     hasOnboardingBeenShown,
     setOnOnboardingComplete
@@ -99,6 +100,7 @@ initDeleteEmptyModal(document.body);
 initDeleteAreaModal(document.body);
 initRegionSelectorModal(document.body);
 initOnboardingModal(document.body);
+initHelpModal(document.body);
 
 // ====================================================================
 // STAGE LAYOUT INIT

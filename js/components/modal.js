@@ -49,5 +49,12 @@ export {
     createRegionSelectorFooterButton
 } from './modals/regionSelectorModal.js';
 
+// ---- Help ----
+export {
+    initHelpModal,
+    showHelpModal,
+    hideHelpModal
+} from './modals/helpModal.js';
+
 // ---- Unified element getter ----
 export { getModalElements } from './modals/getModalElements.js';

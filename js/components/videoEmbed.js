@@ -34,7 +34,7 @@ function sanitiseVideoId(videoId) {
  * @param {string} videoId — YouTube video ID
  * @returns {HTMLElement}  — container ready to append into the DOM
  */
-export function createVideoEmbed(videoId = 'TeL9O6yiCMs') {
+export function createVideoEmbed(videoId = '2LGwMr0mNc4', titleText = 'Pain & Symptom Assessment Form') {
     const safeId = sanitiseVideoId(videoId);
 
     const container = document.createElement('div');
@@ -43,7 +43,7 @@ export function createVideoEmbed(videoId = 'TeL9O6yiCMs') {
     // Title
     const title = document.createElement('span');
     title.className = 'summary-title';
-    title.textContent = 'Pain & Symptom Assessment Form';
+    title.textContent = titleText;
 
     // Thumbnail wrapper
     const thumbnail = document.createElement('div');
@@ -63,7 +63,8 @@ export function createVideoEmbed(videoId = 'TeL9O6yiCMs') {
 
     thumbnail.append(img, playBtn);
 
-    container.append(title, thumbnail);
+    if (titleText) container.append(title, thumbnail);
+    else container.append(thumbnail);
 
     ensureOverlay();
 
