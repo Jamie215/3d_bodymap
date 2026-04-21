@@ -71,6 +71,8 @@ export function setStage(stage, isRelayout = false) {
     const viewportType = responsive.getViewportType();
     document.documentElement.setAttribute('data-viewport', viewportType);
 
+    canvasContent.querySelectorAll('.canvas-floating-btn').forEach(el => el.remove());
+
     // Clear all slots
     slotHeader.innerHTML  = '';
     slotLeft.innerHTML    = '';
@@ -112,8 +114,8 @@ function layoutSummary(summary, isRelayout) {
     slotRight.appendChild(summary.summaryStatusPanel);
     slotFooter.appendChild(summary.summaryFooter);
 
-    // Help button floats over the canvas (same as drawing view)
-    if (summary.helpButton) {
+    // Help button floats only when areas exist
+    if (summary.helpButton && AppState.drawingInstances > 0) {
         canvasContent.appendChild(summary.helpButton);
     }
 

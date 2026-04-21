@@ -231,10 +231,7 @@
   display: block;
   height: auto;
   width: calc(100% + var(--space-lg) * 2);
-  margin-left: calc(var(--space-lg) * -1);
-  margin-right: calc(var(--space-lg) * -1);
-  margin-top: var(--space-md);
-  margin-bottom: var(--space-md);
+  margin: var(--space-md) 0;
   border-radius: var(--border-radius);
   border: 1px solid #e5e7eb;
 }

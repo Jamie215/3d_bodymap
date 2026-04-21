@@ -120,9 +120,9 @@ export function createSummaryView() {
     function renderEmpty() {
         changeModelButton.style.display   = 'inline-flex';
         summaryDoneButton.style.display   = 'none';
-        helpButton.style.display         = 'none';
 
         summaryStatusPanel.textContent = '';
+        helpButton.style.display = 'none';
         summaryStatusPanel.appendChild(createVideoEmbed());
     }
 
@@ -130,9 +130,11 @@ export function createSummaryView() {
         changeModelButton.style.display = 'none';
         summaryDoneButton.style.display = '';
         summaryDoneButton.disabled      = false;
-        helpButton.style.display       = 'inline-flex';
 
         summaryStatusPanel.textContent = '';
+
+        helpButton.style.display = 'inline-flex';
+        summaryStatusPanel.appendChild(helpButton);
 
         const wrapper = document.createElement('div');
         wrapper.className = 'summary-with-areas';

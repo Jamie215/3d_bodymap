@@ -50,7 +50,7 @@ export function initHelpModal(container) {
     helpTitleEl = document.createElement('h2');
     helpTitleEl.id = 'help-modal-title';
     helpTitleEl.className = 'help-modal-title';
-    helpTitleEl.textContent = 'Help';
+    helpTitleEl.innerHTML = '<span>Help</span> <i class="fa-solid fa-circle-question"></i>';
 
     helpCloseButton = document.createElement('button');
     helpCloseButton.className = 'help-modal-close';

@@ -1184,6 +1184,7 @@ h3.control-title { margin-bottom: 20px; }
    Video Embed (Summary)
 ========================= */
 .summary-video-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
