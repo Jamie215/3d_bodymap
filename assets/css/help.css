@@ -21,13 +21,6 @@
   pointer-events: auto;
 }
 
-/* Hide scrim on desktop — panel floats freely, canvas stays visible */
-@media (min-width: 768px) {
-  .help-modal-scrim {
-    display: none !important;
-  }
-}
-
 /* ----- Panel ----- */
 .help-modal {
   position: fixed;
@@ -46,13 +39,13 @@
   opacity: 1;
 }
 
-/* ----- Desktop positioning ----- */
-@media (min-width: 768px) {
+/* ----- Desktop positioning (right-side panel) ----- */
+@media (min-width: 768px) and (orientation: landscape) {
   .help-modal {
     top: 80px;
     right: var(--space-md);
-    width: min(520px, 45vw);
-    max-width: 520px;
+    width: min(560px, 50vw);
+    max-width: 560px;
     max-height: calc(100vh - 160px);
     max-height: calc(100dvh - 160px);
     transform: translateX(20px);
@@ -63,7 +56,25 @@
   }
 }
 
-/* ----- Mobile positioning (full-screen) ----- */
+/* ----- Mobile positioning (top-half panel) ----- */
+@media (max-width: 768px) and (orientation: portrait) {
+  .help-modal {
+    top: var(--space-md);
+    left: var(--space-md);
+    right: var(--space-md);
+    bottom: auto;
+    max-height: 50vh;
+    max-height: 50dvh;
+    width: auto;
+    max-width: none;
+    transform: translateY(-20px);
+  }
+
+  .help-modal.visible {
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 767px) {
   .help-modal {
     top: var(--space-md);
@@ -74,7 +85,6 @@
     max-height: calc(100dvh - var(--space-md) * 2);
     transform: scale(0.95);
   }
-
   .help-modal.visible {
     transform: scale(1);
   }
@@ -219,9 +229,12 @@
 
 .help-block-image {
   display: block;
-  width: 100%;
   height: auto;
-  margin: var(--space-md) 0;
+  width: calc(100% + var(--space-lg) * 2);
+  margin-left: calc(var(--space-lg) * -1);
+  margin-right: calc(var(--space-lg) * -1);
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-md);
   border-radius: var(--border-radius);
   border: 1px solid #e5e7eb;
 }

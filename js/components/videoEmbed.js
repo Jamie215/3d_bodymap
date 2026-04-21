@@ -125,7 +125,7 @@ function ensureOverlay() {
 
 function openOverlay(videoId) {
     const iframe = videoOverlay.querySelector('#summary-video-iframe');
-    iframe.src = `https://www.youtube.com/embed/${sanitiseVideoId(videoId)}?rel=0`;
+    iframe.src = `https://www.youtube.com/embed/${sanitiseVideoId(videoId)}?rel=0&controls=0&playsinline=1&iv_load_policy=3`
     videoOverlay.classList.add('is-active');
     document.body.style.overflow = 'hidden';
 }
