@@ -230,7 +230,7 @@
 .help-block-image {
   display: block;
   height: auto;
-  width: calc(100% + var(--space-lg) * 2);
+  width: 100%;
   margin: var(--space-md) 0;
   border-radius: var(--border-radius);
   border: 1px solid #e5e7eb;
