@@ -32,7 +32,7 @@ export const HELP_CONTENT = {
             a: [
                 { type: 'text', content: 'If you are using a computer, place your cursor over the area you want to adjust and use the scroll wheel to zoom in or out.' },
                 { type: 'text', content: 'If you are using a touchscreen device, pinch your fingers together or apart on the screen to zoom in or out.' },
-                { type: 'video', videoId: '3-9RkAsZAQM', provider: 'youtube'}
+                { type: 'video', videoId: 'mcJio_POOyA', provider: 'youtube'}
             ]
         },
         {
