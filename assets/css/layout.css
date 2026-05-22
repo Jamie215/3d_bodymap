@@ -284,7 +284,7 @@
 :root[data-stage="selection"] .slot-right {
   position: fixed;
   inset: var(--space-md);
-  background: var(--panel-background);
+  background: var(--background-color);
   border-radius: var(--border-radius);
   padding: var(--space-lg);
   z-index: var(--z-overlay);
@@ -308,6 +308,14 @@
     background: transparent;
     box-shadow: none;
     padding: var(--space-md);
+  }
+}
+
+@media (max-width: 767px) {
+  :root[data-stage="selection"] .slot-canvas { display: none; }
+
+  :root[data-stage="selection"] .slot-right {
+    overflow: hidden;
   }
 }
 
