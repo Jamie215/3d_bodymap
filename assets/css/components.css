@@ -1343,3 +1343,70 @@ h3.control-title { margin-bottom: 20px; }
 .driver-popover.app-tooltip.driver-popover-arrow-side-bottom .driver-popover-arrow { border-top-color: var(--panel-background); }
 .driver-popover.app-tooltip.driver-popover-arrow-side-left .driver-popover-arrow { border-right-color: var(--panel-background); }
 .driver-popover.app-tooltip.driver-popover-arrow-side-right .driver-popover-arrow { border-left-color: var(--panel-background); }
+
+/* =========================
+   Summary Canvas Header (mobile)
+========================= */
+.summary-canvas-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
+  text-align: center;
+  background: var(--background-color);
+  flex-shrink: 0;
+}
+
+.summary-canvas-header .summary-canvas-title {
+  font-size: var(--font-title-large);
+  font-weight: 800;
+  color: var(--secondary-color);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.summary-video-link {
+  color: var(--primary-color);
+  font-size: var(--font-body-medium);
+  text-decoration: underline;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: var(--space-2xs) var(--space-xs);
+  font-family: inherit;
+}
+
+.summary-video-link:hover,
+.summary-video-link:focus-visible {
+  color: var(--dark-blue);
+}
+
+/* =========================
+   Summary Footer — Mobile
+   Stack buttons vertically; restyle change-model button
+   since it leaves the canvas toolbar.
+========================= */
+@media (max-width: 767px) {
+  #footer-summary {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+  }
+
+  #footer-summary .button {
+    width: 100%;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  #footer-summary #change-model-button {
+    color: var(--primary-color);
+    font-size: var(--font-button-medium);
+    font-weight: 600;
+  }
+
+  #footer-summary #change-model-button:hover {
+    color: var(--dark-blue);
+  }
+}

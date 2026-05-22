@@ -110,17 +110,44 @@ export function setStage(stage, isRelayout = false) {
 // ============================================================================
 
 function layoutSummary(summary, isRelayout) {
-    canvasToolbar.appendChild(summary.changeModelButton);
+    // Change-model button placement by viewport:
+    //   Desktop/tablet — canvas toolbar
+    //   Mobile         — summary footer, just above "Add a New Pain or Symptom"
+    // Visibility is controlled by summary.updateSummaryStatus(): the button is
+    // shown only in the empty state, hidden once any area is recorded — so the
+    // selection view stays unreachable from summary once areas exist.
+    if (responsive.is('isMobile')) {
+        summary.summaryFooter.insertBefore(
+            summary.changeModelButton,
+            summary.addNewInstanceButton
+        );
+    } else {
+        canvasToolbar.appendChild(summary.changeModelButton);
+    }
     slotRight.appendChild(summary.summaryStatusPanel);
     slotFooter.appendChild(summary.summaryFooter);
+
+    const hasAreas = AppState.drawingInstances.length > 0;
+    const isMobile = responsive.is('isMobile');
+
+    // Mobile + empty state: place title + "How do I use this form" link
+    // above the 3D model, between the canvas toolbar and canvas content.
+    if (isMobile && !hasAreas) {
+        const canvasPanel = canvasContent.parentElement;
+        if (canvasPanel && !canvasPanel.contains(summary.mobileCanvasHeader)) {
+            canvasPanel.insertBefore(summary.mobileCanvasHeader, canvasContent);
+        }
+    } else {
+        summary.mobileCanvasHeader.remove();
+    }
 
     // Help button floats only when areas exist
     if (summary.helpButton && AppState.drawingInstances > 0) {
         canvasContent.appendChild(summary.helpButton);
     }
 
-    // Mobile: toggle button for summary panel
-    if (responsive.is('isMobile')) {
+    // Mobile "View Summary" toggle — only useful once there are areas to view
+    if (isMobile && hasAreas) {
         const toggleBtn = document.createElement('button');
         toggleBtn.className = 'button button-secondary';
         toggleBtn.textContent = 'View Summary';
@@ -130,8 +157,14 @@ function layoutSummary(summary, isRelayout) {
         slotFooter.insertBefore(toggleBtn, slotFooter.firstChild);
     }
 
+    // Re-render summary content on viewport relayouts so the desktop video
+    // embed / mobile empty state stays in sync. On real stage entries,
+    // stageRouter.goTo() already calls updateSummaryStatus().
+    if (isRelayout) {
+        summary.updateSummaryStatus();
+    }
+
     // Return-to-summary tooltips (once, after first completed area)
-    // Skip on relayout — tooltips track their own shown-state internally
     if (
         !isRelayout &&
         AppState.drawingInstances.length > 0 &&

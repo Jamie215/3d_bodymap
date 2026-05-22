@@ -489,7 +489,9 @@
   width: 90%;
   max-width: 780px;
   max-height: 85vh;
-  overflow: hidden;
+  max-height: 85dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
   transform: scale(0.95) translateY(20px);
   transition: transform 0.3s ease;
 }
@@ -539,7 +541,6 @@
 @media (max-width: 768px) {
   .onboarding-modal { max-width: 95%; }
   .onboarding-modal-content { padding: var(--space-xl) var(--space-lg); }
-  .onboarding-modal-title { font-size: var(--font-title-medium); }
   .onboarding-modal-subtitle { font-size: var(--font-body-medium); }
   .onboarding-steps { gap: var(--space-md); }
   .onboarding-step { max-width: 180px; }
@@ -549,11 +550,71 @@
 
 @media (max-width: 540px) {
   .onboarding-modal-content { padding: var(--space-lg) var(--space-md); }
-  .onboarding-modal-title { font-size: var(--font-title-small); }
-  .onboarding-modal-subtitle { font-size: var(--font-body-medium); }
+  .onboarding-modal-subtitle { display: none; }
   .onboarding-steps { flex-direction: column; align-items: center; gap: var(--space-lg); }
-  .onboarding-step { flex-direction: row; max-width: 100%; text-align: left; gap: var(--space-md); }
-  .onboarding-step-icon { font-size: 32px; height: auto; min-width: 56px; margin-bottom: 0; }
-  .onboarding-step-content { flex: 1; }
+  .onboarding-step { max-width: 280px; gap: var(--space-md); }
+  .onboarding-step-icon { margin-bottom: var(--space-xs); }
+  .onboarding-step-content { flex: 1; text-align: left; gap: var(--space-md); }
   .onboarding-start-btn { width: 100%; max-width: 320px; min-height: 48px; font-size: var(--font-button-small); }
+}
+
+/* =========================
+   Onboarding — Mobile Fullscreen
+========================= */
+@media (max-width: 767px) {
+  .onboarding-modal-overlay { padding: 0; }
+
+  .onboarding-modal {
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+    transform: translateY(20px);
+  }
+
+  .onboarding-modal-overlay.visible .onboarding-modal {
+    transform: translateY(0);
+  }
+
+  .onboarding-modal-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--space-xl) var(--space-lg);
+  }
+}
+
+/* Short viewports (mobile landscape) — let the content scroll and
+   tighten vertical padding so steps + button fit without clipping. */
+@media (max-height: 500px) {
+  .onboarding-modal {
+    max-height: 95vh;
+    max-height: 95dvh;
+  }
+  .onboarding-modal-content {
+    padding: var(--space-md) var(--space-lg);
+  }
+  .onboarding-modal-title {
+    margin-bottom: var(--space-xs);
+  }
+  .onboarding-modal-subtitle {
+    margin-bottom: var(--space-md);
+  }
+  .onboarding-steps {
+    flex-direction: row;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+  .onboarding-step-icon {
+    font-size: 28px;
+    height: 40px;
+    margin-bottom: var(--space-xs);
+  }
+  .onboarding-start-btn {
+    min-height: 44px;
+  }
 }

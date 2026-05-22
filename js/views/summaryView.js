@@ -1,10 +1,15 @@
 // summaryView.js
 // Summary stage: shows logged pain/symptom areas with edit/delete actions,
-// or the getting-started video when no areas exist yet.
+// or — on desktop empty state — the getting-started video.
+// On mobile empty state the title + a "How do I use this form" link
+// are placed above the 3D model by stageLayout.
 
 import AppState from '../app/state.js';
-import { createVideoEmbed } from '../components/videoEmbed.js';
+import { createVideoEmbed, createVideoLink } from '../components/videoEmbed.js';
 import { showHelpModal } from '../components/modal.js';
+import { getResponsiveManager } from '../utils/responsiveManager.js';
+
+const responsive = getResponsiveManager();
 
 export function createSummaryView() {
     const modelSummaryView = document.createElement('div');
@@ -28,9 +33,20 @@ export function createSummaryView() {
     helpButton.classList.add('button', 'canvas-floating-btn');
     helpButton.style.display = 'none';
     helpButton.innerHTML = '<span>Help</span><i class="fa-solid fa-circle-question"></i>';
-    helpButton.addEventListener('click', ()=> { 
+    helpButton.addEventListener('click', () => {
         showHelpModal('summary');
     });
+
+    // ── Mobile canvas header (title + "How do I use this form" link) ──
+    // Placed in the canvas panel by stageLayout on mobile empty state.
+    const mobileCanvasHeader = document.createElement('div');
+    mobileCanvasHeader.className = 'summary-canvas-header';
+
+    const mobileTitle = document.createElement('h2');
+    mobileTitle.className = 'summary-canvas-title';
+    mobileTitle.textContent = 'Pain & Symptom Assessment Form';
+
+    mobileCanvasHeader.append(mobileTitle, createVideoLink());
 
     // ── Footer ─────────────────────────────────────────────────────────
     const summaryFooter = document.createElement('div');
@@ -112,18 +128,24 @@ export function createSummaryView() {
         wrapper.append(icon, title, thankYou, logged);
         summaryStatusPanel.appendChild(wrapper);
 
-        summaryDoneButton.style.display      = 'none';
-        addNewInstanceButton.style.display   = 'none';
-        helpButton.style.display             = 'none';
+        summaryDoneButton.style.display    = 'none';
+        addNewInstanceButton.style.display = 'none';
+        helpButton.style.display           = 'none';
     }
 
     function renderEmpty() {
-        changeModelButton.style.display   = 'inline-flex';
-        summaryDoneButton.style.display   = 'none';
+        changeModelButton.style.display = 'inline-flex';
+        summaryDoneButton.style.display = 'none';
+        helpButton.style.display        = 'none';
 
         summaryStatusPanel.textContent = '';
-        helpButton.style.display = 'none';
-        summaryStatusPanel.appendChild(createVideoEmbed());
+
+        // Desktop: show the video embed in the side panel.
+        // Mobile: title + link is rendered into the canvas panel by stageLayout —
+        // leave summaryStatusPanel empty so the (hidden) right slot stays clean.
+        if (!responsive.is('isMobile')) {
+            summaryStatusPanel.appendChild(createVideoEmbed());
+        }
     }
 
     function renderAreaList(count) {
@@ -158,11 +180,6 @@ export function createSummaryView() {
         summaryStatusPanel.appendChild(wrapper);
     }
 
-    /**
-     * Build a single area card with edit/delete buttons.
-     * All dynamic values (color, index) are set via DOM properties,
-     * never interpolated into markup strings.
-     */
     function createAreaItem(instance, index) {
         const areaNum = index + 1;
 
@@ -170,7 +187,6 @@ export function createSummaryView() {
         item.className = 'area-item';
         item.dataset.index = index;
 
-        // Area info
         const info = document.createElement('div');
         info.className = 'area-info';
 
@@ -181,7 +197,6 @@ export function createSummaryView() {
 
         info.appendChild(number);
 
-        // Action buttons
         const actions = document.createElement('div');
         actions.className = 'area-actions';
 
@@ -209,8 +224,6 @@ export function createSummaryView() {
         return item;
     }
 
-    // ── Public interface ───────────────────────────────────────────────
-
     return {
         root: modelSummaryView,
         updateSummaryStatus,
@@ -218,6 +231,7 @@ export function createSummaryView() {
         summaryFooter,
         changeModelButton,
         helpButton,
+        mobileCanvasHeader,
         addNewInstanceButton,
         summaryDoneButton,
         setEditCallback,

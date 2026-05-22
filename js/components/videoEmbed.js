@@ -74,6 +74,32 @@ export function createVideoEmbed(videoId = '2LGwMr0mNc4', titleText = 'Pain & Sy
     return container;
 }
 
+/**
+ * Create a hyperlink that opens the video overlay when clicked.
+ * Reuses the same overlay as createVideoEmbed.
+ *
+ * @param {string} videoId  — YouTube video ID
+ * @param {string} linkText — link label text
+ * @returns {HTMLAnchorElement}
+ */
+export function createVideoLink(videoId = '2LGwMr0mNc4', linkText = '<i class="fa-solid fa-circle-play">&emsp;</i>How do I use this form?') {
+    const safeId = sanitiseVideoId(videoId);
+
+    const link = document.createElement('a');
+    link.className = 'summary-video-link';
+    link.href = '#';
+    link.innerHTML = linkText;
+
+    ensureOverlay();
+
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        openOverlay(safeId);
+    });
+
+    return link;
+}
+
 // ============================================================================
 // INTERNAL — OVERLAY LIFECYCLE
 // ============================================================================
