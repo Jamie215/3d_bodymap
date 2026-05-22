@@ -20,7 +20,7 @@ export function initOnboardingModal(container) {
 
     onboardingModalEl.innerHTML = `
         <div class="onboarding-modal-content modal-body">
-            <h2 class="onboarding-modal-title modal-title">Steps to Complete Survey</h2>
+            <h2 class="onboarding-modal-title modal-title">Steps to Complete Form</h2>
             <p class="onboarding-modal-subtitle modal-subtitle">Complete these steps for one area of pain or symptom at a time. If you have multiple areas, you will repeat the steps for each one.</p>
             
             <div class="onboarding-steps">
