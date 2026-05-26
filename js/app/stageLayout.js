@@ -72,6 +72,7 @@ export function setStage(stage, isRelayout = false) {
     document.documentElement.setAttribute('data-viewport', viewportType);
 
     canvasContent.querySelectorAll('.canvas-floating-btn').forEach(el => el.remove());
+    canvasContent.parentElement?.querySelector('.summary-canvas-header')?.remove();
 
     // Clear all slots
     slotHeader.innerHTML  = '';

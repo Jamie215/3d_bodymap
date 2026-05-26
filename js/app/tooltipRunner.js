@@ -2,7 +2,7 @@
 // Thin wrapper around Driver.js that runs tooltip sequences.
 // Consumes step definitions from tooltipSteps.js.
 
-import { DRAWING_STEPS, RETURN_TO_SUMMARY_STEPS, DRIVER_CONFIG } from './tooltipSteps.js';
+import { buildDrawingSteps, RETURN_TO_SUMMARY_STEPS, DRIVER_CONFIG } from './tooltipSteps.js';
 
 // Track which sequences have already been shown this session
 let hasShownDrawingTooltips = false;
@@ -16,14 +16,21 @@ let hasShownReturnTooltips  = false;
  * Create a Driver.js instance, merge the shared config with the
  * supplied steps, and drive after a short delay.
  *
- * @param {Object[]} steps   — Driver.js step definitions
- * @param {number}   delay   — ms to wait before starting (default 500)
+ * Steps can be passed as an array, or as a builder function returning
+ * an array (used by sequences whose targeting varies with viewport).
+ *
+ * @param {Object[]|Function} stepsOrBuilder
+ * @param {number} delay — ms to wait before starting (default 500)
  */
-function runSequence(steps, delay = 500) {
+function runSequence(stepsOrBuilder, delay = 500) {
     if (typeof window.driver === 'undefined' || !window.driver?.js?.driver) {
         console.warn('Driver.js not loaded — skipping tooltips');
         return;
     }
+
+    const steps = typeof stepsOrBuilder === 'function'
+        ? stepsOrBuilder()
+        : stepsOrBuilder;
 
     const driverInstance = window.driver.js.driver({
         ...DRIVER_CONFIG,
@@ -45,7 +52,7 @@ function runSequence(steps, delay = 500) {
 export function runDrawingTooltips() {
     if (hasShownDrawingTooltips) return;
     hasShownDrawingTooltips = true;
-    runSequence(DRAWING_STEPS, 1500);
+    runSequence(buildDrawingSteps, 1500);
 }
 
 /**

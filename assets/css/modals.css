@@ -296,6 +296,7 @@
 }
 
 @media (max-width: 480px) {
+  .modal-close-btn { top: 6px; right: 6px; width: 32px; height: 32px; }
   .modal-content { padding: var(--space-md); }
   #modal-text, #reset-modal-text, #delete-empty-text { font-size: var(--font-title-small); }
   .modal-button { padding: var(--space-sm) var(--space-md); font-size: var(--font-button-small); height: 48px; min-height: 48px; }
@@ -397,18 +398,22 @@
 .region-confirm-btn:disabled { background: #ccc; color: #888; cursor: not-allowed; transform: none; box-shadow: none; }
 
 @media (max-width: 768px) {
-  .region-modal { width: 95%; max-height: 90vh; }
-  .region-modal-content { flex-direction: column; min-height: auto; padding: var(--space-lg); }
-  .region-modal-title { font-size: var(--font-title-medium); }
-  .region-modal-instruction { font-size: var(--font-body-medium); }
+  .region-modal { width: 95%; max-height: 95vh; max-height: 95dvh;}
+  .region-modal-content { flex-direction: column; min-height: auto; padding: var(--space-md); max-height: 95vh; max-height: 95dvh; overflow-y: auto; }
+  .region-modal-icon { font-size: var(--font-title-medium); margin-bottom: var(--space-xs); }
+  .region-modal-title      { font-size: var(--font-title-medium); }
+  .region-modal-instruction { display: none; }
+  .region-selectors { gap: var(--space-sm); margin-bottom: var(--space-sm); }
+  .selector-group { flex-direction: column; align-items: stretch; gap: var(--space-2xs); }
+  .region-confirm-btn { max-width: 100%; }
 }
 
-@media (max-width: 480px) {
+/* @media (max-width: 480px) {
   .region-modal-content { padding: var(--space-md); }
   .region-modal-title { font-size: var(--font-title-small); }
   .region-select { padding: var(--space-sm); min-height: 48px; }
   .region-confirm-btn { padding: var(--space-sm) var(--space-md); min-height: 48px; font-size: var(--font-button-small); }
-}
+} */
 
 @media (prefers-reduced-motion: reduce) {
   .region-modal-overlay, .region-modal, .region-select,
@@ -561,7 +566,7 @@
 /* =========================
    Onboarding — Mobile Fullscreen
 ========================= */
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .onboarding-modal-overlay { padding: 0; }
 
   .onboarding-modal {

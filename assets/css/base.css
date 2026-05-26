@@ -47,14 +47,17 @@
   --font-title-large: 28px;
   --font-title-medium: 22px;
   --font-title-small: 18px;
+  --font-title-xsmall: 16px;
   
   --font-body-large: 20px;
   --font-body-medium: 18px;
   --font-body-small: 16px;
+  --font-body-xsmall: 14px;
   
   --font-button-large: 20px;
   --font-button-medium: 18px;
   --font-button-small: 16px;
+  --font-button-xsmall: 14px;
   
   --font-label: 16px;
   --font-input: 16px;

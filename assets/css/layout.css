@@ -517,13 +517,6 @@
     justify-content: center;
   }
   
-  :root[data-stage="drawing"] .slot-left .button-draw-control svg {
-    width: 20px;
-    height: 20px;
-    order: 0;
-    margin: 0;
-  }
-  
   :root[data-stage="drawing"] .slot-left .button-draw-control span {
     order: 1;
     white-space: nowrap;
@@ -662,13 +655,6 @@
     max-width: 130px;
     align-items: center;
     justify-content: center;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .button-draw-control svg {
-    width: 20px;
-    height: 20px;
-    order: 0;
-    margin: 0;
   }
   
   :root[data-stage="drawing"] .slot-left .button-draw-control span {
@@ -832,7 +818,7 @@
     padding: var(--space-xs) var(--space-sm);
     font-size: var(--font-body-small);
     gap: var(--space-xs);
-    flex: 0 0 20%;
+    flex: 0 0 auto;
     align-items: center;
     justify-content: center;
   }
@@ -889,3 +875,155 @@
 }
 
 :root[data-stage="general-survey"] #edit-drawing-button { display: none !important; }
+
+/* =========================
+   Marker-Size Popover
+   Active only at mobile + tablet-portrait breakpoints.
+   Outside these media queries, .marker-size-popover and
+   .marker-size-trigger have no effect — the slider stays
+   inline (vertical on desktop, horizontal in tablet-landscape
+   toolbar) and the chevron is hidden.
+========================= */
+
+/* Chevron trigger inside Draw/Erase buttons — hidden by default */
+.marker-size-trigger {
+  display: none;
+}
+
+@media (max-width: 1023px) and (orientation: portrait),
+       (max-width: 767px) {
+
+  /* --- Tighten toolbar gaps/padding so all three buttons fit --- */
+  :root[data-stage="drawing"] .slot-left {
+    padding: var(--space-2xs) var(--space-xs);
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+  }
+
+  :root[data-stage="drawing"] .slot-left .drawing-tools-container {
+    padding: 0;
+    gap: var(--space-xs);
+  }
+
+  /* --- Narrower buttons so the toolbar never overflows the viewport --- */
+  :root[data-stage="drawing"] .slot-left #draw-button,
+  :root[data-stage="drawing"] .slot-left #erase-button {
+    max-width: 150px;
+    padding: var(--space-xs) var(--space-2xs);
+    gap: var(--space-2xs);
+  }
+
+  :root[data-stage="drawing"] .slot-left #reset-drawing-button {
+    max-width: 140px;
+    padding: var(--space-xs) var(--space-2xs);
+  }
+
+  /* --- The chevron — compact divided tap target inside Draw/Erase --- */
+  :root[data-stage="drawing"] .slot-left .button-draw-control .marker-size-trigger {
+    display: none;
+  }
+
+  :root[data-stage="drawing"] .slot-left .button-draw-control.button-primary .marker-size-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: var(--space-2xs);
+    padding: 0 var(--space-2xs);
+    border-left: 1px solid currentColor;
+    opacity: 0.75;
+    flex: 0 0 auto;
+    min-width: 22px;
+    align-self: stretch;
+    cursor: pointer;
+    font-size: var(--font-2xs);
+    transition: opacity 0.2s ease;
+    pointer-events: auto;
+  }
+
+  :root[data-stage="drawing"] .slot-left .button-draw-control.button-primary .marker-size-trigger:hover,
+  :root[data-stage="drawing"] .slot-left .button-draw-control.button-primary .marker-size-trigger:focus-visible {
+    opacity: 1;
+    outline: none;
+  }
+
+  /* One-shot attention pulse used by the tooltip walkthrough to draw the */
+  /* user's eye to the chevron just before the popover opens.             */
+  :root[data-stage="drawing"] .slot-left .button-draw-control.button-primary .marker-size-trigger.pulse-once {
+    animation: marker-chevron-pulse 1s ease-in-out;
+  }
+
+  /* --- Hide the inline slider in the toolbar (popover replaces it). --- */
+  :root[data-stage="drawing"] .vertical-slider-container.marker-size-popover {
+    display: none !important;
+  }
+
+  /* --- When opened, the slider becomes a fixed-position popover --- */
+  :root[data-stage="drawing"] .vertical-slider-container.marker-size-popover.is-open {
+    display: flex !important;
+    position: fixed !important;
+    top: auto;
+    left: auto;
+    height: auto !important;
+    width: min(90vw, 360px) !important;
+    max-width: 360px !important;
+    min-width: 280px !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg) !important;
+    background: var(--panel-background);
+    border: 1px solid #e5e7eb;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-overlay);
+    animation: marker-popover-fade-in 0.15s ease-out;
+  }
+
+  /* Re-show the label inside the popover (it's hidden in toolbar layouts) */
+  :root[data-stage="drawing"] .vertical-slider-container.marker-size-popover.is-open h2 {
+    display: block !important;
+    font-size: var(--font-body-small);
+    font-weight: 600;
+    color: var(--secondary-color);
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  /* Slider wrapper fills the remaining horizontal space */
+  :root[data-stage="drawing"] .vertical-slider-container.marker-size-popover.is-open .slider-wrapper {
+    flex: 1 1 auto;
+    height: auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  /* The slider itself — horizontal, full width of the wrapper */
+  :root[data-stage="drawing"] .vertical-slider-container.marker-size-popover.is-open .vertical-slider {
+    transform: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 8px !important;
+  }
+}
+
+@keyframes marker-popover-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes marker-chevron-pulse {
+  0%   { transform: scale(1);    opacity: 0.75; }
+  40%  { transform: scale(1.35); opacity: 1;    }
+  70%  { transform: scale(0.95); opacity: 1;    }
+  100% { transform: scale(1);    opacity: 0.75; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-stage="drawing"] .vertical-slider-container.marker-size-popover.is-open {
+    animation: none;
+  }
+}

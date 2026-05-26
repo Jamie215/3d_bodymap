@@ -70,14 +70,6 @@
   line-height: 1.2;
 }
 
-.button-draw-control svg {
-  margin: 0;
-  flex-shrink: 0;
-  order: -1;
-  width: 24px;
-  height: 24px;
-}
-
 .button-draw-control span {
   display: block;
   word-wrap: break-word;
@@ -320,14 +312,6 @@ input[type="range"]::-moz-range-thumb {
   font-size: var(--font-body-large);
   color: var(--dark-grey);
   line-height: 1.5;
-}
-
-.instruction svg {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  color: var(--primary-color);
-  margin-top: 2px;
 }
 
 .reset-view-button {
@@ -747,12 +731,16 @@ h3.control-title { margin-bottom: 20px; }
 }
 
 @media (max-width: 480px) {
+  .button {
+    padding: var(--space-xs) !important;
+    font-size: var(--font-button-xsmall) !important;
+  }
   #footer-drawing { gap: var(--space-sm); }
-  #footer-drawing .button { padding: var(--space-sm); font-size: var(--font-body-small); }
+  #footer-drawing .button { padding: var(--space-sm); }
   
-  :root[data-stage="drawing"] #drawing-status-bar { padding: var(--space-2xs) var(--space-xs); }
-  .status-title { font-size: var(--font-title-small); }
-  .status-badge { font-size: var(--font-body-small); padding: 4px 12px; }
+  :root[data-stage="drawing"] #drawing-status-bar { padding: var(--space-xs) !important; }
+  .status-title { font-size: var(--font-title-small) !important; }
+  .status-badge { font-size: var(--font-body-xsmall); padding: 4px 12px; }
   .status-instruction { font-size: var(--font-body-small); }
 }
 
@@ -808,10 +796,9 @@ h3.control-title { margin-bottom: 20px; }
 }
 
 @media (max-width: 480px) {
-  .region-selector-footer-btn {
-    padding: var(--space-sm) var(--space-md);
-    font-size: var(--font-button-small);
-    min-width: 170px;
+  .button {
+    padding: var(--space-xs) !important;
+    height: 50px;
   }
 }
 
@@ -884,8 +871,6 @@ h3.control-title { margin-bottom: 20px; }
   border-color: var(--danger-color, #ef4444);
   color: var(--danger-color, #ef4444);
 }
-
-.area-delete-btn:hover svg { stroke: var(--danger-color, #ef4444); }
 
 #delete-area-confirm:hover {
   background: var(--danger-color-light, #fee2e2) !important;
@@ -1395,6 +1380,15 @@ h3.control-title { margin-bottom: 20px; }
 .driver-popover.app-tooltip.driver-popover-arrow-side-left .driver-popover-arrow { border-right-color: var(--panel-background); }
 .driver-popover.app-tooltip.driver-popover-arrow-side-right .driver-popover-arrow { border-left-color: var(--panel-background); }
 
+@media (max-width: 480px) {
+  .driver-popover.app-tooltip .driver-popover-title {
+    font-size: var(--font-title-small);
+  }
+  .driver-popover.app-tooltip .driver-popover-description {
+    font-size: var(--font-body-small);
+  }
+}
+
 /* =========================
    Summary Canvas Header (mobile)
 ========================= */
@@ -1459,5 +1453,63 @@ h3.control-title { margin-bottom: 20px; }
 
   #footer-summary #change-model-button:hover {
     color: var(--dark-blue);
+  }
+}
+
+/* =========================
+   Drawing Footer — Mobile + Tablet Portrait
+   Stack the zoom hint on top (full width); place
+   Select Body Region and Done Drawing side-by-side
+   beneath it, each filling half the row. Also swaps
+   the verbose desktop hint for a shorter touch copy.
+========================= */
+
+/* Hide the mobile-only zoom hint variant by default */
+.footer-center-text-mobile { display: none; }
+
+@media (max-width: 1023px) and (orientation: portrait),
+       (max-width: 767px) {
+
+  #footer-drawing {
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: var(--space-xs) var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  /* Zoom hint takes its own row, on top of the buttons. */
+  #footer-drawing .footer-center {
+    order: -1;
+    flex: 0 0 100%;
+    justify-content: center;
+    font-size: var(--font-body-small);
+    color: var(--dark-grey);
+    padding: 0;
+  }
+
+  /* Drop the loop-arrows icon and the verbose desktop copy on touch */
+  #footer-drawing .footer-center .footer-center-icon,
+  #footer-drawing .footer-center .footer-center-text-desktop {
+    display: none;
+  }
+
+  #footer-drawing .footer-center .footer-center-text-mobile {
+    display: inline;
+  }
+
+  /* Two-button row underneath, equal width, no shrink-pinning */
+  #footer-drawing .footer-left,
+  #footer-drawing .footer-right {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* Buttons fill their column; drop the min-widths from
+     .footer .button (820px rule) and .region-selector-footer-btn
+     (480px rule) so they can shrink under content. */
+  #footer-drawing .footer-left  .region-selector-footer-btn,
+  #footer-drawing .footer-right .button-done-drawing {
+    width: 100%;
+    min-width: 0;
   }
 }
