@@ -51,16 +51,6 @@ function buildMarkerSizeChevronStep() {
 
             // Draw the user's eye to the chevron with a one-shot pulse.
             api.pulseChevron();
-        },
-        onDeselected: () => {
-            // Open the popover here, *before* Driver.js advances to the
-            // next (slider) step. Driver.js measures the slider element
-            // before the next step's onHighlightStarted runs, so the
-            // popover must already be visible by that point — otherwise
-            // the highlight box captures the slider's pre-open
-            // (display:none) bounds.
-            const api = window.__markerSizePopover;
-            if (api) api.openOnActive();
         }
     };
 }

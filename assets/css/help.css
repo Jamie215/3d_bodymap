@@ -1,7 +1,7 @@
 /* =========================
    Help Modal — Hybrid Panel
-   Desktop (≥768px): fixed right-side panel, no scrim
-   Mobile  (<768px): full-screen modal with scrim
+   Desktop / tablet-landscape (≥768px landscape): right-side panel, no scrim
+   Mobile + tablet-portrait               : full-screen modal with scrim
 ========================= */
 
 /* ----- Scrim (mobile only) ----- */
@@ -39,7 +39,7 @@
   opacity: 1;
 }
 
-/* ----- Desktop positioning (right-side panel) ----- */
+/* ----- Desktop / tablet-landscape positioning (right-side panel) ----- */
 @media (min-width: 768px) and (orientation: landscape) {
   .help-modal {
     top: 80px;
@@ -56,26 +56,9 @@
   }
 }
 
-/* ----- Mobile positioning (top-half panel) ----- */
-@media (max-width: 768px) and (orientation: portrait) {
-  .help-modal {
-    top: var(--space-md);
-    left: var(--space-md);
-    right: var(--space-md);
-    bottom: auto;
-    max-height: 50vh;
-    max-height: 50dvh;
-    width: auto;
-    max-width: none;
-    transform: translateY(-20px);
-  }
-
-  .help-modal.visible {
-    transform: translateY(0);
-  }
-}
-
-@media (max-width: 767px) {
+/* ----- Mobile + tablet-portrait positioning (fullscreen modal) ----- */
+@media (max-width: 1023px) and (orientation: portrait),
+       (max-width: 767px) {
   .help-modal {
     top: var(--space-md);
     left: var(--space-md);
@@ -110,8 +93,8 @@
 }
 
 .help-modal-close {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: none;
   background: transparent;

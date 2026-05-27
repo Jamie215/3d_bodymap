@@ -19,7 +19,7 @@ export function createDrawingControls(drawingControlsPanel) {
     drawButton.innerHTML = `
         <i class="fa-solid fa-brush"></i>
         <span>Draw</span>
-        <span class="marker-size-trigger" role="button" tabindex="0" aria-label="Adjust marker size" ${isPopoverMode() ? '' : 'style="display:none;"'}>
+        <span class="marker-size-trigger" role="button" tabindex="0" aria-label="Adjust marker size">
                 <i class="fa-solid fa-chevron-down"></i>
         </span>
     `;
@@ -31,7 +31,7 @@ export function createDrawingControls(drawingControlsPanel) {
     eraseButton.innerHTML = `
         <i class="fa-solid fa-eraser"></i>
         <span>Erase</span>
-        <span class="marker-size-trigger" role="button" tabindex="0" aria-label="Adjust eraser size" ${isPopoverMode() ? '' : 'style="display:none;"'}>
+        <span class="marker-size-trigger" role="button" tabindex="0" aria-label="Adjust eraser size">
             <i class="fa-solid fa-chevron-down"></i>
         </span>
     `;
@@ -110,6 +110,10 @@ export function createDrawingControls(drawingControlsPanel) {
             originalParent.appendChild(sliderContainer);
             originalParent = null;
         }
+
+        // Clear popover positioning styles that were set for body-attachment
+        sliderContainer.style.left = '';
+        sliderContainer.style.top = '';
     }
 
     function openPopover(anchorButton) {

@@ -241,6 +241,7 @@
   padding: var(--space-lg);
   z-index: var(--z-overlay);
   max-height: 40vh;
+  max-height: 40dvh;
   overflow-y: auto;
 }
 
@@ -321,6 +322,7 @@
 
 /* =========================
    Stage Layout: DRAWING
+   Common rules — apply at every viewport.
 ========================= */
 :root[data-stage="drawing"] {
   overflow: hidden;
@@ -366,7 +368,7 @@
   padding: 0 !important;
 }
 
-/* Drawing - Desktop 2-column */
+/* ---- Drawing — Desktop (≥1024) — 2-column with vertical sidebar ---- */
 @media (min-width: 1024px) {
   :root[data-stage="drawing"] .app-shell {
     grid-template-areas:
@@ -400,8 +402,11 @@
   }
 }
 
-/* Drawing - Tablet */
-@media (min-width: 768px) and (max-width: 1023px) {
+/* ---- Drawing — Tablet landscape (768–1023, landscape) ----
+   Horizontal toolbar above the canvas with the slider rendered inline.
+   The marker-size popover is NOT active at this viewport — see the
+   .marker-size-popover rules at the bottom of this file.                */
+@media (min-width: 768px) and (max-width: 1023px) and (orientation: landscape) {
   :root[data-stage="drawing"] .app-shell {
     grid-template-areas:
       "header"
@@ -413,7 +418,7 @@
   
   :root[data-stage="drawing"] .slot-left {
     grid-area: toolbar;
-    display: flex !important;
+    display: flex;
     width: 100%;
     gap: var(--space-sm);
     padding: var(--space-xs) var(--space-md);
@@ -453,7 +458,7 @@
   :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 { display: none; }
   
   :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
-    display: flex !important;
+    display: flex;
     flex-direction: row;
     align-items: center;
     gap: var(--space-sm);
@@ -523,14 +528,24 @@
   }
 }
 
-/* Drawing - Mobile/Portrait */
-@media (max-width: 767px) {
+/* ---- Drawing — Mobile + tablet-portrait ----
+   Horizontal toolbar above the canvas; the marker-size slider is hidden
+   inline and lives in a popover instead — drawingControls.js re-parents
+   the .vertical-slider-container to <body> on first open, so the inline
+   slider rules from desktop / tablet-landscape don't apply here.
+
+   This compound query matches the popover-mode media query used in JS:
+   layout.css "Marker-Size Popover" block + drawingControls.js `popoverMq`.
+========================= */
+@media (max-width: 1023px) and (orientation: portrait),
+       (max-width: 767px) {
   :root[data-stage="drawing"] .app-shell {
     grid-template-areas:
       "header"
       "toolbar"
       "center"
       "footer";
+    grid-template-columns: 1fr;
     grid-template-rows: auto auto 1fr auto;
   }
   
@@ -551,23 +566,55 @@
   
   :root[data-stage="drawing"] .slot-left {
     grid-area: toolbar;
-    display: flex !important;
+    display: flex;
     width: 100%;
     padding: var(--space-xs) var(--space-sm);
     overflow-x: auto;
     overflow-y: hidden;
     background: var(--panel-background);
     border-bottom: 1px solid #e5e7eb;
-    min-height: 64px;
+    min-height: 60px;
   }
   
   :root[data-stage="drawing"] .slot-right { display: none; }
+  
+  :root[data-stage="drawing"] .slot-canvas {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
   
   :root[data-stage="drawing"] .slot-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: var(--space-sm) var(--space-md);
+  }
+
+  /* Center the Done Drawing button when the drawing-nav siblings are
+     hidden, overriding the absolute-positioning rule lower in this file. */
+  :root[data-stage="drawing"] .slot-footer .button-success {
+    position: static !important;
+    padding-left: 48px !important;
+    padding-right: 48px !important;
+  }
+
+  :root[data-stage="drawing"] #canvas-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+  }
+  
+  :root[data-stage="drawing"] #canvas-content {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
   }
   
   :root[data-stage="drawing"] .slot-left .drawing-tools-container {
@@ -589,7 +636,7 @@
   :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 { display: none; }
   
   :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
-    display: flex !important;
+    display: flex;
     flex-direction: row;
     align-items: center;
     gap: var(--space-xs);
@@ -613,35 +660,11 @@
     min-width: 24px;
     text-align: center;
   }
-  
-  :root[data-stage="drawing"] .slot-left .vertical-slider-container {
-    height: auto !important;
-    width: auto !important;
-    padding: 0 !important;
-    flex-direction: row !important;
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-    flex: 1;
-    max-width: 160px;
-  }
 
-  :root[data-stage="drawing"] .slot-left .slider-wrapper {
-    height: auto;
-    width: auto;
-    flex: 1;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .vertical-slider {
-    transform: none !important;
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    width: 100% !important;
-    max-width: 110px;
-    height: 8px !important;
-  }
+  /* Inline slider/wrapper rules intentionally omitted — the slider is
+     hidden via .marker-size-popover (display:none !important) and
+     re-parented to <body> by drawingControls.js when the popover opens.
+     See the "Marker-Size Popover" block at the bottom of this file.   */
   
   :root[data-stage="drawing"] .slot-left .button-draw-control {
     flex-direction: row !important;
@@ -651,8 +674,7 @@
     padding: var(--space-xs) var(--space-sm);
     font-size: var(--font-body-small);
     gap: var(--space-xs);
-    flex: 1;
-    max-width: 130px;
+    flex: 0 0 auto;
     align-items: center;
     justify-content: center;
   }
@@ -678,155 +700,6 @@
 :root[data-stage="drawing"] .drawing-nav[style*="display: none"] ~ .button-success {
   position: static;
   margin: 0 auto;
-}
-
-/* Mobile footer — portrait orientation */
-@media (max-width: 1023px) and (orientation: portrait) {
-  :root[data-stage="drawing"] .app-shell {
-    grid-template-areas:
-      "header"
-      "toolbar"
-      "center"
-      "footer" !important;
-    grid-template-columns: 1fr !important;
-    grid-template-rows: auto auto 1fr auto !important;
-  }
-  
-  :root[data-stage="drawing"] .slot-header { width: 100%; }
-  :root[data-stage="drawing"] #drawing-header-content { width: 100%; }
-  
-  :root[data-stage="drawing"] #drawing-status-bar {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-  }
-  
-  :root[data-stage="drawing"] .slot-left {
-    grid-area: toolbar !important;
-    display: flex !important;
-    width: 100%;
-    background: var(--panel-background);
-    border-bottom: 1px solid #e5e7eb;
-    min-height: 60px;
-    padding: var(--space-xs) var(--space-sm);
-    overflow-x: auto;
-    overflow-y: hidden;
-  }
-  
-  :root[data-stage="drawing"] .slot-right { display: none !important; }
-  
-  :root[data-stage="drawing"] .slot-canvas {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-  }
-
-  :root[data-stage="drawing"] .slot-footer .button-success {
-    position: static !important;
-    padding-left: 48px !important;
-    padding-right: 48px !important;
-  }
-
-  :root[data-stage="drawing"] #canvas-panel {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-  }
-  
-  :root[data-stage="drawing"] #canvas-content {
-    flex: 1 1 auto;
-    width: 100%;
-    min-width: 0;
-    min-height: 0;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container {
-    flex-direction: row !important;
-    gap: var(--space-md);
-    padding: var(--space-xs) var(--space-md);
-    max-height: none;
-    overflow: visible;
-    width: 100%;
-    justify-content: space-evenly;
-    align-items: center;
-    flex-wrap: nowrap;
-    background: transparent;
-    box-shadow: none;
-    border: none;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .divider,
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 { display: none !important; }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
-    display: flex !important;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-xs);
-    min-width: 100px;
-    max-width: 140px;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section label { display: none; }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section input[type="range"] {
-    width: 70px;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: #e5e7eb;
-    border-radius: 3px;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section .brush-size-value {
-    font-size: var(--font-body-small);
-    min-width: 24px;
-    text-align: center;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .vertical-slider-container {
-    height: auto !important;
-    width: auto !important;
-    padding: 0 !important;
-    flex-direction: row !important;
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-  }
-  
-  :root[data-stage="drawing"] .slot-left .vertical-slider {
-    transform: none !important;
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    max-width: 100% !important;
-    height: 8px !important;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .button-draw-control {
-    flex-direction: row !important;
-    width: auto;
-    min-width: auto;
-    max-width: none;
-    min-height: 44px;
-    padding: var(--space-xs) var(--space-sm);
-    font-size: var(--font-body-small);
-    gap: var(--space-xs);
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .button-draw-control span {
-    order: 1;
-    white-space: nowrap;
-  }
 }
 
 /* =========================
@@ -878,11 +751,11 @@
 
 /* =========================
    Marker-Size Popover
-   Active only at mobile + tablet-portrait breakpoints.
-   Outside these media queries, .marker-size-popover and
-   .marker-size-trigger have no effect — the slider stays
-   inline (vertical on desktop, horizontal in tablet-landscape
-   toolbar) and the chevron is hidden.
+   Active only at mobile + tablet-portrait breakpoints — the compound
+   query matches the popover-mode query in drawingControls.js. Outside
+   these viewports, .marker-size-popover and .marker-size-trigger have
+   no effect — the slider stays inline (vertical on desktop, horizontal
+   in tablet-landscape toolbar) and the chevron is hidden.
 ========================= */
 
 /* Chevron trigger inside Draw/Erase buttons — hidden by default */
@@ -910,13 +783,13 @@
   :root[data-stage="drawing"] .slot-left #draw-button,
   :root[data-stage="drawing"] .slot-left #erase-button {
     max-width: 150px;
-    padding: var(--space-xs) var(--space-2xs);
+    padding: var(--space-xs) var(--space-xs);
     gap: var(--space-2xs);
   }
 
   :root[data-stage="drawing"] .slot-left #reset-drawing-button {
     max-width: 140px;
-    padding: var(--space-xs) var(--space-2xs);
+    padding: var(--space-xs) var(--space-xs);
   }
 
   /* --- The chevron — compact divided tap target inside Draw/Erase --- */
