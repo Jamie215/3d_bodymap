@@ -75,6 +75,7 @@ export function setStage(stage, isRelayout = false) {
     canvasContent.querySelectorAll('.canvas-floating-btn').forEach(el => el.remove());
     canvasContent.parentElement?.querySelector('.summary-canvas-header')?.remove();
     document.documentElement.removeAttribute('data-drawer-state');
+    document.documentElement.classList.remove('summary-has-areas');
 
     // Clear all slots
     slotHeader.innerHTML  = '';
@@ -113,13 +114,14 @@ export function setStage(stage, isRelayout = false) {
 // ============================================================================
 
 function layoutSummary(summary, isRelayout) {
-    // Change-model button placement by viewport:
-    //   Desktop/tablet — canvas toolbar
-    //   Mobile         — summary footer, just above "Add a New Pain or Symptom"
-    // Visibility is controlled by summary.updateSummaryStatus(): the button is
-    // shown only in the empty state, hidden once any area is recorded — so the
-    // selection view stays unreachable from summary once areas exist.
-    if (responsive.is('isMobile')) {
+    const hasAreas = AppState.drawingInstances.length > 0;
+    const isMobile = responsive.is('isMobile');
+
+    // CSS hook: drives the mobile + tablet-portrait "summary-on-top" layout
+    // and the two-button footer row.
+    document.documentElement.classList.toggle('summary-has-areas', hasAreas);
+
+    if (isMobile) {
         summary.summaryFooter.insertBefore(
             summary.changeModelButton,
             summary.addNewInstanceButton
@@ -130,11 +132,7 @@ function layoutSummary(summary, isRelayout) {
     slotRight.appendChild(summary.summaryStatusPanel);
     slotFooter.appendChild(summary.summaryFooter);
 
-    const hasAreas = AppState.drawingInstances.length > 0;
-    const isMobile = responsive.is('isMobile');
-
-    // Mobile + empty state: place title + "How do I use this form" link
-    // above the 3D model, between the canvas toolbar and canvas content.
+    // Mobile + empty state: title + "How do I use this form" link above the model.
     if (isMobile && !hasAreas) {
         const canvasPanel = canvasContent.parentElement;
         if (canvasPanel && !canvasPanel.contains(summary.mobileCanvasHeader)) {
@@ -144,25 +142,16 @@ function layoutSummary(summary, isRelayout) {
         summary.mobileCanvasHeader.remove();
     }
 
-    // Help button floats only when areas exist
-    if (summary.helpButton && AppState.drawingInstances > 0) {
+    // Help button floats top-right over the canvas whenever areas exist.
+    // Placement lives here because canvasContent is a layout-shell element;
+    // summaryView controls only its visibility.
+    if (summary.helpButton && hasAreas) {
         canvasContent.appendChild(summary.helpButton);
     }
 
-    // Mobile "View Summary" toggle — only useful once there are areas to view
-    if (isMobile && hasAreas) {
-        const toggleBtn = document.createElement('button');
-        toggleBtn.className = 'button button-secondary';
-        toggleBtn.textContent = 'View Summary';
-        toggleBtn.onclick = () => {
-            document.documentElement.classList.toggle('show-summary-panel');
-        };
-        slotFooter.insertBefore(toggleBtn, slotFooter.firstChild);
-    }
-
-    // Re-render summary content on viewport relayouts so the desktop video
-    // embed / mobile empty state stays in sync. On real stage entries,
-    // stageRouter.goTo() already calls updateSummaryStatus().
+    // Re-render summary content on viewport relayouts so desktop / mobile
+    // states stay in sync. Real stage entries call updateSummaryStatus()
+    // from stageRouter.goTo().
     if (isRelayout) {
         summary.updateSummaryStatus();
     }
@@ -170,7 +159,7 @@ function layoutSummary(summary, isRelayout) {
     // Return-to-summary tooltips (once, after first completed area)
     if (
         !isRelayout &&
-        AppState.drawingInstances.length > 0 &&
+        hasAreas &&
         !AppState.generalQuestionnaireResponse
     ) {
         runReturnToSummaryTooltips();

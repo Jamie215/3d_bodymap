@@ -740,9 +740,10 @@ h3.control-title { margin-bottom: 20px; }
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--background-color);
 }
 
-#summary-status-panel p { font-size: var(--font-title-medium); margin-bottom: var(--space-md); }
+#summary-status-panel p { margin-bottom: var(--space-md); }
 
 .summary-empty, 
 .summary-complete, 
@@ -809,9 +810,13 @@ h3.control-title { margin-bottom: 20px; }
 #delete-area-text { font-size: var(--font-title-medium); }
 
 @media (max-width: 480px) {
-  .area-item { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
-  .area-actions { width: 100%; justify-content: flex-end; }
-  .area-edit-btn, .area-delete-btn { padding: var(--space-xs) var(--space-md); min-height: 40px; }
+  #summary-status-panel { padding: var(--space-xs); }
+  .summary-title { font-size: var(--font-title-small); }
+  .summary-instruction { font-size: var(--font-body-small); }
+  .area-number { font-size: var(--font-body-small); }
+  .area-item { flex-direction: row; align-items: center; gap: var(--space-sm); }
+  .area-actions { width: 50%; justify-content: flex-end; }
+  .area-edit-btn, .area-delete-btn { font-size: var(--font-button-small); padding: var(--space-xs) var(--space-sm); min-height: 40px; }
 }
 
 /* =========================
@@ -953,6 +958,17 @@ h3.control-title { margin-bottom: 20px; }
 @media (max-width: 400px) {
   .canvas-floating-btn span { display: none; }
   .canvas-floating-btn { padding: var(--space-xs); min-height: 40px; min-width: 40px; justify-content: center; }
+}
+
+@media (min-width: 1024px),
+       (min-width: 768px) and (orientation: landscape) {
+  :root[data-stage="summary"].summary-has-areas .canvas-floating-btn {
+    position: fixed;
+    top: var(--space-md);
+    right: var(--space-md);
+    bottom: auto;
+    left: auto;
+  }
 }
 
 /* Edit Drawing button — full label by default, short label on
@@ -1393,6 +1409,35 @@ h3.control-title { margin-bottom: 20px; }
   #footer-summary #change-model-button:hover {
     color: var(--dark-blue);
   }
+}
+
+/* Has-areas summary footer (mobile + tablet portrait): the two action
+   buttons share one row. The empty-state footer keeps its column stack. */
+@media (max-width: 1023px) and (orientation: portrait),
+       (max-width: 767px) {
+  :root[data-stage="summary"].summary-has-areas #footer-summary {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+
+  :root[data-stage="summary"].summary-has-areas #footer-summary .button {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    white-space: normal;
+    line-height: 1.2;
+  }
+}
+
+/* Short footer labels — full labels on desktop, short on mobile/tablet portrait */
+.summary-btn-text-short { display: none; }
+
+@media (max-width: 1023px) and (orientation: portrait),
+       (max-width: 767px) {
+  :root[data-stage="summary"].summary-has-areas .summary-btn-text-full  { display: none; }
+  :root[data-stage="summary"].summary-has-areas .summary-btn-text-short { display: inline; }
 }
 
 /* =========================

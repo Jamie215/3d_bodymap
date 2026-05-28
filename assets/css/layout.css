@@ -219,9 +219,18 @@
 
 /* =========================
    Stage Layout: SUMMARY
+   Empty state:
+     mobile           → canvas fills; title + video link sit above it
+     tablet+/desktop  → two-column (canvas | video-embed panel)
+   Has-areas state (returning from an area survey):
+     mobile + tablet-portrait   → summary band on top, canvas below,
+                                  two-button footer row
+     tablet-landscape + desktop → two-column (canvas | summary panel)
 ========================= */
 :root[data-stage="summary"] .slot-header { display: none; }
 :root[data-stage="summary"] .slot-left { display: none; }
+
+/* ---- Base (mobile, empty state) ---- */
 :root[data-stage="summary"] .app-shell {
   grid-template-areas:
     "center"
@@ -232,41 +241,54 @@
 
 :root[data-stage="summary"] .slot-right {
   display: none;
-  position: fixed;
-  bottom: 80px;
-  left: var(--space-md);
-  right: var(--space-md);
-  background: var(--panel-background);
-  border-radius: var(--border-radius);
-  padding: var(--space-lg);
-  z-index: var(--z-overlay);
-  max-height: 40vh;
-  max-height: 40dvh;
-  overflow-y: auto;
 }
 
-:root[data-stage="summary"].show-summary-panel .slot-right {
-  display: flex;
-}
-
+/* ---- Tablet+ / desktop: two-column. Drives both the empty-state video
+        panel and the has-areas summary panel on landscape/desktop. ---- */
 @media (min-width: 768px) {
   :root[data-stage="summary"] .app-shell {
     grid-template-areas:
       "center right"
       "footer footer";
     grid-template-columns: 1fr minmax(320px, 45%);
+    grid-template-rows: 1fr auto;
   }
-  
+
   :root[data-stage="summary"] .slot-right {
     display: flex;
-    position: static;
-    bottom: auto;
-    left: auto;
-    right: auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
     background: transparent;
-    box-shadow: none;
-    max-height: none;
   }
+}
+
+/* ---- Has-areas, mobile + tablet portrait: stack summary over canvas.
+        Higher specificity + the compound query override the two-column
+        rule above on tablet portrait, while leaving the empty state alone. ---- */
+@media (max-width: 1023px) and (orientation: portrait),
+       (max-width: 767px) {
+  :root[data-stage="summary"].summary-has-areas .app-shell {
+    grid-template-areas:
+      "right"
+      "center"
+      "footer";
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(140px, 40%) 1fr auto;
+  }
+
+  :root[data-stage="summary"].summary-has-areas .slot-right {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--panel-background);
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  /* Change-model button is hidden once areas exist, so the toolbar would
+     otherwise render as an empty bar above the bottom canvas. */
+  :root[data-stage="summary"].summary-has-areas #canvas-toolbar { display: none; }
 }
 
 /* =========================

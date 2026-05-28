@@ -336,7 +336,7 @@
   }
 
   #survey-inner {
-    --sjs-font-size: var(--font-body-small);
+    --sjs-font-size: var(--font-body-medium);
     --sjs-base-unit: var(--space-2xs);
   }
 

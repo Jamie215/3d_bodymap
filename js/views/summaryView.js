@@ -55,12 +55,16 @@ export function createSummaryView() {
 
     const addNewInstanceButton = document.createElement('button');
     addNewInstanceButton.id = 'add-new-instance-summary';
-    addNewInstanceButton.textContent = 'Add a New Pain or Symptom';
+    addNewInstanceButton.innerHTML =
+        '<span class="summary-btn-text-full">Add a New Pain or Symptom</span>' +
+        '<span class="summary-btn-text-short">Add a New Area</span>';
     addNewInstanceButton.classList.add('button', 'button-primary');
 
     const summaryDoneButton = document.createElement('button');
     summaryDoneButton.id = 'summary-done-button';
-    summaryDoneButton.textContent = 'Proceed to General Questionnaire';
+    summaryDoneButton.innerHTML =
+        '<span class="summary-btn-text-full">Proceed to General Questionnaire</span>' +
+        '<span class="summary-btn-text-short">Continue</span>';
     summaryDoneButton.classList.add('button', 'button-success');
 
     summaryFooter.appendChild(addNewInstanceButton);
@@ -156,7 +160,6 @@ export function createSummaryView() {
         summaryStatusPanel.textContent = '';
 
         helpButton.style.display = 'inline-flex';
-        summaryStatusPanel.appendChild(helpButton);
 
         const wrapper = document.createElement('div');
         wrapper.className = 'summary-with-areas';
