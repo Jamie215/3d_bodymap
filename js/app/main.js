@@ -190,6 +190,15 @@ responsive.on('breakpointChange', (newBreakpoint, oldBreakpoint) => {
 
 responsive.on('isLandscape', (isLandscape) => {
     document.documentElement.setAttribute('data-orientation', isLandscape ? 'landscape' : 'portrait');
+
+    // Portrait↔landscape on a tablet is the same viewport type, so the
+    // breakpointChange handler won't re-run setStage. Re-lay-out here so
+    // orientation-dependent placement (summary help button, area-survey
+    // drawer) follows the rotation.
+    const currentStage = document.documentElement.getAttribute('data-stage');
+    if (currentStage) {
+        requestAnimationFrame(() => setStage(currentStage, true));
+    }
 });
 
 responsive.on('prefersReducedMotion', (prefersReduced) => {

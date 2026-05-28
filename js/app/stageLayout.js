@@ -142,11 +142,20 @@ function layoutSummary(summary, isRelayout) {
         summary.mobileCanvasHeader.remove();
     }
 
-    // Help button floats top-right over the canvas whenever areas exist.
-    // Placement lives here because canvasContent is a layout-shell element;
-    // summaryView controls only its visibility.
+    // Help button: over the canvas in stacked mode; in the summary panel's
+    // top-right corner in two-column mode. Different DOM subtrees, so we place
+    // by layout rather than via CSS alone — #canvas-panel is a containing block
+    // (transform + container-type), so a fixed/absolute button can't escape it
+    // onto slot-right from inside the canvas.
     if (summary.helpButton && hasAreas) {
-        canvasContent.appendChild(summary.helpButton);
+        const isStacked = window.matchMedia(
+            '(max-width: 1023px) and (orientation: portrait), (max-width: 767px)'
+        ).matches;
+        if (isStacked) {
+            canvasContent.appendChild(summary.helpButton);
+        } else {
+            slotRight.insertBefore(summary.helpButton, slotRight.firstChild);
+        }
     }
 
     // Re-render summary content on viewport relayouts so desktop / mobile

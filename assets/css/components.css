@@ -947,6 +947,21 @@ h3.control-title { margin-bottom: 20px; }
   background: rgba(255, 255, 255, 0.95) !important;
 }
 
+/* Summary, two-column (tablet landscape + desktop): the help button lives in
+   the summary panel and pins to its top-right corner. */
+@media (min-width: 1024px),
+       (min-width: 768px) and (orientation: landscape) {
+  :root[data-stage="summary"].summary-has-areas .slot-right {
+    position: relative;
+  }
+  :root[data-stage="summary"].summary-has-areas .slot-right > .canvas-floating-btn {
+    position: sticky;
+    top: var(--space-md);
+    align-self: flex-end;   /* shrink to content, pin right (slot-right is a flex column) */
+    z-index: var(--z-sticky);
+  }
+}
+
 @media (max-width: 767px) {
   .canvas-floating-btn {
     padding: var(--space-xs) var(--space-sm);
