@@ -9,6 +9,7 @@
 import { getResponsiveManager } from '../utils/responsiveManager.js';
 import { setupRegionSelectorForDrawing } from '../components/viewControls.js';
 import { runDrawingTooltips, runReturnToSummaryTooltips, haveDrawingTooltipsShown } from './tooltipRunner.js';
+import { attachSurveyDrawer, detachSurveyDrawer } from '../components/surveyDrawer.js';
 import AppState from './state.js';
 
 // ============================================================================
@@ -73,6 +74,7 @@ export function setStage(stage, isRelayout = false) {
 
     canvasContent.querySelectorAll('.canvas-floating-btn').forEach(el => el.remove());
     canvasContent.parentElement?.querySelector('.summary-canvas-header')?.remove();
+    document.documentElement.removeAttribute('data-drawer-state');
 
     // Clear all slots
     slotHeader.innerHTML  = '';
@@ -220,16 +222,39 @@ function layoutDrawing(drawing, survey, isRelayout) {
 }
 
 function layoutAreaSurvey(survey) {
+    // Stacked layout matches the popover-mode query in tooltipSteps.js
+    // and the mobile + tablet-portrait media queries in layout.css.
+    const isStacked = window.matchMedia(
+        '(max-width: 1023px) and (orientation: portrait), (max-width: 767px)'
+    ).matches;
+
+    if (isStacked) {
+        // Title gets its own band above the canvas; edit button floats
+        // top-right over the canvas; survey panel becomes a bottom
+        // drawer with a grab handle.
+        slotHeader.appendChild(survey.surveyTitle);
+        canvasContent.appendChild(survey.editDrawingButton);
+        survey.editDrawingButton.classList.add('canvas-floating-btn');
+        attachSurveyDrawer(survey.surveyPanel);
+    } else {
+        // Restore: title back inside survey-header; edit button in
+        // the canvas toolbar; no drawer handle.
+        survey.surveyHeader.insertBefore(survey.surveyTitle, survey.surveyHeader.firstChild);
+        canvasToolbar.appendChild(survey.editDrawingButton);
+        survey.editDrawingButton.classList.remove('canvas-floating-btn');
+        detachSurveyDrawer(survey.surveyPanel);
+    }
+
     slotRight.appendChild(survey.surveyPanel);
     slotFooter.appendChild(survey.surveyFooter);
-
-    // Edit-drawing button in toolbar on tablet+
-    if (!responsive.is('isMobile')) {
-        canvasToolbar.appendChild(survey.editDrawingButton);
-    }
 }
 
 function layoutGeneralSurvey(survey) {
+    // Restore — in case we arrived from a stacked area-survey.
+    survey.surveyHeader.insertBefore(survey.surveyTitle, survey.surveyHeader.firstChild);
+    survey.editDrawingButton.classList.remove('canvas-floating-btn');
+    detachSurveyDrawer(survey.surveyPanel);
+
     slotRight.appendChild(survey.surveyPanel);
     slotFooter.appendChild(survey.surveyFooter);
 }

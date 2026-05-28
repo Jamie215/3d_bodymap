@@ -703,15 +703,13 @@
 }
 
 /* =========================
-   Stage Layout: SURVEYS
+   Stage Layout: GENERAL SURVEY
+   Single column at all viewports; canvas hidden on mobile, shown on tablet+.
 ========================= */
-:root[data-stage="area-survey"] .slot-header,
 :root[data-stage="general-survey"] .slot-header { display: none; }
+:root[data-stage="general-survey"] .slot-left   { display: none; }
+:root[data-stage="general-survey"] .slot-canvas { display: none; }
 
-:root[data-stage="area-survey"] .slot-left,
-:root[data-stage="general-survey"] .slot-left { display: none; }
-
-:root[data-stage="area-survey"] .app-shell,
 :root[data-stage="general-survey"] .app-shell {
   grid-template-areas:
     "center"
@@ -719,10 +717,6 @@
   grid-template-columns: 1fr;
 }
 
-:root[data-stage="area-survey"] .slot-canvas,
-:root[data-stage="general-survey"] .slot-canvas { display: none; }
-
-:root[data-stage="area-survey"] .slot-right,
 :root[data-stage="general-survey"] .slot-right {
   grid-area: center;
   display: flex;
@@ -732,22 +726,156 @@
 }
 
 @media (min-width: 768px) {
-  :root[data-stage="area-survey"] .app-shell,
   :root[data-stage="general-survey"] .app-shell {
     grid-template-areas:
       "center right"
       "footer footer";
     grid-template-columns: minmax(320px, 1fr) minmax(420px, 1200px);
   }
-  
-  :root[data-stage="area-survey"] .slot-canvas,
+
   :root[data-stage="general-survey"] .slot-canvas { display: flex; }
-  
-  :root[data-stage="area-survey"] .slot-right,
-  :root[data-stage="general-survey"] .slot-right { grid-area: right; }
+  :root[data-stage="general-survey"] .slot-right  { grid-area: right; }
 }
 
 :root[data-stage="general-survey"] #edit-drawing-button { display: none !important; }
+
+/* =========================
+   Stage Layout: AREA SURVEY
+   Mobile + tablet portrait: 4-band stacked with a bottom drawer.
+       header  → survey title
+       center  → canvas (with floating Edit button)
+       right   → survey panel as a drawer (handle + content)
+       footer  → Done button
+       Three snap states control the canvas / drawer ratio via
+       data-drawer-state on <html>:
+         (none / "mid")  → 1fr / 1fr
+         "expanded"      → 0.5fr / 5fr
+         "collapsed"     → 5fr   / 0.6fr
+   Tablet landscape + desktop: 2-column (canvas | survey-panel) over footer.
+========================= */
+
+/* ---- Base: mobile + tablet portrait — stacked + drawer ---- */
+:root[data-stage="area-survey"] .slot-left { display: none; }
+
+:root[data-stage="area-survey"] .app-shell {
+  grid-template-areas:
+    "header"
+    "center"
+    "right"
+    "footer";
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(120px, 1fr) minmax(72px, 1fr) auto;
+  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root[data-stage="area-survey"][data-drawer-state="collapsed"] .app-shell {
+  grid-template-rows: auto minmax(120px, 5fr) minmax(72px, 0.6fr) auto;
+}
+
+:root[data-stage="area-survey"][data-drawer-state="expanded"] .app-shell {
+  grid-template-rows: auto minmax(80px, 0.5fr) minmax(180px, 5fr) auto;
+}
+
+:root[data-stage="area-survey"] .slot-header {
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--background-color);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+:root[data-stage="area-survey"] .slot-canvas {
+  display: flex;
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The slot-right becomes the bottom drawer — rounded top corners,
+   subtle elevation, panel background. */
+:root[data-stage="area-survey"] .slot-right {
+  grid-area: right;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  background: var(--panel-background);
+  border-top: 1px solid #e5e7eb;
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Drawer handle */
+:root[data-stage="area-survey"] .survey-drawer-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 32px;
+  padding: var(--space-xs) 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root[data-stage="area-survey"] .survey-drawer-grip {
+  display: block;
+  width: 40px;
+  height: 4px;
+  border-radius: 9999px;
+  background: #d1d5db;
+  transition: background-color 0.2s ease;
+}
+
+:root[data-stage="area-survey"] .survey-drawer-handle:hover .survey-drawer-grip,
+:root[data-stage="area-survey"] .survey-drawer-handle:focus-visible .survey-drawer-grip {
+  background: var(--primary-color);
+}
+
+:root[data-stage="area-survey"] .survey-drawer-handle:focus-visible {
+  outline: none;
+}
+
+/* ---- Tablet landscape + desktop — restore two-column ---- */
+@media (min-width: 1024px),
+       (min-width: 768px) and (orientation: landscape) {
+  :root[data-stage="area-survey"] .slot-header { display: none; }
+
+  :root[data-stage="area-survey"] .app-shell,
+  :root[data-stage="area-survey"][data-drawer-state="collapsed"] .app-shell,
+  :root[data-stage="area-survey"][data-drawer-state="expanded"] .app-shell {
+    grid-template-areas:
+      "center right"
+      "footer footer";
+    grid-template-columns: minmax(320px, 1fr) minmax(420px, 1200px);
+    grid-template-rows: 1fr auto;
+    transition: none;
+  }
+
+  :root[data-stage="area-survey"] .slot-canvas {
+    height: auto;
+    min-height: 0;
+  }
+
+  :root[data-stage="area-survey"] .slot-right {
+    grid-area: right;
+    height: 100%;
+    background: transparent;
+    border-top: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Handle only exists in stacked mode, but defensively hide it */
+  :root[data-stage="area-survey"] .survey-drawer-handle { display: none; }
+}
+
+/* Reduced motion — kill the grid transition */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-stage="area-survey"] .app-shell { transition: none; }
+}
 
 /* =========================
    Marker-Size Popover

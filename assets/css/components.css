@@ -955,8 +955,17 @@ h3.control-title { margin-bottom: 20px; }
   .canvas-floating-btn { padding: var(--space-xs); min-height: 40px; min-width: 40px; justify-content: center; }
 }
 
+/* Edit Drawing button — full label by default, short label on
+   mobile + tablet portrait where it floats over the canvas. */
+.edit-btn-text-short { display: none; }
+
+@media (max-width: 1023px) and (orientation: portrait),
+       (max-width: 767px) {
+  .edit-btn-text-full  { display: none; }
+  .edit-btn-text-short { display: inline; }
+}
+
 [data-stage="selection"] .canvas-floating-btn,
-[data-stage="area-survey"] .canvas-floating-btn,
 [data-stage="general-survey"] .canvas-floating-btn { display: none; }
 
 /* =========================

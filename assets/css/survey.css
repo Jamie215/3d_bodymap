@@ -309,3 +309,61 @@
   .sd-page { padding: 12px 12px !important; }
   .sd-row { margin-bottom: 10px !important; }
 }
+
+/* Mobile + tablet-portrait — tighten typography for the stacked
+   area-survey drawer layout. Inputs intentionally stay at 16px to
+   prevent iOS auto-zoom on focus. */
+@media (max-width: 1023px) and (orientation: portrait),
+       (max-width: 767px) {
+
+  /* Title — when in slot-header (mobile + tablet portrait area-survey) */
+  #survey-title {
+    font-size: var(--font-title-small) !important;
+  }
+
+  /* Header band tightening */
+  #survey-header {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-xs);
+  }
+
+  /* Progress */
+  #survey-progress-text {
+    font-size: var(--font-body-xsmall);
+  }
+  #survey-progress-bar {
+    height: 6px;
+  }
+
+  #survey-inner {
+    --sjs-font-size: var(--font-body-small);
+    --sjs-base-unit: var(--space-2xs);
+  }
+
+  /* Question titles + descriptions */
+  .sd-question__title {
+    font-size: var(--font-body-small) !important;
+  }
+  .sd-question__description {
+    font-size: var(--font-body-xsmall) !important;
+  }
+
+  /* Matrix row text */
+  .sd-matrix__row-text {
+    font-size: var(--font-body-small) !important;
+  }
+  .sd-matrix__row-text small {
+    font-size: var(--font-2xs);
+  }
+
+  /* Rating labels */
+  .rating-layout-row     { font-size: var(--font-body-small); }
+  .rating-layout-label   { font-size: var(--font-2xs); }
+
+  /* Medication description hint */
+  .medication-description { font-size: var(--font-2xs); }
+
+  /* Page padding tighter to give the drawer more room */
+  .sd-page { padding: var(--space-sm) var(--space-md) !important; }
+  .sd-row  { margin-bottom: var(--space-sm) !important; }
+}

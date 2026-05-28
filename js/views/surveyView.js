@@ -40,7 +40,10 @@ export function createSurveyViewElements() {
   const editDrawingButton = document.createElement('button');
   editDrawingButton.id = 'edit-drawing-button';
   editDrawingButton.classList.add('button');
-  editDrawingButton.innerHTML = '<i class="fa-solid fa-user-pen"></i><span>Edit Drawing</span>';
+  editDrawingButton.innerHTML =
+    '<i class="fa-solid fa-user-pen"></i>' +
+    '<span class="edit-btn-text-full">Edit Drawing</span>' +
+    '<span class="edit-btn-text-short">Edit</span>';
 
   /**
    * Update the survey title using DOM construction.
@@ -117,6 +120,8 @@ export function createSurveyViewElements() {
   return {
     root: surveyView,
     surveyPanel,
+    surveyHeader,
+    surveyTitle,
     surveyInnerContainer,
     surveyFooter,
     editDrawingButton,
