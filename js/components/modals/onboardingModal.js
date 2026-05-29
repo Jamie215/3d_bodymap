@@ -1,6 +1,10 @@
 // modals/onboardingModal.js
 // First-visit onboarding overlay with step-by-step instructions.
-// Shows once per browser session (sessionStorage), not once forever.
+// Shows once per browser session (sessionStorage), not once forever —
+// reappears on tab close + relaunch (new patient), but survives an
+// accidental page refresh mid-form.
+
+import { hasShown, markShown } from '../../utils/sessionFlags.js';
 
 let onboardingModalEl = null;
 let onboardingModalOverlay = null;
@@ -68,11 +72,7 @@ export function initOnboardingModal(container) {
 
     onboardingStartButton.addEventListener('click', () => {
         hideOnboardingModal();
-        try {
-            sessionStorage.setItem(ONBOARDING_SHOWN_KEY, 'true');
-        } catch (e) {
-            console.warn('Could not save onboarding state to sessionStorage:', e);
-        }
+        markShown(ONBOARDING_SHOWN_KEY);
         if (onOnboardingCompleteCallback) {
             onOnboardingCompleteCallback();
         }
@@ -102,17 +102,13 @@ export function hideOnboardingModal() {
 
 /**
  * Check whether onboarding has already been shown this session.
- * Uses sessionStorage so the modal reappears on page refresh (Ctrl+R)
- * but not on tab-internal navigation.
+ * Uses sessionStorage so the modal reappears on tab close + relaunch
+ * but not on page refresh or tab-internal navigation.
  *
  * @returns {boolean}
  */
 export function hasOnboardingBeenShown() {
-    try {
-        return sessionStorage.getItem(ONBOARDING_SHOWN_KEY) === 'true';
-    } catch (e) {
-        return false;
-    }
+    return hasShown(ONBOARDING_SHOWN_KEY);
 }
 
 export function setOnOnboardingComplete(callback) {

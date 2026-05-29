@@ -1,12 +1,17 @@
 // tooltipRunner.js
 // Thin wrapper around Driver.js that runs tooltip sequences.
 // Consumes step definitions from tooltipSteps.js.
+//
+// "Already shown" state is persisted via sessionStorage (see sessionFlags.js)
+// so the walkthroughs survive an accidental page refresh mid-form but
+// reset cleanly when the tab closes — matching the onboarding modal's
+// behaviour for consistency.
 
 import { buildDrawingSteps, RETURN_TO_SUMMARY_STEPS, DRIVER_CONFIG } from './tooltipSteps.js';
+import { hasShown, markShown } from '../utils/sessionFlags.js';
 
-// Track which sequences have already been shown this session
-let hasShownDrawingTooltips = false;
-let hasShownReturnTooltips  = false;
+const DRAWING_TOOLTIPS_KEY = 'painSurvey_drawingTooltipsShown';
+const RETURN_TOOLTIPS_KEY  = 'painSurvey_returnTooltipsShown';
 
 // ============================================================================
 // INTERNAL
@@ -38,14 +43,12 @@ function runSequence(stepsOrBuilder, delay = 500) {
     });
 
     const blocker = document.getElementById('blocker');
-    if (blocker) {
-        blocker.style.display = 'block';
-    }
+    if (blocker) blocker.style.display = 'block';
 
     setTimeout(() => {
-        blocker.style.display = 'none';
-        driverInstance.drive();}, delay
-    );
+        if (blocker) blocker.style.display = 'none';
+        driverInstance.drive();
+    }, delay);
 }
 
 // ============================================================================
@@ -58,8 +61,8 @@ function runSequence(stepsOrBuilder, delay = 500) {
  * controls are visible.
  */
 export function runDrawingTooltips() {
-    if (hasShownDrawingTooltips) return;
-    hasShownDrawingTooltips = true;
+    if (hasShown(DRAWING_TOOLTIPS_KEY)) return;
+    markShown(DRAWING_TOOLTIPS_KEY);
     runSequence(buildDrawingSteps, 1500);
 }
 
@@ -69,8 +72,8 @@ export function runDrawingTooltips() {
  * completed area and no general questionnaire submitted yet.
  */
 export function runReturnToSummaryTooltips() {
-    if (hasShownReturnTooltips) return;
-    hasShownReturnTooltips = true;
+    if (hasShown(RETURN_TOOLTIPS_KEY)) return;
+    markShown(RETURN_TOOLTIPS_KEY);
     runSequence(RETURN_TO_SUMMARY_STEPS, 500);
 }
 
@@ -80,5 +83,5 @@ export function runReturnToSummaryTooltips() {
  * the one-time region-selected callback.
  */
 export function haveDrawingTooltipsShown() {
-    return hasShownDrawingTooltips;
+    return hasShown(DRAWING_TOOLTIPS_KEY);
 }
