@@ -37,7 +37,15 @@ function runSequence(stepsOrBuilder, delay = 500) {
         steps
     });
 
-    setTimeout(() => driverInstance.drive(), delay);
+    const blocker = document.getElementById('blocker');
+    if (blocker) {
+        blocker.style.display = 'block';
+    }
+
+    setTimeout(() => {
+        blocker.style.display = 'none';
+        driverInstance.drive();}, delay
+    );
 }
 
 // ============================================================================
