@@ -667,13 +667,9 @@ h3.control-title { margin-bottom: 20px; }
 }
 
 @media (max-width: 480px) {
-  .footer .button {
-    padding: var(--space-xs);
-    font-size: var(--font-button-small);
-  }
+  .footer .button { padding: var(--space-xs); }
   #footer-drawing { gap: var(--space-sm); }
-  #footer-drawing .button { padding: var(--space-sm); }
-
+  #footer-drawing .button { padding: var(--space-sm); font-size: var(--font-button-small);}
   .status-instruction { font-size: var(--font-body-small); }
 }
 

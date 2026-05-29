@@ -294,6 +294,7 @@
 #modal-reset-confirm:hover, #delete-empty-continue:hover { background: var(--red) !important; color: white; }
 
 @media (max-width: 767px) {
+  .modal-close-btn { font-size: var(--font-button-medium); width: 32px; height: 32px; top: 8px; right: 8px; }
   .modal-content {
     width: 95%;
     padding: var(--space-lg);
@@ -307,6 +308,7 @@
 }
 
 @media (max-width: 480px) {
+  .modal-close-btn { font-size: var(--font-button-small); width: 28px; height: 28px; top: 4px; right: 4px; }
   .modal-content { padding: var(--space-md); }
   #modal-text, #reset-modal-text, #delete-empty-text { font-size: var(--font-title-small); }
   .modal-button { padding: var(--space-sm) var(--space-md); font-size: var(--font-button-small); height: 48px; min-height: 48px; }
