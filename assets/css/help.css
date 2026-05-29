@@ -244,7 +244,7 @@
     padding: var(--space-sm) var(--space-md);
   }
   .help-modal-title {
-    font-size: var(--font-body-large);
+    font-size: var(--font-title-xsmall);
   }
   .help-modal-content {
     padding: var(--space-sm) var(--space-md);

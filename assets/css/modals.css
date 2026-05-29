@@ -578,7 +578,7 @@
 @media (max-width: 540px) {
   .onboarding-modal-content { padding: var(--space-lg) var(--space-md); }
   .onboarding-modal-subtitle { display: none; }
-  .onboarding-steps { flex-direction: column; align-items: center; gap: var(--space-lg); }
+  .onboarding-steps { flex-direction: column; align-items: center; gap: var(--space-lg); padding: 0 var(--space-xl); }
   .onboarding-step { max-width: 280px; gap: var(--space-md); }
   .onboarding-step-icon { margin-bottom: var(--space-xs); }
   .onboarding-step-content { flex: 1; text-align: left; gap: var(--space-md); }

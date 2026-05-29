@@ -211,6 +211,13 @@
   #canvas-toolbar { padding: var(--space-sm) var(--space-lg); }
 }
 
+@media (min-width: 768px) and (max-width: 1023px) {
+  #canvas-toolbar #change-model-button,
+  #canvas-toolbar #edit-drawing-button {
+    font-size: var(--font-button-medium);
+  }
+}
+
 /* Ensure canvas has no padding in survey stages to prevent resize */
 :root[data-stage="area-survey"] #canvas-panel,
 :root[data-stage="general-survey"] #canvas-panel {
@@ -707,6 +714,12 @@
   }
 }
 
+@media (max-width: 480px) {
+  :root[data-stage="drawing"] #drawing-status-bar { padding: var(--space-xs); }
+  :root[data-stage="drawing"] .status-title       { font-size: var(--font-title-small); }
+  :root[data-stage="drawing"] .status-badge       { font-size: var(--font-body-xsmall); padding: var(--space-2xs) var(--space-sm); }
+}
+
 /* Drawing nav buttons */
 :root[data-stage="drawing"] .drawing-nav {
   display: flex;
@@ -804,6 +817,10 @@
   padding: var(--space-sm) var(--space-md);
   background: var(--background-color);
   border-bottom: 1px solid #e5e7eb;
+}
+
+:root[data-stage="area-survey"] .slot-header #survey-title {
+  font-size: var(--font-title-small);
 }
 
 :root[data-stage="area-survey"] .slot-canvas {

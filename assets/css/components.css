@@ -381,6 +381,7 @@ h3.control-title { margin-bottom: 20px; }
 @media (max-width: 767px) {
   .return-button {
     font-size: var(--font-button-small);
+    max-width: fit-content;
   }
 }
 
@@ -427,7 +428,7 @@ h3.control-title { margin-bottom: 20px; }
     padding: var(--space-sm);
     gap: var(--space-sm);
   }
-  .footer .button { flex: 1 1 auto; min-width: 150px; }
+  .footer .button { flex: 1 1 auto; min-width: 0; height: 50px;}
 }
 
 .footer .button {
@@ -666,16 +667,13 @@ h3.control-title { margin-bottom: 20px; }
 }
 
 @media (max-width: 480px) {
-  .button {
-    padding: var(--space-xs) !important;
-    font-size: var(--font-button-xsmall) !important;
+  .footer .button {
+    padding: var(--space-xs);
+    font-size: var(--font-button-small);
   }
   #footer-drawing { gap: var(--space-sm); }
   #footer-drawing .button { padding: var(--space-sm); }
-  
-  :root[data-stage="drawing"] #drawing-status-bar { padding: var(--space-xs) !important; }
-  .status-title { font-size: var(--font-title-small) !important; }
-  .status-badge { font-size: var(--font-body-xsmall); padding: 4px 12px; }
+
   .status-instruction { font-size: var(--font-body-small); }
 }
 
@@ -808,6 +806,12 @@ h3.control-title { margin-bottom: 20px; }
 }
 
 #delete-area-text { font-size: var(--font-title-medium); }
+
+@media (max-width: 767px) {
+  .summary-title      { font-size: var(--font-title-medium); }
+  .summary-instruction { font-size: var(--font-body-medium); }
+  .region-selector-footer-btn { font-size: var(--font-button-small); }
+}
 
 @media (max-width: 480px) {
   #summary-status-panel { padding: var(--space-xs); }
