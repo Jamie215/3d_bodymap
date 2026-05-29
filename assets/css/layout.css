@@ -870,7 +870,7 @@
 
 :root[data-stage="area-survey"] .survey-drawer-handle:hover .survey-drawer-grip,
 :root[data-stage="area-survey"] .survey-drawer-handle:focus-visible .survey-drawer-grip {
-  background: var(--primary-color);
+  background: var(--dark-grey) !important;
 }
 
 :root[data-stage="area-survey"] .survey-drawer-handle:focus-visible {
