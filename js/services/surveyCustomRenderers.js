@@ -11,6 +11,18 @@
  * Wrap the intensity-scale rating widget in a row layout with
  * "No pain" / "Worst pain" labels on either side.
  *
+ * SurveyJS auto-switches the rating widget between a 0–10 button scale
+ * and a dropdown based on viewport width. Two corollaries handled here:
+ *
+ *   1. The widget swap happens via an *internal Knockout binding* —
+ *      it does NOT fire onAfterRenderQuestion, so a one-shot layout
+ *      pass would leave a stale wrapper alongside the new widget after
+ *      e.g. a tablet rotation. We attach a MutationObserver to the
+ *      content node to re-apply layout on any child-list change.
+ *   2. The flanking "No pain / Worst pain" labels only make semantic
+ *      sense around the button row. In dropdown mode they read as
+ *      orphaned text, so the wrap step is skipped.
+ *
  * Attaches to: onAfterRenderQuestion for question name "intensityScale"
  */
 export function applyRatingLayout(_survey, options) {
@@ -20,11 +32,51 @@ export function applyRatingLayout(_survey, options) {
     const ratingContent = questionEl.querySelector('.sd-question__content');
     if (!ratingContent) return;
 
-    // Guard: skip if we already wrapped this element (e.g. after a viewport relayout)
-    if (ratingContent.querySelector('.rating-layout-row')) return;
+    // Initial layout pass for whichever mode SurveyJS rendered first.
+    relayoutIntensityScale(ratingContent);
+
+    // Set up the observer once per content node. The flag is stored
+    // on the DOM node itself — when the question is destroyed and
+    // re-rendered (e.g. survey navigation), a fresh node has no flag
+    // and gets its own observer. The old observer is GC'd with its node.
+    if (ratingContent.__intensityObserverAttached) return;
+    ratingContent.__intensityObserverAttached = true;
+
+    const observer = new MutationObserver(() => {
+        // Disconnect-during-mutate: our own DOM ops (teardown + wrap)
+        // would otherwise re-trigger this callback. Re-observe after.
+        observer.disconnect();
+        relayoutIntensityScale(ratingContent);
+        observer.observe(ratingContent, { childList: true });
+    });
+    observer.observe(ratingContent, { childList: true });
+}
+
+/**
+ * Idempotent layout pass for the intensity-scale rating question.
+ * Removes any pre-existing wrapper (whose contents may have been
+ * orphaned by a Knockout swap), then re-wraps the current rating —
+ * but only when SurveyJS rendered the button-scale variant.
+ */
+function relayoutIntensityScale(ratingContent) {
+    // Teardown — discard any wrapper from a previous mode. If Knockout
+    // already removed the old .sd-rating from inside it, the wrapper
+    // is empty (labels only); if not, the stale rating goes with it.
+    // Either way, the wrapper is gone and the current widget (placed
+    // by Knockout at its tracked location) is now exposed.
+    const existingWrapper = ratingContent.querySelector('.rating-layout-row');
+    if (existingWrapper) {
+        existingWrapper.remove();
+    }
 
     const ratingRow = ratingContent.querySelector('.sd-rating');
     if (!ratingRow) return;
+
+    // Dropdown mode detection: SurveyJS renders .sd-rating__item children
+    // only for the button-scale variant. If none exist, leave the
+    // dropdown alone — no flanking labels.
+    const isButtonScale = !!ratingRow.querySelector('.sd-rating__item');
+    if (!isButtonScale) return;
 
     const layoutRow = document.createElement('div');
     layoutRow.classList.add('rating-layout-row');

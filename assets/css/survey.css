@@ -173,6 +173,13 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* On narrow viewports SurveyJS renders the matrix as a stacked radio
+   list whose row-text cell is a flex container — the row label and
+   description become sibling flex items on the same line, so the gap
+   between them tracks the label's wrapped width and looks inconsistent
+   across rows. flex-basis:100% forces the description onto its own
+   line; width:100% keeps it full-width in the table-cell layout used
+   on wider viewports. No-op outside flex parents. */
 .medication-description {
   font-size: var(--font-body-small);
   color: var(--dark-grey);
@@ -181,6 +188,8 @@
   font-style: italic;
   line-height: 1.4;
   display: block;
+  flex-basis: 100%;
+  width: 100%;
 }
 
 /* =========================
@@ -361,7 +370,7 @@
   .rating-layout-label   { font-size: var(--font-2xs); }
 
   /* Medication description hint */
-  .medication-description { font-size: var(--font-2xs); }
+  .medication-description { font-size: var(--font-2xs); margin-left: var(--space-md); }
 
   /* Page padding tighter to give the drawer more room */
   .sd-page { padding: var(--space-sm) var(--space-md) !important; }
