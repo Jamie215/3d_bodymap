@@ -80,6 +80,7 @@
   --z-onboarding: 2000;
   --z-help-scrim: 2000;
   --z-help: 2001;
+  --z-rotate-prompt: 2000000000;
 
   /* Others */
   --border-radius: 8px;

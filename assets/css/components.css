@@ -1513,3 +1513,77 @@ h3.control-title { margin-bottom: 20px; }
     min-height: 60px;
   }
 }
+
+/* =========================
+   Rotate Device Prompt
+   Full-screen overlay shown only on phone-sized viewports in landscape.
+   Detection is height-based: phones in landscape have low height
+   (~390px), while tablets in landscape stay tall (~600px+).
+========================= */
+.rotate-prompt {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--background-color);
+  z-index: var(--z-rotate-prompt);
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .rotate-prompt {
+    display: flex;
+  }
+
+  /* Prevent the underlying app from scrolling/interacting while the
+     prompt is showing. Pointer-events on the overlay block taps;
+     body overflow:hidden prevents accidental scroll. */
+  body:has(.rotate-prompt) {
+    overflow: hidden;
+  }
+}
+
+.rotate-prompt-content {
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.rotate-prompt-icon {
+  font-size: 56px;
+  color: var(--primary-color);
+  line-height: 1;
+  animation: rotate-prompt-tilt 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes rotate-prompt-tilt {
+  0%, 35%   { transform: rotate(90deg); }
+  55%, 100% { transform: rotate(0deg);  }
+}
+
+.rotate-prompt-title {
+  font-size: var(--font-title-medium);
+  font-weight: 600;
+  color: var(--secondary-color);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.rotate-prompt-subtitle {
+  font-size: var(--font-body-medium);
+  color: var(--dark-grey);
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotate-prompt-icon {
+    animation: none;
+    transform: rotate(45deg);  /* mid-rotation still hints at the gesture */
+  }
+}

@@ -25,6 +25,7 @@ import { createSurveyViewElements } from '../views/surveyView.js';
 import { getResponsiveManager } from '../utils/responsiveManager.js';
 import { initStageLayout, setStage } from './stageLayout.js';
 import AppState from './state.js';
+import { initRotatePrompt } from '../components/rotatePrompt.js';
 
 AppState.sessionStartTime = new Date().toISOString();
 
@@ -101,6 +102,7 @@ initDeleteAreaModal(document.body);
 initRegionSelectorModal(document.body);
 initOnboardingModal(document.body);
 initHelpModal(document.body);
+initRotatePrompt(document.body);
 
 // ====================================================================
 // STAGE LAYOUT INIT
