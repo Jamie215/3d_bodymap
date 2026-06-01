@@ -244,17 +244,17 @@
     padding: var(--space-sm) var(--space-md);
   }
   .help-modal-title {
-    font-size: var(--font-title-xsmall);
+    font-size: var(--font-title-medium);
   }
   .help-modal-content {
     padding: var(--space-sm) var(--space-md);
   }
   .help-accordion-question {
-    font-size: var(--font-body-small);
+    font-size: var(--font-body-medium);
     padding: var(--space-sm) 0;
   }
   .help-block-text {
-    font-size: var(--font-sm);
+    font-size: var(--font-body-medium);
   }
 }
 

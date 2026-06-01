@@ -569,7 +569,7 @@
 
 @media (max-width: 767px) {
   .onboarding-modal { max-width: 95%; }
-  .onboarding-modal-content { padding: var(--space-xl) var(--space-lg); }
+  .onboarding-modal-content { align-items: center; padding: var(--space-xl) var(--space-lg); }
   .onboarding-modal-subtitle { font-size: var(--font-body-medium); }
   .onboarding-steps { gap: var(--space-md); }
   .onboarding-step { max-width: 180px; }
@@ -580,7 +580,7 @@
 @media (max-width: 540px) {
   .onboarding-modal-content { padding: var(--space-lg) var(--space-md); }
   .onboarding-modal-subtitle { display: none; }
-  .onboarding-steps { flex-direction: column; align-items: center; gap: var(--space-lg); padding: 0 var(--space-xl); }
+  .onboarding-steps { flex-direction: column; align-items: start; gap: var(--space-lg); padding: 0 var(--space-xl); }
   .onboarding-step { max-width: 280px; gap: var(--space-md); }
   .onboarding-step-icon { margin-bottom: var(--space-xs); }
   .onboarding-step-content { flex: 1; text-align: left; gap: var(--space-md); }
