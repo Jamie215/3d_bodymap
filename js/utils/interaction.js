@@ -2,9 +2,10 @@
 // Pointer event handling for the drawing stage: pointerdown, pointermove,
 // pointerup/cancel, and the raycast → draw dispatch.
 //
-// Supports single-finger drawing and two-finger pinch-to-zoom (delegates
-// to OrbitControls when a second pointer is detected).  Touch devices
-// disable orbit rotation so single-touch always draws.
+// Supports single-finger drawing and two-finger pinch-to-zoom. Two-finger
+// dolly is handled by OrbitControls directly via controls.touches.TWO =
+// DOLLY_PAN (configured in scene.js); single-finger is bound to null there,
+// so OrbitControls ignores it and our pointer handlers own the draw path.
 //
 // Public API:
 //   enableInteraction(renderer, camera, controls) — wire up pointer events
@@ -50,12 +51,13 @@ export function cleanupInteraction() {
  * Wire up pointer events on the renderer's canvas for drawing/erasing.
  *
  * Event flow:
- *   pointerdown  → raycast; if hit, disable orbit controls and start drawing
+ *   pointerdown  → raycast; if hit, begin drawing
  *   pointermove  → if drawing, raycast + paint at UV coordinate
- *   pointerup    → re-enable orbit controls, stop drawing
+ *   pointerup    → stop drawing
  *
- * Two-finger pinch is detected by tracking active pointer count and
- * delegating to orbit controls when count ≥ 2.
+ * Two-finger pinch is detected by tracking active pointer count. When two
+ * pointers are down, we stop drawing and let OrbitControls' built-in TWO
+ * gesture (DOLLY_PAN, configured in scene.js) handle the zoom.
  *
  * @param {THREE.WebGLRenderer} renderer
  * @param {THREE.Camera}        camera
@@ -69,12 +71,11 @@ export function enableInteraction(renderer, camera, controls) {
     eventIds.push(eventManager.add(canvas, 'pointerdown', (event) => {
         activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
-        // Two-finger pinch → delegate to orbit controls
+        // Two-finger pinch → let OrbitControls handle dolly
         if (activePointers.size >= 2) {
             pinchActive = true;
             AppState.isDrawing = false;
             pointerDown = false;
-            controls.enabled = true;
             return;
         }
 
@@ -93,10 +94,8 @@ export function enableInteraction(renderer, camera, controls) {
             activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         }
 
-        if (pinchActive) {
-            controls.enabled = true;
-            return;
-        }
+        // Suppress drawing during a pinch — OrbitControls owns the gesture.
+        if (pinchActive) return;
 
         updatePointer(event, canvas);
         drawAtPointer(camera, pointer, AppState.isErasing);
@@ -110,7 +109,6 @@ export function enableInteraction(renderer, camera, controls) {
         if (activePointers.size === 0) {
             pointerDown = false;
             AppState.isDrawing = false;
-            controls.enabled = true;
         }
     };
 
@@ -163,8 +161,7 @@ function updatePointer(event, canvas) {
 
 /**
  * Handle a pointerdown on the canvas: raycast into the scene, and if the
- * hit is on a visible region, begin drawing.  Otherwise re-enable orbit
- * controls so the user can pan/rotate.
+ * hit is on a visible region, begin drawing.
  *
  * @param {THREE.Camera}  camera
  * @param {OrbitControls} controls
@@ -172,8 +169,6 @@ function updatePointer(event, canvas) {
 function handlePointerDown(camera, controls) {
     if (AppState.skinMesh) AppState.skinMesh.updateMatrixWorld(true);
 
-    controls.enabled = false;
-    controls.update();
     camera.updateMatrixWorld(true);
     camera.updateProjectionMatrix();
 
@@ -196,7 +191,6 @@ function handlePointerDown(camera, controls) {
             if (regionAttr) {
                 const regionId = regionAttr.getX(hit.face.a);
                 if (!isRegionVisible(regionId)) {
-                    controls.enabled = true;
                     return;
                 }
             }
@@ -205,7 +199,5 @@ function handlePointerDown(camera, controls) {
         AppState.isDrawing = true;
         pointerDown = true;
         drawAtPointer(camera, pointer, AppState.isErasing);
-    } else {
-        controls.enabled = true;
     }
 }

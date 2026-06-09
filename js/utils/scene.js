@@ -40,6 +40,10 @@ export function createScene(canvasContainer) {
         MIDDLE: THREE.MOUSE.DOLLY,
         RIGHT: null
     };
+    controls.touches = {
+        ONE: null,
+        TWO: THREE.TOUCH.DOLLY_PAN
+    }
     controls.update();
 
     return { scene, camera, renderer, controls };
