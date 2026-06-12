@@ -316,7 +316,7 @@ export async function generateDrawingPreview() {
     const currentInstance   = AppState.drawingInstances[AppState.currentDrawingIndex];
 
     if (cameraUtils && currentInstance?.drawnRegionNames?.size > 0) {
-        await cameraUtils.focusOnDrawing(currentInstance.drawnRegionNames);
+        await cameraUtils.focusOnDrawing(currentInstance);
     }
 
     const previewWidth  = 400;

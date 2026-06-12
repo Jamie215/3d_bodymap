@@ -1,5 +1,5 @@
 // orientationAnalyzer.js
-// Pure functions for classifying body regions into viewing directions.
+// Functions for classifying body regions into viewing directions.
 //
 // They take region names (and optionally a regionMap)
 // and return angles, octants, or booleans.
@@ -153,6 +153,40 @@ export function analyzeDrawingOrientation(drawnRegionNames) {
         octant:     dominantOctant,
         confidence: totalRegions > 0 ? maxCount / totalRegions : 0
     };
+}
+
+/**
+ * Restricted orientation analysis for hand drawings.
+ *
+ * This helper snaps the camera to a clean palmar (0) or dorsal (π)
+ * view by comparing 3D surface area drawn on each side.
+ *
+ * Works uniformly across hand_*, thumb_*, and *Finger_* regions
+ * because they all carry "volar" or "dorsal" in their names.
+ *
+ * @param {Object<string, { coloredArea: number }>|null|undefined} regionCoverage
+ *   The `regions` field of a CoverageResult — region name → per-region
+ *   coverage data. Only the `coloredArea` field is read.
+ * @returns {number|null}
+ *   0 (front/palmar) if more volar area was drawn, Math.PI (back/dorsal)
+ *   if more dorsal area, or null on a tie or missing data (caller should
+ *   preserve current side).
+ */
+export function analyzeHandOrientation(regionCoverage) {
+    if (!regionCoverage) return null;
+
+    let volarArea  = 0;
+    let dorsalArea = 0;
+
+    for (const [region, data] of Object.entries(regionCoverage)) {
+        const area = data?.coloredArea || 0;
+        if (region.includes('_volar'))  volarArea  += area;
+        if (region.includes('_dorsal')) dorsalArea += area;
+    }
+
+    if (volarArea > dorsalArea)  return 0;
+    if (dorsalArea > volarArea)  return Math.PI;
+    return null;
 }
 
 // ============================================================================

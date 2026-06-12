@@ -188,7 +188,7 @@ export function goTo(stage) {
         // ----------------------------------------------------------------
         case 'area-survey': {
             const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-            cameraUtils.focusOnDrawing(currentInstance.drawnRegionNames);
+            cameraUtils.focusOnDrawing(currentInstance);
             coverageCalculator.logCoverage(currentInstance);
 
             const canvasPanel = document.getElementById('canvas-panel');

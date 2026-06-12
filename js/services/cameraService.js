@@ -8,10 +8,12 @@ import AppState from '../app/state.js';
 import { buildRegionMap } from '../utils/regionMapBuilder.js';
 import {
     analyzeDrawingOrientation,
+    analyzeHandOrientation,
     isBackFacingRegion,
     findDominantBodyPart
 } from '../utils/orientationAnalyzer.js';
 import { getElevationAngle, getOrbitCenterOffset } from '../utils/orbitOffsets.js';
+import coverageCalculator from './coverageService.js';
 
 export default class CameraUtils {
     constructor(camera, controls, mesh) {
@@ -378,11 +380,22 @@ export default class CameraUtils {
         return this.animateCamera(position, lookAt, duration);
     }
 
-    // ==========================================
-    // FOCUS ON DRAWING
-    // ==========================================
-
-    focusOnDrawing(drawnRegionNames) {
+    /**
+     * Position the camera to best show the drawing on this instance.
+     *
+     * For most body parts, uses 8-direction octant analysis of the
+     * drawn region orientations. Hands are a special case where
+     * they're restricted to pure front (palmar) or back (dorsal)
+     * decided by comparing drawn surface area (world units²) on each
+     * side via the coverage calculator. On a hand tie, the current
+     * viewing side is preserved by snapping to whichever of {0, PI}
+     * is closer to the current rotation angle.
+     *
+     * @param {Object} instance — a drawing instance
+     * @returns {Promise<void>} resolves when the camera animation completes
+     */
+    focusOnDrawing(instance) {
+        const drawnRegionNames = instance?.drawnRegionNames;
         if (!drawnRegionNames || drawnRegionNames.size === 0) {
             return this.resetView();
         }
@@ -394,8 +407,6 @@ export default class CameraUtils {
 
         console.log('Dominant body part:', dominantBodyPart);
 
-        const orientation = analyzeDrawingOrientation(drawnRegionNames);
-
         const regions = this.regionMap[dominantBodyPart];
         if (!regions) {
             return this.resetView();
@@ -406,8 +417,27 @@ export default class CameraUtils {
             return this.resetView();
         }
 
+        // Decide rotation angle. Hands take a separate path; everything
+        // else uses the 8-octant classifier.
+        const isHand = dominantBodyPart === 'Left Hand' || dominantBodyPart === 'Right Hand';
         this.setFocus(dominantBodyPart, center, box);
-        this.rotationAngle = orientation.angle;
+
+        if (isHand) {
+            const coverage  = coverageCalculator.calculateCoverage(instance);
+            const handAngle = analyzeHandOrientation(coverage?.regions);
+            if (handAngle !== null) {
+                this.rotationAngle = handAngle;
+            } else {
+                // Volar/dorsal areas tied (or coverage unavailable) — preserve
+                // the user's current side by snapping to the nearer of {0, PI}.
+                this.rotationAngle = Math.abs(this.rotationAngle) < Math.PI / 2
+                    ? 0
+                    : Math.PI;
+            }
+        } else {
+            const orientation = analyzeDrawingOrientation(drawnRegionNames);
+            this.rotationAngle = orientation.angle;
+        }
 
         return this.applyRotation(true);
     }
