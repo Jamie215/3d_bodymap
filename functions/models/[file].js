@@ -15,8 +15,8 @@
  *   MODELS_CDN_FEMALE         Full URL for female.glb
  *   MODELS_CDN_MALE           Full URL for male.glb
  *   MODELS_CDN_AO             Full URL for body_ao_modified.png
- *   MODELS_CDN_PREVIEW_FEMALE Full URL for the female preview SVG
- *   MODELS_CDN_PREVIEW_MALE   Full URL for the male preview SVG
+ *   MODELS_CDN_PREVIEW1       Full URL for the female preview SVG
+ *   MODELS_CDN_PREVIEW2       Full URL for the male preview SVG
  *
  * Only the known asset files are proxied — this is an allowlist, not an open
  * proxy.
@@ -26,8 +26,8 @@ const FILES = {
   'female.glb':            { env: 'MODELS_CDN_FEMALE',         type: 'model/gltf-binary' },
   'male.glb':              { env: 'MODELS_CDN_MALE',           type: 'model/gltf-binary' },
   'body_ao_modified.png':  { env: 'MODELS_CDN_AO',             type: 'image/png' },
-  'Type 1.svg':            { env: 'MODELS_CDN_PREVIEW_FEMALE', type: 'image/svg+xml' },
-  'Type 2.svg':            { env: 'MODELS_CDN_PREVIEW_MALE',   type: 'image/svg+xml' },
+  'Type 1.svg':            { env: 'MODELS_CDN_PREVIEW1', type: 'image/svg+xml' },
+  'Type 2.svg':            { env: 'MODELS_CDN_PREVIEW2',   type: 'image/svg+xml' },
 };
 
 export async function onRequestGet(context) {
