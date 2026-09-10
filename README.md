@@ -57,7 +57,6 @@ No build process required — the application runs directly in a modern browser 
 │   ├── help/                       Screenshots embedded in the help modal
 │   │   ├── Edit.png
 │   │   └── Next Steps.png
-│   ├── body_ao_original.png        Ambient occlusion source texture (see note)
 │   └── region_id_mapping.json      Vertex group name ↔ numeric ID mapping
 │
 │   Not in the repo — served at /models/* by the Cloudflare Pages proxy
@@ -133,10 +132,8 @@ No build process required — the application runs directly in a modern browser 
 │       └── surveyTheme.js          SurveyJS theme and CSS variable overrides
 ```
 
-> **Ambient occlusion note:** `assets/body_ao_original.png` is the unmodified
-> source texture kept for reference; it is not loaded at runtime. The app applies
-> `body_ao_modified.png`, which is served from the private CDN via the proxy (it is
-> not committed to the repo).
+> **Ambient occlusion note:** The app applies `body_ao_modified.png`, which is
+> served from the private CDN via the proxy — it is not committed to the repo.
 
 ## Architecture
 
