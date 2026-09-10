@@ -40,7 +40,7 @@ export function createSelectionView(onModelSelected) {
     button.classList.add('model-selection-button');
 
     const img = document.createElement('img');
-    img.src = `./assets/preview_svg/${model.name}.svg`;
+    img.src = `./models/${model.name}.svg`;
     img.alt = model.name;
 
     const label = document.createElement('div');

@@ -29,6 +29,8 @@ same-origin paths:
 - `/models/female.glb` — Type 1 model
 - `/models/male.glb` — Type 2 model
 - `/models/body_ao_modified.png` — ambient-occlusion texture applied to the model
+- `/models/Type 1.svg` — Type 1 model-selection preview thumbnail
+- `/models/Type 2.svg` — Type 2 model-selection preview thumbnail
 
 It reads the real CDN location from **environment variables** — set these in the
 dashboard, not in code:
@@ -40,9 +42,19 @@ deploys), add:
 |---|---|
 | `MODELS_CDN_BASE` | Base URL hosting the asset files, e.g. `https://cdn.example.com/bodymap` |
 
-The proxy fetches `${MODELS_CDN_BASE}/female.glb`, `${MODELS_CDN_BASE}/male.glb`,
-and `${MODELS_CDN_BASE}/body_ao_modified.png`. **All three files must be hosted on
-your CDN** — none of them live in this repo.
+The proxy fetches these files from `${MODELS_CDN_BASE}/`:
+
+```
+female.glb
+male.glb
+body_ao_modified.png
+Type 1.svg
+Type 2.svg
+```
+
+**All of them must be hosted on your CDN** — none live in this repo. (The two SVG
+filenames contain a space; keep it, or use the per-file overrides below if your CDN
+requires a different name.)
 
 If your CDN filenames or paths differ, set full per-file URLs instead (any of them
 override the base):
@@ -52,6 +64,8 @@ override the base):
 | `MODELS_CDN_FEMALE` | Full URL of the "Type 1" model |
 | `MODELS_CDN_MALE` | Full URL of the "Type 2" model |
 | `MODELS_CDN_AO` | Full URL of the ambient-occlusion texture |
+| `MODELS_CDN_PREVIEW1` | Full URL of the Type 1 preview SVG |
+| `MODELS_CDN_PREVIEW2` | Full URL of the Type 2 preview SVG |
 
 Because these are Cloudflare environment variables, the CDN URL stays out of the
 git repo and is never sent to the browser — visitors only ever see

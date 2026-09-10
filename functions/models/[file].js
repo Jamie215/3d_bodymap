@@ -12,18 +12,22 @@
  * Optional per-file overrides (use when the CDN filenames/paths differ from the
  * app's filenames, or when a file lives at an unrelated URL):
  *
- *   MODELS_CDN_FEMALE  Full URL for female.glb
- *   MODELS_CDN_MALE    Full URL for male.glb
- *   MODELS_CDN_AO      Full URL for body_ao_modified.png
+ *   MODELS_CDN_FEMALE   Full URL for female.glb
+ *   MODELS_CDN_MALE     Full URL for male.glb
+ *   MODELS_CDN_AO       Full URL for body_ao_modified.png
+ *   MODELS_CDN_PREVIEW1 Full URL for the Type 1 preview SVG
+ *   MODELS_CDN_PREVIEW2 Full URL for the Type 2 preview SVG
  *
  * Only the known asset files are proxied — this is an allowlist, not an open
  * proxy.
  */
 
 const FILES = {
-  'female.glb':            { env: 'MODELS_CDN_FEMALE', type: 'model/gltf-binary' },
-  'male.glb':              { env: 'MODELS_CDN_MALE',   type: 'model/gltf-binary' },
-  'body_ao_modified.png':  { env: 'MODELS_CDN_AO',     type: 'image/png' },
+  'female.glb':            { env: 'MODELS_CDN_FEMALE',   type: 'model/gltf-binary' },
+  'male.glb':              { env: 'MODELS_CDN_MALE',     type: 'model/gltf-binary' },
+  'body_ao_modified.png':  { env: 'MODELS_CDN_AO',       type: 'image/png' },
+  'Type 1.svg':            { env: 'MODELS_CDN_PREVIEW1', type: 'image/svg+xml' },
+  'Type 2.svg':            { env: 'MODELS_CDN_PREVIEW2', type: 'image/svg+xml' },
 };
 
 export async function onRequestGet(context) {
