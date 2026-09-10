@@ -29,8 +29,8 @@ export function createSelectionView(onModelSelected) {
   selectionFooter.appendChild(addNewInstanceButton);
 
   const models = [
-    { name: 'Type 1', file: './models/female.glb' },
-    { name: 'Type 2', file: './models/male.glb' }
+    { name: 'Type 1', file: './models/female.glb', img: './models/Type 1.svg' },
+    { name: 'Type 2', file: './models/male.glb', img: './models/Type 2.svg' }
   ];
 
   let selectedModelPath = models[0].file;
@@ -40,7 +40,7 @@ export function createSelectionView(onModelSelected) {
     button.classList.add('model-selection-button');
 
     const img = document.createElement('img');
-    img.src = `./models/${model.name}.svg`;
+    img.src = model.img;
     img.alt = model.name;
 
     const label = document.createElement('div');
