@@ -109,7 +109,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     };
 
     registerModelSelectionHandler(handleModelSelection);
-    handleModelSelection({ name: 'Type 1', file: './assets/female.glb' });
+    handleModelSelection({ name: 'Type 1', file: './models/female.glb' });
 
     // Animation loop
     (function animate() {
