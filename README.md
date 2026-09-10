@@ -41,19 +41,29 @@ No build process required — the application runs directly in a modern browser 
 
 ```
 ├── index.html                      Entry point — imports, shell markup, import map
+├── DEPLOY.md                        Cloudflare Pages deployment guide
+├── functions/
+│   └── models/[file].js            Pages Function — same-origin proxy for the
+│                                    private model/preview assets (see DEPLOY.md)
 ├── assets/
 │   ├── css/
-│   │   ├── styles.css              Root @import sheet (6 lines)
+│   │   ├── styles.css              Root @import sheet (imports the six modules below)
 │   │   ├── base.css                Design tokens, reset, accessibility, print
 │   │   ├── layout.css              App shell grid, per-stage responsive layouts
 │   │   ├── components.css          Buttons, panels, sliders, drawers, controls
 │   │   ├── modals.css              All modal styles (shared base + per-modal)
-│   │   └── survey.css              SurveyJS overrides and survey panel styles
-│   ├── female.glb                  Type 1 body model (GLTF binary)
-│   ├── male.glb                    Type 2 body model (GLTF binary)
-│   ├── body_ao_modified.png        Ambient occlusion texture
-│   ├── region_id_mapping.json      Vertex group name ↔ numeric ID mapping
-│   └── preview_svg/                Model selection preview images
+│   │   ├── survey.css              SurveyJS overrides and survey panel styles
+│   │   └── help.css                Help modal content styles
+│   ├── help/                       Screenshots embedded in the help modal
+│   │   ├── Edit.png
+│   │   └── Next Steps.png
+│   └── region_id_mapping.json      Vertex group name ↔ numeric ID mapping
+│
+│   Not in the repo — served at /models/* by the Cloudflare Pages proxy
+│   (functions/models/[file].js) from a private CDN; see DEPLOY.md:
+│     female.glb, male.glb          Body models (GLTF binary)
+│     body_ao_modified.png          Ambient occlusion texture applied to the model
+│     female.svg, male.svg          Model-selection preview thumbnails
 │
 ├── js/
 │   ├── app/                        Application orchestration
@@ -72,6 +82,8 @@ No build process required — the application runs directly in a modern browser 
 │   │   ├── viewControls.js         Region selector setup, canvas rotation buttons
 │   │   ├── loadingIndicator.js     Model loading progress bar
 │   │   ├── videoEmbed.js           YouTube embed with fullscreen overlay
+│   │   ├── rotatePrompt.js         Landscape-on-phone "please rotate" overlay
+│   │   ├── surveyDrawer.js         Mobile/tablet bottom drawer for the area survey
 │   │   ├── modal.js                Barrel re-export for all modal modules
 │   │   └── modals/
 │   │       ├── modalBase.js        Shared DOM factory helpers
@@ -104,6 +116,7 @@ No build process required — the application runs directly in a modern browser 
 │   │   ├── regionVisibility.js     GPU shader uniform control for region hiding
 │   │   ├── responsiveManager.js    Centralized breakpoint and media query management
 │   │   ├── scene.js                Three.js scene, camera, renderer, controls setup
+│   │   ├── sessionFlags.js         "Show once per session" flags (sessionStorage)
 │   │   └── uvRasterizer.js         UV triangle rasterization and region lookup
 │   │
 │   ├── views/                      Stage-specific DOM construction
@@ -115,8 +128,12 @@ No build process required — the application runs directly in a modern browser 
 │   └── data/                       Pure config and survey definitions
 │       ├── areaSurvey.js           Area-specific questionnaire JSON
 │       ├── generalSurvey.js        General questionnaire JSON
+│       ├── helpContent.js          Help modal Q&A content (text + video steps)
 │       └── surveyTheme.js          SurveyJS theme and CSS variable overrides
 ```
+
+> **Ambient occlusion note:** The app applies `body_ao_modified.png`, which is
+> served from the private CDN via the proxy — it is not committed to the repo.
 
 ## Architecture
 
@@ -170,6 +187,14 @@ The `submissionData` object (typed as `SubmissionPayload` in `submissionService.
 4. No build step, no `npm install` — runs directly from source
 
 > **Note:** The app must be served over HTTP(S), not opened as a `file://` URL, because ES modules and `fetch()` require a server context.
+
+> **Note on the 3D models:** The `.glb` models, the AO texture, and the preview
+> SVGs are not in this repo — they are fetched at runtime from `/models/*`, which is
+> served by the Cloudflare Pages Function in `functions/`. A plain static server does
+> **not** run that Function, so the models will 404 and the body won't render. To run
+> the full app locally (including the models), use `wrangler` as described in
+> [DEPLOY.md](./DEPLOY.md#local-development). Everything except the 3D models works
+> under any static server.
 
 ## Questionnaires
 

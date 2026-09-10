@@ -12,11 +12,11 @@
  * Optional per-file overrides (use when the CDN filenames/paths differ from the
  * app's filenames, or when a file lives at an unrelated URL):
  *
- *   MODELS_CDN_FEMALE         Full URL for female.glb
- *   MODELS_CDN_MALE           Full URL for male.glb
- *   MODELS_CDN_AO             Full URL for body_ao_modified.png
- *   MODELS_CDN_PREVIEW1       Full URL for the female preview SVG
- *   MODELS_CDN_PREVIEW2       Full URL for the male preview SVG
+ *   MODELS_CDN_FEMALE          Full URL for female.glb
+ *   MODELS_CDN_MALE            Full URL for male.glb
+ *   MODELS_CDN_AO              Full URL for body_ao_modified.png
+ *   MODELS_CDN_PREVIEW_FEMALE  Full URL for female.svg (Type 1 preview)
+ *   MODELS_CDN_PREVIEW_MALE    Full URL for male.svg (Type 2 preview)
  *
  * Only the known asset files are proxied — this is an allowlist, not an open
  * proxy.
