@@ -1,5 +1,5 @@
 /* styles.css — Root import sheet
- * Split into five modules for maintainability.
+ * Split into six modules for maintainability.
  * Import order matters: base tokens must load first. */
 
 @import url('./base.css');

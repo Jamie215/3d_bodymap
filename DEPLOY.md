@@ -29,8 +29,8 @@ same-origin paths:
 - `/models/female.glb` — Type 1 model
 - `/models/male.glb` — Type 2 model
 - `/models/body_ao_modified.png` — ambient-occlusion texture applied to the model
-- `/models/Type 1.svg` — Type 1 model-selection preview thumbnail
-- `/models/Type 2.svg` — Type 2 model-selection preview thumbnail
+- `/models/female.svg` — Type 1 model-selection preview thumbnail
+- `/models/male.svg` — Type 2 model-selection preview thumbnail
 
 It reads the real CDN location from **environment variables** — set these in the
 dashboard, not in code:
@@ -48,13 +48,12 @@ The proxy fetches these files from `${MODELS_CDN_BASE}/`:
 female.glb
 male.glb
 body_ao_modified.png
-Type 1.svg
-Type 2.svg
+female.svg
+male.svg
 ```
 
-**All of them must be hosted on your CDN** — none live in this repo. (The two SVG
-filenames contain a space; keep it, or use the per-file overrides below if your CDN
-requires a different name.)
+**All of them must be hosted on your CDN** — none live in this repo. If your CDN
+filenames or paths differ, use the per-file overrides below.
 
 If your CDN filenames or paths differ, set full per-file URLs instead (any of them
 override the base):
@@ -72,7 +71,7 @@ git repo and is never sent to the browser — visitors only ever see
 `https://<your-site>.pages.dev/models/female.glb`.
 
 > Note: this is obscurity, not access control. If the CDN itself requires no
-> auth, anyone who i1ndependently learned the real URL could still fetch it. It
+> auth, anyone who independently learned the real URL could still fetch it. It
 > does fully keep the URL out of GitHub and out of the app's client code.
 
 ## 3. Deploy
