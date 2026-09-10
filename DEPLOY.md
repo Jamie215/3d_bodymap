@@ -64,8 +64,8 @@ override the base):
 | `MODELS_CDN_FEMALE` | Full URL of the "Type 1" model |
 | `MODELS_CDN_MALE` | Full URL of the "Type 2" model |
 | `MODELS_CDN_AO` | Full URL of the ambient-occlusion texture |
-| `MODELS_CDN_PREVIEW1` | Full URL of the Type 1 preview SVG |
-| `MODELS_CDN_PREVIEW2` | Full URL of the Type 2 preview SVG |
+| `MODELS_CDN_PREVIEW_FEMALE` | Full URL of the Type 1 preview SVG |
+| `MODELS_CDN_PREVIEW_MALE` | Full URL of the Type 2 preview SVG |
 
 Because these are Cloudflare environment variables, the CDN URL stays out of the
 git repo and is never sent to the browser — visitors only ever see

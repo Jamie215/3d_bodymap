@@ -26,8 +26,8 @@ const FILES = {
   'female.glb':            { env: 'MODELS_CDN_FEMALE',         type: 'model/gltf-binary' },
   'male.glb':              { env: 'MODELS_CDN_MALE',           type: 'model/gltf-binary' },
   'body_ao_modified.png':  { env: 'MODELS_CDN_AO',             type: 'image/png' },
-  'Type 1.svg':            { env: 'MODELS_CDN_PREVIEW1', type: 'image/svg+xml' },
-  'Type 2.svg':            { env: 'MODELS_CDN_PREVIEW2',   type: 'image/svg+xml' },
+  'female.svg':            { env: 'MODELS_CDN_PREVIEW_FEMALE', type: 'image/svg+xml' },
+  'male.svg':              { env: 'MODELS_CDN_PREVIEW_MALE',   type: 'image/svg+xml' },
 };
 
 export async function onRequestGet(context) {

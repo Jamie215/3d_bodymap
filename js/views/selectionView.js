@@ -29,8 +29,8 @@ export function createSelectionView(onModelSelected) {
   selectionFooter.appendChild(addNewInstanceButton);
 
   const models = [
-    { name: 'Type 1', file: './models/female.glb', img: './models/Type 1.svg' },
-    { name: 'Type 2', file: './models/male.glb', img: './models/Type 2.svg' }
+    { name: 'Type 1', file: './models/female.glb', img: './models/female.svg' },
+    { name: 'Type 2', file: './models/male.glb', img: './models/male.svg' }
   ];
 
   let selectedModelPath = models[0].file;
