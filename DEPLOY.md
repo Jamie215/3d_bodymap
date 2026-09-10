@@ -23,26 +23,35 @@ There is no build step — Pages just publishes the repo contents and picks up t
 
 ## 2. Configure the model source (keeps the CDN URL private)
 
-The proxy lives at `functions/models/[file].js` and serves `/models/female.glb`
-and `/models/male.glb`. It reads the real CDN location from **environment
-variables** — set these in the dashboard, not in code:
+The proxy lives at `functions/models/[file].js` and serves the model assets from
+same-origin paths:
+
+- `/models/female.glb` — Type 1 model
+- `/models/male.glb` — Type 2 model
+- `/models/body_ao_modified.png` — ambient-occlusion texture applied to the model
+
+It reads the real CDN location from **environment variables** — set these in the
+dashboard, not in code:
 
 **Settings → Environment variables → Production** (and Preview, if you use preview
 deploys), add:
 
 | Variable | Value |
 |---|---|
-| `MODELS_CDN_BASE` | Base URL hosting the two models, e.g. `https://cdn.example.com/bodymap` |
+| `MODELS_CDN_BASE` | Base URL hosting the asset files, e.g. `https://cdn.example.com/bodymap` |
 
-The proxy fetches `${MODELS_CDN_BASE}/female.glb` and `${MODELS_CDN_BASE}/male.glb`.
+The proxy fetches `${MODELS_CDN_BASE}/female.glb`, `${MODELS_CDN_BASE}/male.glb`,
+and `${MODELS_CDN_BASE}/body_ao_modified.png`. **All three files must be hosted on
+your CDN** — none of them live in this repo.
 
-If your CDN filenames or paths differ, set full per-file URLs instead (either or
-both — they override the base):
+If your CDN filenames or paths differ, set full per-file URLs instead (any of them
+override the base):
 
 | Variable | Value |
 |---|---|
 | `MODELS_CDN_FEMALE` | Full URL of the "Type 1" model |
 | `MODELS_CDN_MALE` | Full URL of the "Type 2" model |
+| `MODELS_CDN_AO` | Full URL of the ambient-occlusion texture |
 
 Because these are Cloudflare environment variables, the CDN URL stays out of the
 git repo and is never sent to the browser — visitors only ever see

@@ -165,7 +165,7 @@ function setupSkinMesh(child, modelName) {
     const { canvas, context, texture } = texturePool.getOrCreate(textureId);
 
     const aoTexture = new THREE.TextureLoader().load(
-        '../assets/body_ao_modified.png',
+        './models/body_ao_modified.png',
         undefined,   // onLoad — not needed, texture is usable immediately
         undefined,   // onProgress
         (err) => console.warn('AO texture failed to load — model will render without ambient occlusion', err)
