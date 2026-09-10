@@ -307,36 +307,20 @@ export async function onRequest(context) {
 > should not send — any credential. The images are stored under an
 > `<uuid>/…` prefix so every submission's assets group together in R2.
 
-### Step 4 — Wire the client
+### Step 4 — Client wiring (already done in the repo)
 
-Replace the stub in `js/app/appController.js` (inside the general-questionnaire
-`completeButton` handler). The `prepareSubmissionData()` call is already there —
-only the "Integration point" block changes:
+The client change is committed — no action needed. `js/app/appController.js`
+hands the payload to `submitSubmission()` in `js/services/backendService.js`,
+which POSTs it to `/api/submit`:
 
 ```js
-const submissionData = await prepareSubmissionData();
-
-// ── Integration point ──────────────────────────────────────
-const response = await fetch('/api/submit', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(submissionData),
-});
-const success = response.ok;
-// ───────────────────────────────────────────────────────────
-
-if (success) {
-    clearSurveyInstance();
-    goTo('summary');
-} else {
-    console.error('Submission failed:', response.status);
-    alert('There was an error submitting your data. Please try again.');
-}
+const { ok, status, error } = await submitSubmission(submissionData);
 ```
 
-That is the entire client change — no SDK, no config object, no keys. (This
-replaces the old Firebase approach, so you do **not** need to restore
-`firebaseService.js` or the commented-out `<script>` tags in `index.html`.)
+`backendService.js` is the single, documented seam between the app and the
+backend (same-origin POST, JSON body, 2xx = success). No SDK, no config object,
+no keys ship in the browser. This replaces the old Firebase approach — the
+`firebaseService.js` script and its `<script>` tags are gone for good.
 
 ### Step 5 — Configure the bindings
 
@@ -429,6 +413,31 @@ The R2 bucket and D1 table are also browsable in the Cloudflare dashboard.
   alternative below instead.
 
 ---
+
+## Swapping the backend (for whoever takes over)
+
+The app is deliberately decoupled from any specific database. The stable part is
+a **contract**, and the Cloudflare Function is just one implementation of it:
+
+> **Contract** — the app POSTs the `SubmissionPayload` as JSON to a same-origin
+> `/api/submit`, and treats any `2xx` response as success. That's it.
+
+This lives in one place: `submitSubmission()` in `js/services/backendService.js`.
+So a successor choosing a different database has two options, from least to most
+work:
+
+1. **Keep the URL, replace what's behind it.** Rewrite only
+   `functions/api/submit.js` (and swap the D1/R2 bindings for the new store).
+   Nothing else in the app changes. This is the path if you stay on Cloudflare
+   Pages but change where data lands.
+2. **Change how the app reaches the backend.** If the new backend can't sit
+   behind a same-origin `/api/submit` (e.g. it needs a vendor SDK or a different
+   URL), edit `submitSubmission()` in `backendService.js` — the *only* file that
+   knows how data leaves the app. `appController.js`, `submissionService.js`, and
+   the payload shape stay untouched.
+
+In both cases `prepareSubmissionData()` and the `SubmissionPayload` shape are
+unchanged, so any downstream analysis code keeps working.
 
 ## Appendix: Alternative — Supabase (for Canadian residency)
 

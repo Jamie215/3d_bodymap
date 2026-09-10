@@ -1,0 +1,22 @@
+# Cloudflare Pages configuration.
+#
+# Provides the D1 and R2 bindings that functions/api/submit.js relies on. The
+# binding NAMES ("DB" and "SUBMISSIONS") must match the Function code; the
+# database_name / bucket_name must match what you created with wrangler.
+#
+# You can set these in the dashboard instead (Pages project → Settings →
+# Functions → D1 / R2 bindings); if you do, this file is optional.
+#
+# See DATABASE.md for the full setup steps.
+
+name = "3d-bodymap"          # your Pages project name
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bodymap-submissions"
+database_id = "PASTE-THE-ID-FROM-wrangler-d1-create"
+
+[[r2_buckets]]
+binding = "SUBMISSIONS"
+bucket_name = "bodymap-submissions"
