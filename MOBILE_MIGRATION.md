@@ -14,9 +14,10 @@ of this repository.
   there's nothing to port, just something to add.
 - **Realistic effort: ~3–4 weeks** for one engineer to a submittable build on
   both platforms. A prototype on a real device is ~2–3 days.
-- **Top risks, in order:** (1) the 3D assets aren't in the repo, (2) all libs
-  load from CDN and must be vendored for offline use, (3) this is clinical
-  patient data, so regulatory/store-privacy classification is a separate track.
+- **Top risks, in order:** (1) all libs load from CDN and must be vendored for
+  offline use, (2) this is clinical patient data, so regulatory/store-privacy
+  classification is a separate track. (3D asset delivery is handled — fetched at
+  build time via `scripts/fetch-assets.mjs`.)
 
 ---
 
@@ -35,10 +36,9 @@ of this repository.
 
 ## Phase 0 — Prerequisites (blockers, resolve first)
 
-- [ ] **Obtain the 3D asset files.** `female.glb`, `male.glb`,
-      `body_ao_modified.png`, `female.svg`, `male.svg` are served from a private
-      CDN and `*.glb` is in `.gitignore`. Get the actual files before anything
-      else — they block offline bundling.
+- [x] **3D asset delivery — resolved.** Assets are fetched at build time from
+      R2 by `scripts/fetch-assets.mjs` (see Phase 3); nothing committed. Source
+      bucket must stay reachable from the build machine/CI.
 - [ ] **Confirm distribution target.** True app-store apps (Capacitor) vs. an
       installable PWA changes scope. This plan assumes store apps.
 - [ ] **Confirm regulatory status.** This is patient symptom data. Decide
@@ -103,25 +103,48 @@ deps.
 
 ---
 
-## Phase 3 — Bundle 3D assets, remove the CDN proxy (1–3 days)
+## Phase 3 — Bundle 3D assets, remove the CDN proxy (1–2 days)
 
 The Cloudflare Pages Function (`functions/models/[file].js`) does not exist in a
 native app. Ship the assets inside the bundle instead.
 
-Asset path references to update (all currently point at `./models/...`):
+**Decision: build-time fetch from R2** (chosen over Git LFS / committing). A
+prebuild script downloads the assets into `./models/` before the app is
+bundled; nothing is committed, keeping the ~62MB of GLBs out of git history.
+This is implemented in **`scripts/fetch-assets.mjs`** (Node 18+, no deps).
+
+Asset sizes: each `.glb` is ~31MB; the AO PNG and preview SVGs are small.
+
+**Filename mapping (important).** The app requests `./models/female.svg` and
+`./models/male.svg`, but upstream they are stored as `Type 1.svg` / `Type 2.svg`
+— the Cloudflare proxy was renaming them via its env overrides. The fetch script
+reproduces this mapping (Type 1 = female, Type 2 = male); the GLBs and AO PNG
+keep their names.
+
+**No app code path changes are needed.** Assets land in `./models/` — the exact
+path the code already requests:
 - `js/views/selectionView.js:32-33` — model list (`female.glb`, `female.svg`, `male.glb`, `male.svg`)
 - `js/app/appController.js:112` — default model selection
 - `js/services/modelLoader.js:168` — `./models/body_ao_modified.png`
 
 Steps:
-1. Place the real asset files in a bundled `assets/models/` directory (remove
-   the `*.glb` ignore rule, or use a git-LFS/out-of-band mechanism if you don't
-   want binaries in git).
-2. Point the three references above at the bundled path.
-3. Delete/retire the `functions/` proxy from the mobile build (keep it for the
-   web deployment if that continues in parallel).
-4. Verify models load offline on-device. `GLTFLoader` reads from the local path
-   with no code change beyond the URL.
+1. Run `node scripts/fetch-assets.mjs` (override the source with
+   `MODELS_CDN_BASE=…` if the bucket moves). Populates `./models/`, which is
+   git-ignored.
+2. Wire it into the build: add an npm script (e.g.
+   `"prebuild:assets": "node scripts/fetch-assets.mjs"`) and run it before
+   `npx cap copy` so the assets are bundled into the native projects.
+3. Point Capacitor's `webDir` at the repo root (or the bundle dir) so `./models/`
+   is included.
+4. Retire the `functions/` proxy from the mobile build (keep it for the web
+   deployment if that continues in parallel — both can coexist, since the web
+   app uses the function route and the mobile build uses the fetched files).
+5. Verify models load offline on-device. `GLTFLoader` reads from the local path
+   with no code change.
+
+Note: this session's network policy blocks the R2 host, so the script must be
+run from a machine (or CI) that can reach the bucket. The script fails loudly
+with guidance if a download is blocked.
 
 ---
 
@@ -185,7 +208,7 @@ Work items:
 | 0 — Prerequisites | Gating, not dev time (but can block everything) |
 | 1 — Capacitor scaffold | 1–2 days |
 | 2 — Vendor CDN deps | 2–4 days |
-| 3 — Bundle assets, drop proxy | 1–3 days |
+| 3 — Bundle assets, drop proxy | 1–2 days (script done) |
 | 4 — Local storage feature | 3–5 days |
 | 5 — Mobile UX & performance | 3–5 days |
 | 6 — Store submission | 2–4 days + review |
@@ -211,7 +234,7 @@ Prototype on a device: ~2–3 days (Phases 1 + a shortcut through 2–3).
 ## Open questions to resolve with stakeholders
 
 1. Is D3 actually needed? (README says loaded-but-unused — dropping it trims the bundle.)
-2. Where do the 3D asset files live and who can provide them?
+2. ~~Where do the 3D asset files live?~~ Resolved — R2 bucket, fetched by `scripts/fetch-assets.mjs`. (Confirm the bucket is reachable from your CI/build machine.)
 3. Local-only storage, or eventual sync back to EmPOWER/SPINA? (Affects Phase 4 and regulatory scope.)
 4. Is this a regulated medical device in the target markets?
 5. Continue the web (Cloudflare Pages) deployment in parallel, or replace it?

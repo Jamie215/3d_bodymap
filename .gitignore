@@ -5,3 +5,6 @@
 /js/services/firebaseService.js
 admin-dashboard.html
 *.glb
+
+# Build-time 3D assets — fetched by scripts/fetch-assets.mjs, never committed.
+/models/
