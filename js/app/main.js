@@ -212,9 +212,9 @@ responsive.on('prefersReducedMotion', (prefersReduced) => {
 // ====================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Data submission is handled server-side via POST /api/submit
-    // (see js/services/backendService.js and DATABASE.md) — no client-side
-    // database init is needed here.
+    // Firebase removed for integration handover.
+    // To re-enable, add firebaseService.js to index.html and uncomment:
+    // if (window.firebaseService) window.firebaseService.init();
 
     document.documentElement.setAttribute('data-viewport', responsive.getViewportType());
     document.documentElement.setAttribute('data-orientation', responsive.is('isLandscape') ? 'landscape' : 'portrait');

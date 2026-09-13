@@ -32,7 +32,6 @@ import {
     clearSurveyInstance
 } from '../services/surveyManager.js';
 import { initSubmissionService, prepareSubmissionData } from '../services/submissionService.js';
-import { submitSubmission } from '../services/backendService.js';
 import AppState from './state.js';
 import eventManager from './eventManager.js';
 import CameraUtils from '../services/cameraService.js';
@@ -283,23 +282,24 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
             try {
                 const submissionData = await prepareSubmissionData();
+                console.log('Submission data prepared:', submissionData);
 
                 // ── Integration point ──────────────────────────────────────
-                // The backend is reached through the single seam in
-                // backendService.js (POST /api/submit). To use a different
-                // database, reimplement that endpoint or that one function —
-                // nothing here changes. See DATABASE.md.
-                const { ok, status, error } = await submitSubmission(submissionData);
+                // Replace with your platform's API call:
+                //   const response = await apiService.submit(submissionData);
+                //   const success = response.ok;
+                //
+                // For now, simulate success to keep the app testable:
+                const success = true;
                 // ───────────────────────────────────────────────────────────
 
-                if (ok) {
+                if (success) {
+                    console.log('Submission complete (no backend connected — data logged above).');
                     clearSurveyInstance();
                     goTo('summary');
                 } else {
-                    console.error('Failed to submit data', status, error);
+                    console.error('Failed to submit data');
                     alert('There was an error submitting your data. Please try again.');
-                    // Roll back so the user can retry
-                    AppState.generalQuestionnaireResponse = null;
                 }
             } catch (error) {
                 console.error('Submission failed:', error);

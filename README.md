@@ -164,9 +164,18 @@ Each drawing instance owns its own canvas, texture, region tracking, and questio
 
 ## Integration
 
-Firebase has been removed. Submission now goes through a single vendor-neutral seam: `appController.js` hands the payload to `submitSubmission()` in `js/services/backendService.js`, which POSTs it to a same-origin `/api/submit` endpoint. No database SDK or credentials are loaded in the browser.
+Firebase has been removed. The submission endpoint in `appController.js` is a clearly marked stub:
 
-The reference backend is a Cloudflare Pages Function (`functions/api/submit.js`) that stores images in R2 and metadata in D1. Because the app depends only on the `POST /api/submit` contract, that backend can be swapped for any other (Supabase, a Node/Flask server, a Lambda, …) without touching the client. The full walkthrough, cost notes, and swap instructions are in [DATABASE.md](./DATABASE.md).
+```js
+// ── Integration point ──────────────────────────────────────
+// Replace with your platform's API call:
+//   const response = await apiService.submit(submissionData);
+//   const success = response.ok;
+//
+// For now, simulate success to keep the app testable:
+const success = true;
+// ───────────────────────────────────────────────────────────
+```
 
 The `submissionData` object (typed as `SubmissionPayload` in `submissionService.js`) contains session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, general questionnaire data, and device metadata.
 
