@@ -48,7 +48,7 @@ import coverageCalculator from './coverageService.js';
  * @property {'Desktop'|'Tablet'|'Mobile'}  deviceType
  * @property {string}                        operatingSystem
  * @property {string}                        browser
- * @property {string}                        userAgent
+ * (raw userAgent intentionally not captured — see REB #5 in prepareSubmissionData)
  */
 
 /**
@@ -294,8 +294,13 @@ export async function prepareSubmissionData() {
         deviceInfo: {
             deviceType: getDeviceType(),
             operatingSystem: getOS(),
-            browser: getBrowser(),
-            userAgent: navigator.userAgent
+            browser: getBrowser()
+            // REB #5 (data minimization): the raw navigator.userAgent string
+            // is not captured. The full UA contributes to browser
+            // fingerprinting / re-identification, and the coarse fields above
+            // (Desktop / Windows / Chrome) are all that is needed. Re-enable
+            // only if a specific analysis justifies it.
+            // userAgent: navigator.userAgent
         }
     };
 }
