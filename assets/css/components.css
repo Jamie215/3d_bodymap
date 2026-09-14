@@ -1210,8 +1210,26 @@ h3.control-title { margin-bottom: 20px; }
   background: #000;
 }
 
-.video-thumbnail-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.2s ease; }
-.video-thumbnail:hover .video-thumbnail-img { opacity: 0.8; }
+.video-thumbnail-poster {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #0277BD 0%, #01579B 100%);
+  transition: opacity 0.2s ease;
+}
+.video-thumbnail:hover .video-thumbnail-poster { opacity: 0.85; }
+
+.video-thumbnail-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--space-sm, 8px);
+  text-align: center;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
 
 .video-play-btn {
   position: absolute;

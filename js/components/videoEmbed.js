@@ -50,10 +50,16 @@ export function createVideoEmbed(videoId = '2LGwMr0mNc4', titleText = 'Pain & Sy
     thumbnail.className = 'video-thumbnail';
     thumbnail.id = 'video-thumbnail';
 
-    const img = document.createElement('img');
-    img.src = `https://img.youtube.com/vi/${safeId}/hqdefault.jpg`;
-    img.alt = 'Video Tutorial Thumbnail';
-    img.className = 'video-thumbnail-img';
+    // Self-contained poster — no remote thumbnail is fetched, so the
+    // participant's browser makes no contact with Google (YouTube) until
+    // they actively click to play. The YouTube iframe itself is loaded in
+    // privacy-enhanced mode (youtube-nocookie.com) only on play.
+    const poster = document.createElement('div');
+    poster.className = 'video-thumbnail-poster';
+
+    const caption = document.createElement('span');
+    caption.className = 'video-thumbnail-caption';
+    caption.textContent = 'Watch the tutorial';
 
     const playBtn = document.createElement('div');
     playBtn.className = 'video-play-btn';
@@ -61,7 +67,7 @@ export function createVideoEmbed(videoId = '2LGwMr0mNc4', titleText = 'Pain & Sy
     playIcon.className = 'fa-solid fa-play';
     playBtn.appendChild(playIcon);
 
-    thumbnail.append(img, playBtn);
+    thumbnail.append(poster, playBtn, caption);
 
     if (titleText) container.append(title, thumbnail);
     else container.append(thumbnail);
@@ -151,7 +157,7 @@ function ensureOverlay() {
 
 function openOverlay(videoId) {
     const iframe = videoOverlay.querySelector('#summary-video-iframe');
-    iframe.src = `https://www.youtube.com/embed/${sanitiseVideoId(videoId)}?rel=0&controls=1&playsinline=1`
+    iframe.src = `https://www.youtube-nocookie.com/embed/${sanitiseVideoId(videoId)}?rel=0&controls=1&playsinline=1`
     videoOverlay.classList.add('is-active');
     document.body.style.overflow = 'hidden';
 }
