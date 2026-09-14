@@ -57,17 +57,13 @@ export function createVideoEmbed(videoId = '2LGwMr0mNc4', titleText = 'Pain & Sy
     const poster = document.createElement('div');
     poster.className = 'video-thumbnail-poster';
 
-    const caption = document.createElement('span');
-    caption.className = 'video-thumbnail-caption';
-    caption.textContent = 'Watch the tutorial';
-
     const playBtn = document.createElement('div');
     playBtn.className = 'video-play-btn';
     const playIcon = document.createElement('i');
     playIcon.className = 'fa-solid fa-play';
     playBtn.appendChild(playIcon);
 
-    thumbnail.append(poster, playBtn, caption);
+    thumbnail.append(poster, playBtn);
 
     if (titleText) container.append(title, thumbnail);
     else container.append(thumbnail);

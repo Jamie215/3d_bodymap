@@ -1218,19 +1218,6 @@ h3.control-title { margin-bottom: 20px; }
 }
 .video-thumbnail:hover .video-thumbnail-poster { opacity: 0.85; }
 
-.video-thumbnail-caption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: var(--space-sm, 8px);
-  text-align: center;
-  color: #ffffff;
-  font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  pointer-events: none;
-}
-
 .video-play-btn {
   position: absolute;
   top: 50%;
