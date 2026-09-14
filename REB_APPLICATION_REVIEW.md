@@ -64,45 +64,20 @@ details.
 - **Effort:** wording (survey text) + an analysis-stage process.
 
 #### 3. Sensitive questions are mostly forced-response (voluntariness)
-Nearly every question is `isRequired: true`, including sensitive ones.
+**Decision (14 Sep 2026): no change — intentional by design.** The forced-response
+questionnaire structure is a deliberate design choice by the research team. The
+"stressful time" question already offers "Prefer not to answer" where a decline
+path was wanted; the remaining required items are retained as designed. If the
+REB raises voluntariness, the response is that the required items are integral to
+the assessment and the design was made with that intention.
 
-- **Where:** `js/data/generalSurvey.js` — medication yes/no and the medication
-  matrix (narcotics, anti-depressants, cannabis) are required with no decline
-  option; the "stressful time" question does offer "Prefer not to answer."
-  `js/data/areaSurvey.js` — most items required, including free-text symptom
-  descriptions.
-- **Why REB cares:** TCPS 2 protects the right to skip individual questions,
-  especially sensitive ones.
-- **Mitigation:** add "Prefer not to answer" (or make optional) on sensitive
-  items, for consistency with the stress question.
-- **Effort:** small survey-config changes.
-
-#### 4. YouTube tutorial embed = third-party (Google) contact
-The summary screen loads a YouTube **thumbnail** on render and a YouTube
-**iframe** when the tutorial is opened, so the participant's browser contacts
-Google (cookies / tracking possible) — even before clicking, for the thumbnail.
-
-- **Where:** `js/components/videoEmbed.js` — `img.youtube.com/vi/<id>/…` thumbnail
-  and the `youtube.com/embed` iframe.
-- **Why REB cares:** third-party contact and tracking is a Privacy Office point,
-  independent of data storage.
-- **Mitigation:** switch the iframe to privacy mode (`youtube-nocookie.com`),
-  self-host the clip, or replace it with the existing image-based help.
-- **Effort:** small code change.
+_(Original finding, for reference: nearly every question is `isRequired: true`,
+including sensitive ones in `js/data/generalSurvey.js` and `js/data/areaSurvey.js`.
+TCPS 2 protects the right to skip individual questions; the suggested mitigation
+was to add "Prefer not to answer" on sensitive items. Not actioned — see decision
+above.)_
 
 ### Worth noting (lower priority)
-
-#### 5. Full browser user-agent is captured
-The submission stores the complete `navigator.userAgent` string plus derived
-OS / browser / device type.
-
-- **Where:** `js/services/submissionService.js` (`deviceInfo.userAgent`, plus
-  `getOS()`, `getBrowser()`, `getDeviceType()`).
-- **Why REB cares:** the raw UA contributes to fingerprinting / re-identification;
-  data-minimization prefers keeping only what's needed.
-- **Mitigation:** drop the raw `userAgent` and keep only the coarse fields
-  (e.g., Desktop / Windows / Chrome).
-- **Effort:** one-line removal.
 
 #### 6. Other third-party CDNs
 Libraries and fonts load at runtime from external hosts, exposing the
@@ -129,17 +104,40 @@ discrimination, which may exclude participants with visual or motor impairments.
 
 ---
 
+## Resolved
+
+Item numbers are kept stable (they match the commit history); resolved items are
+recorded here rather than renumbered.
+
+#### 4. YouTube tutorial embed → Google contact — **DONE**
+`js/components/videoEmbed.js`. The remote YouTube thumbnail (`img.youtube.com`,
+fetched on render) was replaced with a self-contained CSS poster, so the
+participant's browser makes **no contact with Google until they actively click
+to play**. The tutorial iframe now loads in privacy-enhanced mode
+(`youtube-nocookie.com`) instead of `youtube.com`.
+_Residual:_ if the participant does click play, the video still streams from
+Google, so their IP is exposed at that point; full elimination would require
+self-hosting the clip (overlaps Item 6).
+
+#### 5. Full browser user-agent captured — **DONE**
+`js/services/submissionService.js`. The raw `navigator.userAgent` field is no
+longer included in the submission payload. The coarse derived fields
+(`deviceType` / `operatingSystem` / `browser`, e.g. Desktop / Windows / Chrome)
+are retained.
+
+---
+
 ## Summary table
 
-| # | Item | Priority | Type of fix | Effort |
-|---|---|---|---|---|
-| 1 | No in-app consent / study info | High | Process / wording (± screen) | Small |
-| 2 | Free-text fields (identifiers) | High | Wording + analysis process | Small |
-| 3 | Forced-response on sensitive items | Medium | Survey config | Small |
-| 4 | YouTube embed → Google contact | Medium | Code | Small |
-| 5 | Full user-agent captured | Low | Code | Very small |
-| 6 | Third-party CDNs | Low | Build / hosting | Moderate |
-| 7 | Accessibility / equitable access | Low | Design / documentation | Varies |
+| # | Item | Priority | Type of fix | Effort | Status |
+|---|---|---|---|---|---|
+| 1 | No in-app consent / study info | High | Process / wording (± screen) | Small | Open |
+| 2 | Free-text fields (identifiers) | High | Wording + analysis process | Small | Open |
+| 3 | Forced-response on sensitive items | Medium | Survey config | Small | No change — intentional |
+| 4 | YouTube embed → Google contact | Medium | Code | Small | **Done** |
+| 5 | Full user-agent captured | Low | Code | Very small | **Done** |
+| 6 | Third-party CDNs | Low | Build / hosting | Moderate | Open |
+| 7 | Accessibility / equitable access | Low | Design / documentation | Varies | Open |
 
 ---
 
@@ -148,10 +146,7 @@ discrimination, which may exclude participants with visual or motor impairments.
 1. Decide where **consent** is obtained and document it (Item 1).
 2. Add a **do-not-enter-identifying-information** note near free-text fields and
    plan free-text review (Item 2).
-3. Add **"Prefer not to answer"** to sensitive survey items (Item 3).
-4. Apply the **YouTube privacy fix** (Item 4) — quick code change.
-5. Optionally **drop the raw user-agent** (Item 5).
-6. Revisit CDN self-hosting and accessibility (Items 6–7) if the privacy review
+3. Revisit CDN self-hosting and accessibility (Items 6–7) if the privacy review
    asks for a fully self-contained build.
 
 *Planning notes — not a compliance determination. Confirm interpretation with
