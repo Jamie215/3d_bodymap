@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import AppState from '../app/state.js';
 import texturePool from './texturePool.js';
 import coverageCalculator from './coverageService.js';
+import { buildCsvFiles } from './csvExporter.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -542,6 +543,16 @@ export async function downloadSubmissionZip(payload) {
     }
 
     root.file('metadata.json', JSON.stringify(meta, null, 2));
+
+    // Tabular exports for analysis (region-by-region coverage in long format).
+    try {
+        const csvFolder = root.folder('csv');
+        for (const [name, text] of Object.entries(buildCsvFiles(payload))) {
+            csvFolder.file(name, text);
+        }
+    } catch (error) {
+        console.error('CSV export failed; continuing with JSON + images only', error);
+    }
 
     const blob = await zip.generateAsync({ type: 'blob' });
     const filename = `${base}.zip`;

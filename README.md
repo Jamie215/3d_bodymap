@@ -171,9 +171,13 @@ pain-assessment_<stamp>_<id>/
   areas/area-<n>/
     overview.png                         this area's drawing on the body UV atlas (legible reference)
     drawing.png                          this area's raw UV drawing
+  csv/
+    session.csv                          one row: session metadata, device info, general questionnaire
+    areas.csv                            one row per area: summary + area questionnaire answers
+    coverage.csv                         long format, one row per (area, region) — region-by-region coverage
 ```
 
-(A CSV export will be added to the same archive; its column layout is still being decided. `downloadSubmission()` — the plain single-JSON export — is retained as a fallback.) The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
+The CSVs (built by `csvExporter.js`) favour a "long / tidy" shape where a field would otherwise explode into sparse columns — most notably per-region coverage, emitted one row per (area, region). `downloadSubmission()` — the plain single-JSON export — is retained as a fallback. The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
 
 The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, general questionnaire data, and coarse device metadata (no raw user-agent — see REB #5).
 
