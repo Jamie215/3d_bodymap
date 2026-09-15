@@ -79,19 +79,6 @@ above.)_
 
 ### Worth noting (lower priority)
 
-#### 6. Other third-party CDNs
-Libraries and fonts load at runtime from external hosts, exposing the
-participant's IP to each.
-
-- **Where:** `index.html` — unpkg, jsDelivr, cdnjs, d3js.org, Google Fonts /
-  gstatic. (The `gstatic` Firebase lines are inside an HTML comment and are not
-  loaded.)
-- **Why REB cares:** lower risk than YouTube (functional assets, no tracking
-  cookies), but a strict privacy review may prefer no third-party contact.
-- **Mitigation:** self-host the libraries and fonts if a fully self-contained
-  build is wanted.
-- **Effort:** moderate (bundle/host assets).
-
 #### 7. Accessibility / equitable access
 The core task is a colour-based 3D drawing needing pointer control and colour
 discrimination, which may exclude participants with visual or motor impairments.
@@ -109,21 +96,38 @@ discrimination, which may exclude participants with visual or motor impairments.
 Item numbers are kept stable (they match the commit history); resolved items are
 recorded here rather than renumbered.
 
-#### 4. YouTube tutorial embed → Google contact — **DONE**
-`js/components/videoEmbed.js`. The remote YouTube thumbnail (`img.youtube.com`,
-fetched on render) was replaced with a self-contained CSS poster, so the
-participant's browser makes **no contact with Google until they actively click
-to play**. The tutorial iframe now loads in privacy-enhanced mode
-(`youtube-nocookie.com`) instead of `youtube.com`.
-_Residual:_ if the participant does click play, the video still streams from
-Google, so their IP is exposed at that point; full elimination would require
-self-hosting the clip (overlaps Item 6).
+#### 4. YouTube tutorial embed → Google contact — **DONE (fully)**
+`js/components/videoEmbed.js`, `js/data/helpContent.js`. The YouTube embed was
+removed entirely. The remote YouTube thumbnail (`img.youtube.com`, fetched on
+render) is now a self-contained CSS poster, and the player is a native
+`<video>` serving the clips **same-origin** from `assets/video/` (`preload="none"`,
+so nothing loads until the participant clicks play). There is **no contact with
+YouTube / Google at any point** — the earlier `youtube-nocookie` residual (IP
+exposed on play) is closed because the video no longer streams from Google.
 
 #### 5. Full browser user-agent captured — **DONE**
 `js/services/submissionService.js`. The raw `navigator.userAgent` field is no
 longer included in the submission payload. The coarse derived fields
 (`deviceType` / `operatingSystem` / `browser`, e.g. Desktop / Windows / Chrome)
 are retained.
+
+#### 6. Other third-party CDNs — **DONE**
+`index.html`, `assets/css/base.css`, `vendor/`. Every library, stylesheet, and
+font that the browser previously fetched from a third-party CDN (unpkg,
+jsDelivr, cdnjs, d3js.org, Google Fonts) is now **self-hosted same-origin** under
+`vendor/`. Assets were taken from the npm registry at pinned versions (three
+0.175.0, knockout 3.5.1, survey-knockout 1.12.67, d3 7.9.0, driver.js 1.3.1,
+Font Awesome 7.0.1) and Inter is self-hosted via `@fontsource/inter` (replacing
+the Google Fonts `@import`). SurveyJS's stylesheet shipped Open Sans
+`@font-face` rules pointing at `fonts.gstatic.com`; those were stripped (the
+theme falls back to its Helvetica/Arial/sans-serif stack). See `vendor/README.md`
+for the full inventory and update procedure.
+
+**Net effect (Items 4 + 6):** the participant's browser now contacts only the
+application's own origin. No third-party (Google or CDN) receives the
+participant's IP for any asset. The remaining external consideration — the app's
+own host seeing the IP — is inherent to hosting and is a data-residency matter,
+out of scope here.
 
 ---
 
@@ -136,7 +140,7 @@ are retained.
 | 3 | Forced-response on sensitive items | Medium | Survey config | Small | No change — intentional |
 | 4 | YouTube embed → Google contact | Medium | Code | Small | **Done** |
 | 5 | Full user-agent captured | Low | Code | Very small | **Done** |
-| 6 | Third-party CDNs | Low | Build / hosting | Moderate | Open |
+| 6 | Third-party CDNs | Low | Build / hosting | Moderate | **Done** |
 | 7 | Accessibility / equitable access | Low | Design / documentation | Varies | Open |
 
 ---
@@ -146,8 +150,8 @@ are retained.
 1. Decide where **consent** is obtained and document it (Item 1).
 2. Add a **do-not-enter-identifying-information** note near free-text fields and
    plan free-text review (Item 2).
-3. Revisit CDN self-hosting and accessibility (Items 6–7) if the privacy review
-   asks for a fully self-contained build.
+3. Revisit **accessibility** (Item 7) if the review asks for an alternative to
+   the drawing interface.
 
 *Planning notes — not a compliance determination. Confirm interpretation with
 the Western REB and Privacy Office.*
