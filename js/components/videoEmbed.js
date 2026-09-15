@@ -1,6 +1,10 @@
 // videoEmbed.js
-// Self-contained YouTube video embed component: thumbnail with play
-// button + fullscreen overlay with iframe.  Used in the summary view.
+// Self-contained tutorial video embed: a thumbnail (poster + play button) in
+// the summary/help views that opens a fullscreen overlay with a native,
+// self-hosted <video>.  The clips are served same-origin from
+// `assets/video/…`, so the participant's browser never contacts a third party
+// (no YouTube / Google request).  Nothing is fetched until the participant
+// actively clicks to play (`preload="none"`).
 
 // ============================================================================
 // MODULE STATE
@@ -9,19 +13,24 @@
 let videoOverlay = null;   // Created once, reused across updateSummaryStatus calls
 
 // ============================================================================
-// INTERNAL — SANITISE VIDEO ID
+// INTERNAL — SANITISE VIDEO SOURCE
 // ============================================================================
 
 /**
- * Sanitise a YouTube video ID to prevent injection.
- * Valid IDs contain only alphanumeric characters, hyphens, and underscores.
+ * Sanitise a video source path. Sources are same-origin relative paths to
+ * local assets (e.g. "assets/video/clip.mp4"). Reject absolute URLs, protocol
+ * prefixes, protocol-relative URLs, and parent-directory traversal so a bad
+ * value can never point the player at an off-origin host.
  *
- * @param {string} videoId
- * @returns {string} sanitised ID, or empty string if invalid
+ * @param {string} src
+ * @returns {string} sanitised relative path, or empty string if invalid
  */
-function sanitiseVideoId(videoId) {
-    if (typeof videoId !== 'string') return '';
-    return videoId.replace(/[^a-zA-Z0-9_-]/g, '');
+function sanitiseVideoSrc(src) {
+    if (typeof src !== 'string') return '';
+    if (/^[a-z][a-z0-9+.-]*:/i.test(src)) return '';  // http:, https:, data:, javascript:, …
+    if (src.startsWith('//')) return '';               // protocol-relative //host/…
+    if (src.includes('..')) return '';                 // directory traversal
+    return src.replace(/[^a-zA-Z0-9_\-./]/g, '');
 }
 
 // ============================================================================
@@ -31,11 +40,12 @@ function sanitiseVideoId(videoId) {
 /**
  * Create a video embed element with thumbnail and fullscreen overlay.
  *
- * @param {string} videoId — YouTube video ID
- * @returns {HTMLElement}  — container ready to append into the DOM
+ * @param {string} videoSrc  — same-origin path to the local video file
+ * @param {string} titleText — heading shown above the thumbnail (null to omit)
+ * @returns {HTMLElement}     — container ready to append into the DOM
  */
-export function createVideoEmbed(videoId = '2LGwMr0mNc4', titleText = 'Pain & Symptom Assessment Form') {
-    const safeId = sanitiseVideoId(videoId);
+export function createVideoEmbed(videoSrc = 'assets/video/2LGwMr0mNc4.mp4', titleText = 'Pain & Symptom Assessment Form') {
+    const safeSrc = sanitiseVideoSrc(videoSrc);
 
     const container = document.createElement('div');
     container.classList.add('summary-video-container');
@@ -50,10 +60,9 @@ export function createVideoEmbed(videoId = '2LGwMr0mNc4', titleText = 'Pain & Sy
     thumbnail.className = 'video-thumbnail';
     thumbnail.id = 'video-thumbnail';
 
-    // Self-contained poster — no remote thumbnail is fetched, so the
-    // participant's browser makes no contact with Google (YouTube) until
-    // they actively click to play. The YouTube iframe itself is loaded in
-    // privacy-enhanced mode (youtube-nocookie.com) only on play.
+    // Self-contained poster — no remote thumbnail is fetched. Combined with the
+    // overlay's preload="none", the browser makes no request for the video
+    // until the participant clicks to play.
     const poster = document.createElement('div');
     poster.className = 'video-thumbnail-poster';
 
@@ -71,7 +80,7 @@ export function createVideoEmbed(videoId = '2LGwMr0mNc4', titleText = 'Pain & Sy
     ensureOverlay();
 
     // Open overlay on thumbnail click
-    thumbnail.addEventListener('click', () => openOverlay(safeId));
+    thumbnail.addEventListener('click', () => openOverlay(safeSrc));
 
     return container;
 }
@@ -80,12 +89,12 @@ export function createVideoEmbed(videoId = '2LGwMr0mNc4', titleText = 'Pain & Sy
  * Create a hyperlink that opens the video overlay when clicked.
  * Reuses the same overlay as createVideoEmbed.
  *
- * @param {string} videoId  — YouTube video ID
- * @param {string} linkText — link label text
+ * @param {string} videoSrc — same-origin path to the local video file
+ * @param {string} linkText — link label text (HTML)
  * @returns {HTMLAnchorElement}
  */
-export function createVideoLink(videoId = '2LGwMr0mNc4', linkText = '<i class="fa-solid fa-circle-play">&emsp;</i>How do I use this form?') {
-    const safeId = sanitiseVideoId(videoId);
+export function createVideoLink(videoSrc = 'assets/video/2LGwMr0mNc4.mp4', linkText = '<i class="fa-solid fa-circle-play">&emsp;</i>How do I use this form?') {
+    const safeSrc = sanitiseVideoSrc(videoSrc);
 
     const link = document.createElement('a');
     link.className = 'summary-video-link';
@@ -96,7 +105,7 @@ export function createVideoLink(videoId = '2LGwMr0mNc4', linkText = '<i class="f
 
     link.addEventListener('click', (e) => {
         e.preventDefault();
-        openOverlay(safeId);
+        openOverlay(safeSrc);
     });
 
     return link;
@@ -128,19 +137,19 @@ function ensureOverlay() {
     closeIcon.className = 'fa-solid fa-xmark';
     closeBtn.appendChild(closeIcon);
 
-    // Content wrapper + iframe
+    // Content wrapper + native video
     const content = document.createElement('div');
     content.className = 'video-overlay-content';
 
-    const iframe = document.createElement('iframe');
-    iframe.id = 'summary-video-iframe';
-    iframe.src = '';
-    iframe.title = 'Pain Assessment Tool — How to Use';
-    iframe.setAttribute('frameborder', '0');
-    iframe.allow = 'accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-    iframe.allowFullscreen = true;
+    const video = document.createElement('video');
+    video.id = 'summary-video';
+    video.className = 'summary-video';
+    video.controls = true;
+    video.playsInline = true;
+    video.preload = 'none';   // no bytes fetched until the participant plays
+    video.setAttribute('controlsList', 'nodownload');
 
-    content.appendChild(iframe);
+    content.appendChild(video);
     videoOverlay.append(closeBtn, content);
 
     closeBtn.addEventListener('click', closeOverlay);
@@ -151,16 +160,27 @@ function ensureOverlay() {
     document.body.appendChild(videoOverlay);
 }
 
-function openOverlay(videoId) {
-    const iframe = videoOverlay.querySelector('#summary-video-iframe');
-    iframe.src = `https://www.youtube-nocookie.com/embed/${sanitiseVideoId(videoId)}?rel=0&controls=1&playsinline=1`
+function openOverlay(videoSrc) {
+    const video = videoOverlay.querySelector('#summary-video');
+    const safeSrc = sanitiseVideoSrc(videoSrc);
+
+    if (safeSrc) {
+        video.src = safeSrc;
+        // The click that opened the overlay is a user gesture, so play() is
+        // permitted; if the browser still blocks it the controls remain.
+        video.play().catch(() => {});
+    }
+
     videoOverlay.classList.add('is-active');
     document.body.style.overflow = 'hidden';
 }
 
 function closeOverlay() {
-    const iframe = videoOverlay.querySelector('#summary-video-iframe');
-    iframe.src = '';
+    const video = videoOverlay.querySelector('#summary-video');
+    // Stop playback and release the source so buffering halts.
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
     videoOverlay.classList.remove('is-active');
     document.body.style.overflow = '';
 }

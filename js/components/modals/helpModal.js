@@ -226,21 +226,13 @@ function renderBlock(block) {
         }
 
         case 'video': {
-            return createVideoEmbed(sanitiseVideoId(block.videoId), null);
+            return createVideoEmbed(block.src, null);
         }
 
         default:
             console.warn(`renderBlock: unknown block type "${block.type}"`);
             return document.createComment(`unknown block type: ${block.type}`);
     }
-}
-
-/**
- * Sanitise a YouTube video ID — only alphanumerics, hyphens, and underscores.
- */
-function sanitiseVideoId(videoId) {
-    if (typeof videoId !== 'string') return '';
-    return videoId.replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
 // ============================================================================
