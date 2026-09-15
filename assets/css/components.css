@@ -774,9 +774,15 @@ h3.control-title { margin-bottom: 20px; }
   cursor: pointer;
 }
 
-/* On narrow screens shrink the confirm label so it stays on one line */
+/* On narrow screens shrink the confirm label so it stays on one line, and make
+   the download button slightly more compact */
 @media (max-width: 480px) {
   .summary-save-confirm { font-size: var(--font-body-xsmall); }
+  .summary-save .button {
+    font-size: var(--font-button-small, var(--font-body-small));
+    padding: var(--space-sm) var(--space-md);
+    min-height: 40px;
+  }
 }
 .summary-title { font-size: var(--font-title-large); font-weight: bold; margin-bottom: var(--space-md); }
 .summary-instruction { color: var(--text-secondary, var(--dark-grey)); font-size: var(--font-body-medium); margin-bottom: var(--space-md); }

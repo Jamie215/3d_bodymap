@@ -169,7 +169,7 @@ pain-assessment_<stamp>_<id>/
   metadata.json                          full payload; image blobs replaced by file paths
   snapshots/{front,back,left,right}.png  all areas on the body, four angles
   areas/area-<n>/
-    {front,back,left,right}.png          this area on the body (anatomical reference)
+    overview.png                         this area's drawing on the body UV atlas (legible reference)
     drawing.png                          this area's raw UV drawing
 ```
 
