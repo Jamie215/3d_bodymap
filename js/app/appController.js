@@ -31,7 +31,7 @@ import {
     getCurrentSurveyData,
     clearSurveyInstance
 } from '../services/surveyManager.js';
-import { initSubmissionService, prepareSubmissionData, downloadSubmission } from '../services/submissionService.js';
+import { initSubmissionService, prepareSubmissionData, downloadSubmissionZip } from '../services/submissionService.js';
 import AppState from './state.js';
 import eventManager from './eventManager.js';
 import CameraUtils from '../services/cameraService.js';
@@ -183,9 +183,13 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     });
 
     // ── Save-to-device screen ───────────────────────────────────────────
-    summary.setDownloadCallback(() => {
-        if (AppState.submissionPayload) {
-            downloadSubmission(AppState.submissionPayload);
+    summary.setDownloadCallback(async () => {
+        if (!AppState.submissionPayload) return;
+        try {
+            await downloadSubmissionZip(AppState.submissionPayload);
+        } catch (error) {
+            console.error('Download failed:', error);
+            alert('There was an error preparing your response for download. Please try again.');
         }
     });
 

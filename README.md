@@ -162,7 +162,16 @@ The app operates as a finite state machine with five stages, managed by `stageRo
 
 Each drawing instance owns its own canvas, texture, region tracking, and questionnaire data. When the general questionnaire is completed, `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload (`prepareSubmissionData`).
 
-The app has **no backend**. `appController.js` routes to a "Save Your Response" screen where the participant clicks **Download the file** to save their responses; `downloadSubmission()` serializes the payload to a single self-contained JSON file (the four-angle snapshots ride along as base-64) and triggers a browser download — entirely client-side, no network request. The participant then stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
+The app has **no backend**. `appController.js` routes to a "Save Your Response" screen where the participant clicks **Download response**; `downloadSubmissionZip()` bundles the session into a single `.zip` and triggers a browser download — entirely client-side, no network request (uses the vendored global `JSZip`). The archive contains:
+
+```
+pain-assessment_<stamp>_<id>/
+  metadata.json                     full payload; image blobs replaced by file paths
+  snapshots/{front,back,left,right}.png
+  areas/area-<n>.png                per-area UV drawing (when present)
+```
+
+(A CSV export will be added to the same archive; its column layout is still being decided. `downloadSubmission()` — the plain single-JSON export — is retained as a fallback.) The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
 
 The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, general questionnaire data, and coarse device metadata (no raw user-agent — see REB #5).
 

@@ -18,6 +18,7 @@ re-downloaded from a CDN) and copied here unmodified except where noted.
 | `surveyjs/survey.ko.min.js` | survey-knockout | 1.12.67 | was previously unpinned on unpkg |
 | `surveyjs/defaultV2.min.css` | survey-knockout | 1.12.67 | Open Sans @font-face blocks (→ fonts.gstatic.com) removed; falls back to the theme's Helvetica/Arial/sans-serif stack |
 | `d3/d3.v7.min.js` | d3 | 7.9.0 | UMD build (dist/d3.min.js) |
+| `jszip/jszip.min.js` | jszip | 3.10.1 | UMD build (dist/jszip.min.js); used to bundle the response download (JSON + images) as a `.zip`. Exposes global `JSZip`. `LICENSE.markdown` kept alongside. |
 | `driverjs/driver.js.iife.js`, `driverjs/driver.css` | driver.js | 1.3.1 | |
 | `fontawesome/css/all.min.css` + `fontawesome/webfonts/*` | @fortawesome/fontawesome-free | 7.0.1 | |
 | `fonts/inter/*` + `fonts/inter/inter.css` | @fontsource/inter | 5.3.0 | Inter, latin subset, weights 400/500/600/700; replaces the Google Fonts @import in assets/css/base.css |

@@ -752,7 +752,7 @@ h3.control-title { margin-bottom: 20px; }
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--space-md);
+  gap: var(--space-xs);
 }
 
 .summary-save .summary-instruction { margin-bottom: 0; }

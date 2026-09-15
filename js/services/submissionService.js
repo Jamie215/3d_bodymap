@@ -324,40 +324,31 @@ export async function prepareSubmissionData() {
 // ============================================================================
 
 /**
- * Builds a no-identifier filename for a downloaded session, e.g.
- * `pain-assessment_2026-09-15T1430_a1b2c3d4.json`. The timestamp is local
- * wall-clock (colons stripped so it's filesystem-safe); the id is the random,
- * non-identifying session id.
+ * Builds a no-identifier base name for a downloaded session, e.g.
+ * `pain-assessment_2026-09-15T1430_a1b2c3d4`. The timestamp is local wall-clock
+ * (colons stripped so it's filesystem-safe); the id is the random,
+ * non-identifying session id. Callers append their own extension.
  *
  * @param {SubmissionPayload} payload
  * @returns {string}
  */
-export function buildSubmissionFilename(payload) {
+export function buildSubmissionBaseName(payload) {
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
     const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
         `T${pad(now.getHours())}${pad(now.getMinutes())}`;
     const idPart = String(payload?.sessionId || 'session').slice(0, 8);
-    return `pain-assessment_${stamp}_${idPart}.json`;
+    return `pain-assessment_${stamp}_${idPart}`;
 }
 
 /**
- * Serializes the submission payload to a JSON file and triggers a browser
- * download so the participant can store it on the provided encrypted device.
+ * Triggers a browser download of a Blob, entirely client-side (no network).
  *
- * This is entirely client-side — no network request is made. The snapshot
- * images ride along as base-64 inside the JSON, so the file is self-contained.
- *
- * @param {SubmissionPayload} payload
- * @returns {string} the filename that was offered for download
- * @throws {Error} if serialization or the download trigger fails
+ * @param {Blob} blob
+ * @param {string} filename
  */
-export function downloadSubmission(payload) {
-    const filename = buildSubmissionFilename(payload);
-    const json = JSON.stringify(payload, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
+function triggerBlobDownload(blob, filename) {
     const url = URL.createObjectURL(blob);
-
     try {
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -370,7 +361,106 @@ export function downloadSubmission(payload) {
         // Revoke on the next tick so the download has a chance to start first.
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
+}
 
+/**
+ * Extracts the base-64 body of a `data:` URL (e.g. a PNG snapshot). Returns null
+ * if the value is missing or not a base-64 data URL.
+ *
+ * @param {string|null|undefined} dataUrl
+ * @returns {string|null}
+ */
+function dataUrlToBase64(dataUrl) {
+    if (typeof dataUrl !== 'string') return null;
+    const comma = dataUrl.indexOf(',');
+    if (!dataUrl.startsWith('data:') || !/;base64/i.test(dataUrl.slice(0, comma)) || comma === -1) {
+        return null;
+    }
+    return dataUrl.slice(comma + 1);
+}
+
+/**
+ * Serializes the submission payload to a single JSON file and downloads it.
+ * The snapshot images ride along as base-64 inside the JSON, so the file is
+ * self-contained. Entirely client-side — no network request.
+ *
+ * Retained as a fallback / simple export; the app's default is the richer
+ * {@link downloadSubmissionZip}.
+ *
+ * @param {SubmissionPayload} payload
+ * @returns {string} the filename that was offered for download
+ */
+export function downloadSubmission(payload) {
+    const filename = `${buildSubmissionBaseName(payload)}.json`;
+    const json = JSON.stringify(payload, null, 2);
+    triggerBlobDownload(new Blob([json], { type: 'application/json' }), filename);
+    return filename;
+}
+
+/**
+ * Bundles the submission as a `.zip` and downloads it, so the participant can
+ * store one file on the provided encrypted device. The archive contains:
+ *
+ *   <base>/
+ *     metadata.json                — full payload, with the base-64 image blobs
+ *                                    replaced by the paths of the extracted files
+ *     snapshots/{front,back,left,right}.png
+ *     areas/area-<n>.png           — per-area UV drawing (when present)
+ *
+ * (A CSV export will be added to the same archive later.)
+ *
+ * Entirely client-side — no network request. Uses the vendored global `JSZip`.
+ *
+ * @param {SubmissionPayload} payload
+ * @returns {Promise<string>} the filename that was offered for download
+ * @throws {Error} if JSZip is unavailable or zip generation fails
+ */
+export async function downloadSubmissionZip(payload) {
+    if (typeof window === 'undefined' || !window.JSZip) {
+        throw new Error('JSZip is not available (vendor/jszip/jszip.min.js not loaded)');
+    }
+
+    const base = buildSubmissionBaseName(payload);
+    const zip = new window.JSZip();
+    const root = zip.folder(base);
+
+    // Shallow-clone the payload so we can swap image blobs for file references
+    // without mutating the live AppState payload.
+    const meta = { ...payload };
+
+    // Combined multi-view snapshots → snapshots/<label>.png
+    if (payload.combinedDrawing && typeof payload.combinedDrawing === 'object') {
+        const snapshots = root.folder('snapshots');
+        const refs = {};
+        for (const [label, dataUrl] of Object.entries(payload.combinedDrawing)) {
+            const b64 = dataUrlToBase64(dataUrl);
+            if (b64) {
+                snapshots.file(`${label}.png`, b64, { base64: true });
+                refs[label] = `snapshots/${label}.png`;
+            } else {
+                refs[label] = null;
+            }
+        }
+        meta.combinedDrawing = refs;
+    }
+
+    // Per-area UV drawings → areas/area-<n>.png
+    if (Array.isArray(payload.areas)) {
+        const areasFolder = root.folder('areas');
+        meta.areas = payload.areas.map((area) => {
+            const b64 = dataUrlToBase64(area.drawingImageData);
+            if (!b64) return { ...area };
+            const name = `area-${area.areaNumber}.png`;
+            areasFolder.file(name, b64, { base64: true });
+            return { ...area, drawingImageData: `areas/${name}` };
+        });
+    }
+
+    root.file('metadata.json', JSON.stringify(meta, null, 2));
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const filename = `${base}.zip`;
+    triggerBlobDownload(blob, filename);
     return filename;
 }
 

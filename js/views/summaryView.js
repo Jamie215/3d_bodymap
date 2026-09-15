@@ -137,16 +137,14 @@ export function createSummaryView() {
 
         const instruction = document.createElement('p');
         instruction.className = 'summary-instruction';
-        instruction.style.marginTop = 'var(--space-md)';
         const countStrong = document.createElement('strong');
         countStrong.textContent = String(count);
         instruction.append(
             'You logged ',
             countStrong,
-            ` pain or symptom area${count !== 1 ? 's' : ''}. `,
-            'Click the button below to download the file, then save it to the ',
-            (() => { const s = document.createElement('strong'); s.textContent = 'encrypted device provided to you'; return s; })(),
-            '. Do not close this page until the file has been saved.'
+            ` pain or symptom area${count !== 1 ? 's' : ''}. Download your response and save it to the `,
+            (() => { const s = document.createElement('strong'); s.textContent = 'encrypted device provided'; return s; })(),
+            ' before closing this page.'
         );
 
         // The download is triggered here (not automatically) — the button can be
