@@ -47,10 +47,11 @@ the file contains and how to read it is documented in
 
 #### 1. No consent or study-information step in the app
 **Decision (15 Sep 2026): no in-app consent step — consent is obtained outside
-the app.** The study coordinator **enrols participants into the study in advance**,
-so informed consent is handled through the study's own enrolment procedure before
-the participant uses the tool. No landing/consent screen is added; the consent
-procedure is documented in the REB application instead.
+the app.** The study coordinator **enrols the participant and has them sign the
+consent form before they enter the application**, so informed, signed consent is
+obtained through the study's own enrolment procedure ahead of any use of the tool.
+No landing/consent screen is added; the consent procedure is documented in the REB
+application instead.
 
 _(Original finding, for reference: the app opens straight into the drawing task
 with no in-app statement that this is research, what is collected, or that
@@ -62,10 +63,12 @@ above rather than in-app.)_
 #### 2. Free-text boxes → inadvertent disclosure / re-identification
 **Decision (15 Sep 2026): handle at the analysis stage, not with an in-app
 warning.** An in-app "do not enter identifying information" note was considered
-and **rejected** — it risks misinforming participants and discouraging them from
-recording what they actually feel. Instead, free text will be **reviewed / scrubbed
-for identifiers before analysis**; this analysis-stage process is documented in the
-REB application.
+and **rejected** for two reasons: (a) it risks misinforming participants and
+discouraging them from recording what they actually feel, and (b) directing the
+participant at the open-text boxes can **bias their response** — a prompt at the
+field steers what they write instead of letting them answer freely. Instead, free
+text will be **reviewed / scrubbed for identifiers before analysis**; this
+analysis-stage process is documented in the REB application.
 
 - **Where (fields):**
   - `js/data/areaSurvey.js` — "What does your pain or symptom feel like?"
@@ -91,6 +94,25 @@ TCPS 2 protects the right to skip individual questions; the suggested mitigation
 was to add "Prefer not to answer" on sensitive items. Not actioned — see decision
 above.)_
 
+#### 8. No in-app session reset → participant data persists on a shared device
+**Open — for discussion (15 Sep 2026).** Application/technology finding.
+
+- **Where:** after the participant confirms they saved the file,
+  `updateSummaryStatus()` (`js/views/summaryView.js`) renders the final "All Done"
+  screen (`renderComplete`), but **nothing clears the session**. The participant's
+  `drawingInstances`, `generalQuestionnaireResponse`, and the still-re-downloadable
+  `submissionPayload` (`js/app/appController.js`, `js/app/state.js`) remain **in
+  memory** for the life of the tab. There is no in-app "next participant / start
+  over" control; only closing or reloading the tab clears the data (that also
+  re-shows onboarding, via `sessionStorage`).
+- **Why REB / Privacy cares:** the tool runs on a **provided** (likely shared /
+  kiosk) device. If a coordinator hands the device to the next participant without
+  reloading, participant B can reach participant A's drawings, answers, and
+  downloadable file. This is application behaviour, not content — in scope here.
+- **Possible mitigations (for the team to choose):** an explicit in-app
+  "Finish & reset for next participant" action that clears `AppState` and reloads,
+  and/or a documented coordinator step to reload the page between participants.
+
 ### Worth noting (lower priority)
 
 #### 7. Accessibility / equitable access
@@ -106,6 +128,45 @@ _(Original finding, for reference: the core task is a colour-based 3D drawing
 needing pointer control and colour discrimination, which may exclude participants
 with visual or motor impairments. Inclusion / equitable access is an increasing
 REB consideration; addressed as above.)_
+
+#### 9. App presents no research / non-clinical framing (therapeutic misconception)
+**Open — for discussion (15 Sep 2026).** Application/technology finding.
+
+The app opens straight into a clinical-looking drawing task; onboarding
+(`js/components/modals/onboardingModal.js`) and help (`js/data/helpContent.js`) are
+usage instructions only, and the tool returns no diagnosis, advice, or clinician
+feedback. A participant could assume their drawn pain will be reviewed clinically or
+that they are receiving care. This is distinct from Item 1: Item 1 covers whether
+**consent exists** (handled at enrolment); this is about the **in-app presentation**.
+Only the *surface gap* is flagged here — the **wording** of any research /
+non-clinical notice belongs with the PI and the consent materials.
+
+#### 10. No-backend architecture has no technical withdrawal / revocation path
+**Open — for discussion; likely belongs to the Data-Residency review (15 Sep 2026).**
+
+There is no backend, so the participant holds the only copy of their data (the
+downloaded `.zip`); `beforeunload` only warns about not-yet-saved data
+(`js/app/appController.js`). Once the file is generated and handed over, there is no
+server-side mechanism to honour a later withdrawal / delete request — the study
+process must define how such a request is met. Flagged here for completeness;
+**overlaps the separate Data-Residency Decision Review** and should be owned there if
+that review already covers withdrawal.
+
+### Deliberately out of scope here — content design (PI to defend)
+
+Two ethics considerations were reviewed and **intentionally left to the PI / study
+design**, since they concern *what is asked* rather than the application or its
+technology:
+
+- A **distress / safety protocol and participant support resources**, given the
+  psychologically loaded items (e.g. "was it a stressful time in your life?",
+  mental-health medications, counselling as a treatment, severe / chronic pain).
+- The **sensitivity and data-minimization justification** of collecting narcotic /
+  opioid use **and duration**, cannabis use, and mental-health medications
+  (`js/data/generalSurvey.js`).
+
+These are recorded so it is clear they were considered; they are the PI's to defend
+in the questionnaire design, not application/technology fixes.
 
 ---
 
@@ -160,24 +221,33 @@ out of scope here.
 | 5 | Full user-agent captured | Low | Code | Very small | **Done** |
 | 6 | Third-party CDNs | Low | Build / hosting | Moderate | **Done** |
 | 7 | Accessibility / equitable access | Low | Design / documentation | Varies | Decided — already handled, no further work |
+| 8 | No session reset → data remanence on shared device | Medium | Code | Small | **Open** — for discussion |
+| 9 | No in-app research / non-clinical framing | Low | Presentation | Small | **Open** — surface gap; wording is PI's |
+| 10 | No technical withdrawal path (no backend) | Low | Process | — | **Open** — likely Data-Residency review |
 
 ---
 
 ## Suggested next steps
 
-All application-level findings above are now either **done** or **decided**. The
-remaining actions are for the REB application text and process, not the code:
+Items 1–7 are all **done** or **decided**. Items **8–10** are newly identified
+application/technology findings that are still **open for discussion**. The
+remaining actions:
 
-1. **Document the consent procedure** — that the coordinator enrols participants
-   into the study in advance, so informed consent is obtained before the tool is
-   used (Item 1).
+1. **Document the consent procedure** — that the coordinator enrols the participant
+   and obtains signed consent before the tool is used (Item 1).
 2. **Document the free-text handling** — that open-text answers are reviewed /
-   scrubbed for identifiers before analysis (Item 2).
+   scrubbed for identifiers before analysis, and that no in-app prompt is placed at
+   the boxes (to avoid biasing responses) (Item 2).
 3. **Describe the data flow and storage** — session responses are downloaded as a
    single file and stored on a provided encrypted device; see
    [`docs/DATA_DICTIONARY.md`](./docs/DATA_DICTIONARY.md) for exactly what the file
    contains. (Data residency / device encryption are covered in the separate Data
    Residency Decision Review.)
+4. **Decide on the open findings (8–10)** — in particular whether to add an in-app
+   session reset for shared-device use (Item 8); whether the app needs any
+   research / non-clinical framing surface (Item 9, wording owned by the PI); and
+   whether the no-backend withdrawal path (Item 10) is handled here or in the
+   Data-Residency review.
 
 *Planning notes — not a compliance determination. Confirm interpretation with
 the Western REB and Privacy Office.*
