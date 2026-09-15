@@ -7,20 +7,18 @@ These short tutorial clips are **self-hosted** and served same-origin
 
 ## Files expected here
 
-Drop one MP4 per clip, named exactly as below. The stem of each filename is the
-original YouTube video ID, kept so each self-hosted file maps 1:1 to the clip it
-replaced.
+Drop one MP4 per clip, named exactly as below.
 
 | File | Where it appears |
 |---|---|
-| `2LGwMr0mNc4.mp4` | Summary screen tutorial + help "How do I use the form?" |
-| `FGc40Py935Q.mp4` | Help — "How do I mark where I feel my pain or symptom?" |
-| `oScNkq656Jw.mp4` | Help — "Can I change or erase what I drew?" |
-| `pqxVb4QX4PQ.mp4` | Help — "The body part is not where I want to draw…" |
-| `mcJio_POOyA.mp4` | Help — "The body area is not zoomed in/out enough…" |
-| `gKJy760HXyo.mp4` | Help — "How do I turn the body part to see the side or back?" |
+| `intro.mp4` | Summary screen tutorial + help "How do I use the form?" |
+| `help_draw.mp4` | Help — "How do I mark where I feel my pain or symptom?" |
+| `help_erase.mp4` | Help — "Can I change or erase what I drew?" |
+| `help_bodyView.mp4` | Help — "The body part is not where I want to draw…" |
+| `help_zoom.mp4` | Help — "The body area is not zoomed in/out enough…" |
+| `help_rotateBody.mp4` | Help — "How do I turn the body part to see the side or back?" |
 
-To rename to friendlier filenames, update the `src` paths in
+To change these filenames, update the `src` paths in
 `js/data/helpContent.js` and the defaults in `js/components/videoEmbed.js`
 to match.
 
@@ -37,5 +35,5 @@ before the whole file downloads. Keep each clip small (these are ~2–3 MB).
 
 ## Captions (optional, recommended for accessibility)
 
-If you add a WebVTT caption file per clip (e.g. `2LGwMr0mNc4.vtt`), a
+If you add a WebVTT caption file per clip (e.g. `intro.vtt`), a
 `<track kind="captions">` can be wired into the player.

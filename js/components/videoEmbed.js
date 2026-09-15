@@ -44,7 +44,7 @@ function sanitiseVideoSrc(src) {
  * @param {string} titleText — heading shown above the thumbnail (null to omit)
  * @returns {HTMLElement}     — container ready to append into the DOM
  */
-export function createVideoEmbed(videoSrc = 'assets/video/2LGwMr0mNc4.mp4', titleText = 'Pain & Symptom Assessment Form') {
+export function createVideoEmbed(videoSrc = 'assets/video/intro.mp4', titleText = 'Pain & Symptom Assessment Form') {
     const safeSrc = sanitiseVideoSrc(videoSrc);
 
     const container = document.createElement('div');
@@ -93,7 +93,7 @@ export function createVideoEmbed(videoSrc = 'assets/video/2LGwMr0mNc4.mp4', titl
  * @param {string} linkText — link label text (HTML)
  * @returns {HTMLAnchorElement}
  */
-export function createVideoLink(videoSrc = 'assets/video/2LGwMr0mNc4.mp4', linkText = '<i class="fa-solid fa-circle-play">&emsp;</i>How do I use this form?') {
+export function createVideoLink(videoSrc = 'assets/video/intro.mp4', linkText = '<i class="fa-solid fa-circle-play">&emsp;</i>How do I use this form?') {
     const safeSrc = sanitiseVideoSrc(videoSrc);
 
     const link = document.createElement('a');
