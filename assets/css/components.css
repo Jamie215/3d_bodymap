@@ -740,10 +740,40 @@ h3.control-title { margin-bottom: 20px; }
 #summary-status-panel p { margin-bottom: var(--space-md); }
 
 .summary-empty, 
-.summary-complete, 
-.summary-with-areas { padding: var(--space-md); }
+.summary-complete,
+.summary-with-areas,
+.summary-save { padding: var(--space-md); }
 
 .summary-complete { text-align: center; }
+
+/* Save-to-encrypted-device screen */
+.summary-save {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-md);
+}
+
+.summary-save .summary-instruction { margin-bottom: 0; }
+
+.summary-save-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  text-align: left;
+  cursor: pointer;
+  font-size: var(--font-body-medium);
+  margin-top: var(--space-sm);
+}
+
+.summary-save-confirm input[type="checkbox"] {
+  margin-top: 0.15em;
+  flex-shrink: 0;
+  width: 1.1em;
+  height: 1.1em;
+  cursor: pointer;
+}
 .summary-title { font-size: var(--font-title-large); font-weight: bold; margin-bottom: var(--space-md); }
 .summary-instruction { color: var(--text-secondary, var(--dark-grey)); font-size: var(--font-body-medium); margin-bottom: var(--space-md); }
 

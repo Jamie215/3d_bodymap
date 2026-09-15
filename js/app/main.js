@@ -29,6 +29,12 @@ import { initRotatePrompt } from '../components/rotatePrompt.js';
 
 AppState.sessionStartTime = new Date().toISOString();
 
+// Random, non-identifying id for this session. Used only to name the downloaded
+// file and to distinguish one saved session from another — it is NOT derived
+// from anything about the participant.
+AppState.sessionId = (crypto?.randomUUID?.() ||
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
+
 // ====================================================================
 // RESPONSIVE MANAGER
 // ====================================================================
@@ -212,10 +218,6 @@ responsive.on('prefersReducedMotion', (prefersReduced) => {
 // ====================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Firebase removed for integration handover.
-    // To re-enable, add firebaseService.js to index.html and uncomment:
-    // if (window.firebaseService) window.firebaseService.init();
-
     document.documentElement.setAttribute('data-viewport', responsive.getViewportType());
     document.documentElement.setAttribute('data-orientation', responsive.is('isLandscape') ? 'landscape' : 'portrait');
 });

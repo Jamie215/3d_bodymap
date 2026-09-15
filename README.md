@@ -1,6 +1,6 @@
 # 3D Pain & Symptom Assessment Application
 
-A clinical web application where patients draw pain and symptom areas on an interactive 3D anatomical body model and complete associated questionnaires. Designed for integration with the EmPOWER/SPINA platform as an embeddable widget.
+A clinical web application where patients draw pain and symptom areas on an interactive 3D anatomical body model and complete associated questionnaires. It runs stand-alone with no backend: when a session is finished, the participant's responses are downloaded as a single JSON file that they store on a provided encrypted device. (A future EmPOWER/SPINA integration could POST the same payload instead.)
 
 ## Overview
 
@@ -11,7 +11,7 @@ The application guides patients through a multi-step workflow:
 3. **Complete an area questionnaire** — answer clinically validated questions about that specific area
 4. **Repeat** — add additional pain/symptom areas as needed
 5. **General questionnaire** — answer questions about overall medication use and history
-6. **Submission** — all drawing data, coverage metrics, questionnaire responses, and multi-view snapshots are assembled into a structured JSON payload
+6. **Save** — all drawing data, coverage metrics, questionnaire responses, and multi-view snapshots are assembled into a structured JSON payload and downloaded, so the participant can store the file on the provided encrypted device
 
 ## Core Capabilities
 
@@ -160,24 +160,15 @@ The app operates as a finite state machine with five stages, managed by `stageRo
 
 ### Data Flow
 
-Each drawing instance owns its own canvas, texture, region tracking, and questionnaire data. On submission, `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload.
+Each drawing instance owns its own canvas, texture, region tracking, and questionnaire data. When the general questionnaire is completed, `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload (`prepareSubmissionData`).
 
-## Integration
+The app has **no backend**. `downloadSubmission()` serializes that payload to a single self-contained JSON file (the four-angle snapshots ride along as base-64) and triggers a browser download — entirely client-side, no network request. The participant then stores the file on the provided **encrypted device**. `appController.js` routes to a "Save to encrypted device" screen that offers a re-download and requires the participant to confirm they saved the file before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
 
-The submission endpoint in `appController.js` is a clearly marked stub:
+The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, general questionnaire data, and coarse device metadata (no raw user-agent — see REB #5).
 
-```js
-// ── Integration point ──────────────────────────────────────
-// Replace with your platform's API call:
-//   const response = await apiService.submit(submissionData);
-//   const success = response.ok;
-//
-// For now, simulate success to keep the app testable:
-const success = true;
-// ───────────────────────────────────────────────────────────
-```
+## Future backend integration
 
-The `submissionData` object (typed as `SubmissionPayload` in `submissionService.js`) contains session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, general questionnaire data, and device metadata.
+There is intentionally no server call today. When EmPOWER integration is added, the same `SubmissionPayload` produced by `prepareSubmissionData()` can be POSTed instead of (or in addition to) the local download — the assembly logic does not need to change.
 
 ## Getting Started
 

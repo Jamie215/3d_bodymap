@@ -74,11 +74,15 @@ export function createSummaryView() {
     modelSummaryView.appendChild(summaryFooter);
 
     // ── Callbacks ──────────────────────────────────────────────────────
-    let onEditArea   = null;
-    let onDeleteArea = null;
+    let onEditArea    = null;
+    let onDeleteArea  = null;
+    let onRedownload  = null;
+    let onConfirmSaved = null;
 
-    function setEditCallback(callback)   { onEditArea   = callback; }
-    function setDeleteCallback(callback) { onDeleteArea = callback; }
+    function setEditCallback(callback)        { onEditArea     = callback; }
+    function setDeleteCallback(callback)      { onDeleteArea   = callback; }
+    function setRedownloadCallback(callback)  { onRedownload   = callback; }
+    function setConfirmSavedCallback(callback){ onConfirmSaved = callback; }
 
     // ── Status update ──────────────────────────────────────────────────
 
@@ -87,7 +91,14 @@ export function createSummaryView() {
         const isComplete = !!AppState.generalQuestionnaireResponse;
 
         if (isComplete) {
-            renderComplete(count);
+            // After the questionnaire is done the responses are downloaded; the
+            // participant must confirm they saved the file before we show the
+            // final "done" screen.
+            if (AppState.downloadConfirmed) {
+                renderComplete(count);
+            } else {
+                renderSaveToDevice(count);
+            }
             return;
         }
 
@@ -100,6 +111,83 @@ export function createSummaryView() {
     }
 
     // ── Render states ──────────────────────────────────────────────────
+
+    // Save-to-encrypted-device screen. Shown after the questionnaire is complete
+    // and the responses have been downloaded, before the final "done" screen.
+    // There is no backend — the participant stores the downloaded file on the
+    // encrypted device provided to them.
+    function renderSaveToDevice(count) {
+        summaryStatusPanel.textContent = '';
+
+        summaryDoneButton.style.display    = 'none';
+        addNewInstanceButton.style.display = 'none';
+        helpButton.style.display           = 'none';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'summary-save';
+
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-shield-halved';
+        icon.style.color = 'var(--primary-color)';
+        icon.style.fontSize = 'var(--font-title-large)';
+
+        const title = document.createElement('span');
+        title.className = 'summary-title';
+        title.textContent = 'Save Your Responses';
+
+        const logged = document.createElement('p');
+        logged.style.marginTop = 'var(--space-md)';
+        const countStrong = document.createElement('strong');
+        countStrong.textContent = String(count);
+        logged.append(
+            'You logged ',
+            countStrong,
+            ` pain or symptom area${count !== 1 ? 's' : ''}. `,
+            'Your responses have been downloaded as a file to this device.'
+        );
+
+        const instruction = document.createElement('p');
+        instruction.className = 'summary-instruction';
+        instruction.append(
+            'Please save this file to the ',
+            (() => { const s = document.createElement('strong'); s.textContent = 'encrypted device provided to you'; return s; })(),
+            '. Do not close this page until the file has been saved.'
+        );
+
+        // Re-download in case the automatic download was blocked or misplaced.
+        const redownloadBtn = document.createElement('button');
+        redownloadBtn.className = 'button';
+        redownloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> <span>Download the file again</span>';
+        redownloadBtn.addEventListener('click', () => {
+            if (onRedownload) onRedownload();
+        });
+
+        // Confirmation gate.
+        const confirmRow = document.createElement('label');
+        confirmRow.className = 'summary-save-confirm';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+
+        const confirmText = document.createElement('span');
+        confirmText.textContent = 'I have saved the file to the provided device.';
+
+        confirmRow.append(checkbox, confirmText);
+
+        const finishBtn = document.createElement('button');
+        finishBtn.className = 'button button-success';
+        finishBtn.textContent = 'Finish';
+        finishBtn.disabled = true;
+        checkbox.addEventListener('change', () => {
+            finishBtn.disabled = !checkbox.checked;
+        });
+        finishBtn.addEventListener('click', () => {
+            if (checkbox.checked && onConfirmSaved) onConfirmSaved();
+        });
+
+        wrapper.append(icon, title, logged, instruction, redownloadBtn, confirmRow, finishBtn);
+        summaryStatusPanel.appendChild(wrapper);
+    }
 
     function renderComplete(count) {
         summaryStatusPanel.textContent = '';
@@ -114,22 +202,17 @@ export function createSummaryView() {
 
         const title = document.createElement('span');
         title.className = 'summary-title';
-        title.textContent = 'Submission Complete';
+        title.textContent = 'All Done';
 
         const thankYou = document.createElement('p');
         thankYou.style.marginTop = 'var(--space-md)';
         thankYou.textContent = 'Thank you for completing your pain assessment.';
 
-        const logged = document.createElement('p');
-        const countStrong = document.createElement('strong');
-        countStrong.textContent = String(count);
-        logged.append(
-            'You logged ',
-            countStrong,
-            ` pain or symptom area${count !== 1 ? 's' : ''}.`
-        );
+        const saved = document.createElement('p');
+        saved.textContent =
+            'Your responses have been saved to the provided device. You may now close this page.';
 
-        wrapper.append(icon, title, thankYou, logged);
+        wrapper.append(icon, title, thankYou, saved);
         summaryStatusPanel.appendChild(wrapper);
 
         summaryDoneButton.style.display    = 'none';
@@ -238,6 +321,8 @@ export function createSummaryView() {
         addNewInstanceButton,
         summaryDoneButton,
         setEditCallback,
-        setDeleteCallback
+        setDeleteCallback,
+        setRedownloadCallback,
+        setConfirmSavedCallback
     };
 }

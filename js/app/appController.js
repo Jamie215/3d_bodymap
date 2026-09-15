@@ -31,7 +31,7 @@ import {
     getCurrentSurveyData,
     clearSurveyInstance
 } from '../services/surveyManager.js';
-import { initSubmissionService, prepareSubmissionData } from '../services/submissionService.js';
+import { initSubmissionService, prepareSubmissionData, downloadSubmission } from '../services/submissionService.js';
 import AppState from './state.js';
 import eventManager from './eventManager.js';
 import CameraUtils from '../services/cameraService.js';
@@ -182,6 +182,18 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         );
     });
 
+    // ── Save-to-device screen ───────────────────────────────────────────
+    summary.setRedownloadCallback(() => {
+        if (AppState.submissionPayload) {
+            downloadSubmission(AppState.submissionPayload);
+        }
+    });
+
+    summary.setConfirmSavedCallback(() => {
+        AppState.downloadConfirmed = true;
+        summary.updateSummaryStatus(); // → renders the final "All Done" screen
+    });
+
     // ====================================================================
     // SELECTION VIEW EVENTS
     // ====================================================================
@@ -282,30 +294,23 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
             try {
                 const submissionData = await prepareSubmissionData();
-                console.log('Submission data prepared:', submissionData);
 
-                // ── Integration point ──────────────────────────────────────
-                // Replace with your platform's API call:
-                //   const response = await apiService.submit(submissionData);
-                //   const success = response.ok;
-                //
-                // For now, simulate success to keep the app testable:
-                const success = true;
-                // ───────────────────────────────────────────────────────────
+                // No backend: the responses are saved by downloading a JSON file
+                // that the participant then stores on the provided encrypted
+                // device. Keep the payload so the summary screen can offer a
+                // re-download, and trigger the first download now.
+                AppState.submissionPayload = submissionData;
+                AppState.downloadConfirmed = false;
+                downloadSubmission(submissionData);
 
-                if (success) {
-                    console.log('Submission complete (no backend connected — data logged above).');
-                    clearSurveyInstance();
-                    goTo('summary');
-                } else {
-                    console.error('Failed to submit data');
-                    alert('There was an error submitting your data. Please try again.');
-                }
+                clearSurveyInstance();
+                goTo('summary'); // → renders the "Save to device" screen
             } catch (error) {
                 console.error('Submission failed:', error);
-                alert('There was an error preparing your submission. Please try again.');
-                // Roll back so the user can retry
+                alert('There was an error preparing your responses for download. Please try again.');
+                // Roll back so the participant can retry
                 AppState.generalQuestionnaireResponse = null;
+                AppState.submissionPayload = null;
             }
 
             return;
@@ -323,6 +328,18 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     // ====================================================================
 
     goTo('summary');
+
+    // Warn before leaving if the responses have been prepared/downloaded but the
+    // participant has not yet confirmed saving the file to the encrypted device.
+    // Without a backend, closing here would lose the session's data.
+    const warnIfUnsaved = (event) => {
+        if (AppState.generalQuestionnaireResponse && !AppState.downloadConfirmed) {
+            event.preventDefault();
+            event.returnValue = '';
+            return '';
+        }
+    };
+    window.addEventListener('beforeunload', warnIfUnsaved);
 
     const cleanupApplication = () => {
         if (cameraUtils) cameraUtils.dispose();

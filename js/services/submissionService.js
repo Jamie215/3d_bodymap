@@ -53,9 +53,15 @@ import coverageCalculator from './coverageService.js';
 
 /**
  * The complete data payload assembled by {@link prepareSubmissionData}.
- * This is the object that would be sent to the EmPOWER backend.
+ *
+ * There is no backend: this object is serialized to JSON and downloaded to the
+ * participant's machine by {@link downloadSubmission}, so it can be stored on the
+ * provided encrypted device. (A future EmPOWER integration could POST the same
+ * object instead.)
  *
  * @typedef {Object} SubmissionPayload
+ * @property {string}               schemaVersion         — Payload format version (see SCHEMA_VERSION)
+ * @property {string}               sessionId             — Random, non-identifying session id
  * @property {string}               startTime             — ISO 8601 session start
  * @property {string}               completionTime        — ISO 8601 submission time
  * @property {number|null}          durationSeconds        — Wall-clock session duration
@@ -66,6 +72,12 @@ import coverageCalculator from './coverageService.js';
  * @property {Object|null}          generalQuestionnaire   — General survey answers
  * @property {DeviceInfo}           deviceInfo
  */
+
+/**
+ * Version of the {@link SubmissionPayload} shape. Bump this whenever the fields
+ * change, so downloaded files remain parseable at analysis time.
+ */
+export const SCHEMA_VERSION = '1.0';
 
 // Dependencies injected via initSubmissionService()
 let renderer = null;
@@ -281,6 +293,8 @@ export async function prepareSubmissionData() {
     const startTime = AppState.sessionStartTime || new Date().toISOString();
 
     return {
+        schemaVersion: SCHEMA_VERSION,
+        sessionId: AppState.sessionId,
         startTime,
         completionTime: new Date().toISOString(),
         durationSeconds: AppState.sessionStartTime
@@ -303,6 +317,61 @@ export async function prepareSubmissionData() {
             // userAgent: navigator.userAgent
         }
     };
+}
+
+// ============================================================================
+// LOCAL DOWNLOAD (no backend)
+// ============================================================================
+
+/**
+ * Builds a no-identifier filename for a downloaded session, e.g.
+ * `pain-assessment_2026-09-15T1430_a1b2c3d4.json`. The timestamp is local
+ * wall-clock (colons stripped so it's filesystem-safe); the id is the random,
+ * non-identifying session id.
+ *
+ * @param {SubmissionPayload} payload
+ * @returns {string}
+ */
+export function buildSubmissionFilename(payload) {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+        `T${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const idPart = String(payload?.sessionId || 'session').slice(0, 8);
+    return `pain-assessment_${stamp}_${idPart}.json`;
+}
+
+/**
+ * Serializes the submission payload to a JSON file and triggers a browser
+ * download so the participant can store it on the provided encrypted device.
+ *
+ * This is entirely client-side — no network request is made. The snapshot
+ * images ride along as base-64 inside the JSON, so the file is self-contained.
+ *
+ * @param {SubmissionPayload} payload
+ * @returns {string} the filename that was offered for download
+ * @throws {Error} if serialization or the download trigger fails
+ */
+export function downloadSubmission(payload) {
+    const filename = buildSubmissionFilename(payload);
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    try {
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.style.display = 'none';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+    } finally {
+        // Revoke on the next tick so the download has a chance to start first.
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    return filename;
 }
 
 // ============================================================================
