@@ -11,7 +11,7 @@ The application guides patients through a multi-step workflow:
 3. **Complete an area questionnaire** — answer clinically validated questions about that specific area
 4. **Repeat** — add additional pain/symptom areas as needed
 5. **General questionnaire** — answer questions about overall medication use and history
-6. **Save** — all drawing data, coverage metrics, questionnaire responses, and multi-view snapshots are assembled into a structured JSON payload and downloaded, so the participant can store the file on the provided encrypted device
+6. **Save** — all drawing data, coverage metrics, questionnaire responses, and multi-view snapshots are assembled into a structured JSON payload that the participant downloads and stores on the provided encrypted device
 
 ## Core Capabilities
 
@@ -162,7 +162,7 @@ The app operates as a finite state machine with five stages, managed by `stageRo
 
 Each drawing instance owns its own canvas, texture, region tracking, and questionnaire data. When the general questionnaire is completed, `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload (`prepareSubmissionData`).
 
-The app has **no backend**. `downloadSubmission()` serializes that payload to a single self-contained JSON file (the four-angle snapshots ride along as base-64) and triggers a browser download — entirely client-side, no network request. The participant then stores the file on the provided **encrypted device**. `appController.js` routes to a "Save to encrypted device" screen that offers a re-download and requires the participant to confirm they saved the file before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
+The app has **no backend**. `appController.js` routes to a "Save Your Response" screen where the participant clicks **Download the file** to save their responses; `downloadSubmission()` serializes the payload to a single self-contained JSON file (the four-angle snapshots ride along as base-64) and triggers a browser download — entirely client-side, no network request. The participant then stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
 
 The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, general questionnaire data, and coarse device metadata (no raw user-agent — see REB #5).
 

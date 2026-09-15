@@ -297,11 +297,11 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
                 // No backend: the responses are saved by downloading a JSON file
                 // that the participant then stores on the provided encrypted
-                // device. Keep the payload so the summary screen can offer a
-                // re-download, and trigger the first download now.
+                // device. Keep the payload so the "Save to device" screen can
+                // download it when the participant clicks the button — the
+                // download is not triggered automatically.
                 AppState.submissionPayload = submissionData;
                 AppState.downloadConfirmed = false;
-                downloadSubmission(submissionData);
 
                 clearSurveyInstance();
                 goTo('summary'); // → renders the "Save to device" screen

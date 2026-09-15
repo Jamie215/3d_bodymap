@@ -127,13 +127,13 @@ export function createSummaryView() {
         wrapper.className = 'summary-save';
 
         const icon = document.createElement('i');
-        icon.className = 'fa-solid fa-shield-halved';
+        icon.className = 'fa-solid fa-circle-exclamation';
         icon.style.color = 'var(--primary-color)';
         icon.style.fontSize = 'var(--font-title-large)';
 
         const title = document.createElement('span');
         title.className = 'summary-title';
-        title.textContent = 'Save Your Responses';
+        title.textContent = 'Save Your Response';
 
         const logged = document.createElement('p');
         logged.style.marginTop = 'var(--space-md)';
@@ -143,22 +143,23 @@ export function createSummaryView() {
             'You logged ',
             countStrong,
             ` pain or symptom area${count !== 1 ? 's' : ''}. `,
-            'Your responses have been downloaded as a file to this device.'
+            'Your response is ready to download as a file.'
         );
 
         const instruction = document.createElement('p');
         instruction.className = 'summary-instruction';
         instruction.append(
-            'Please save this file to the ',
+            'Click the button below to download the file, then save it to the ',
             (() => { const s = document.createElement('strong'); s.textContent = 'encrypted device provided to you'; return s; })(),
             '. Do not close this page until the file has been saved.'
         );
 
-        // Re-download in case the automatic download was blocked or misplaced.
-        const redownloadBtn = document.createElement('button');
-        redownloadBtn.className = 'button';
-        redownloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> <span>Download the file again</span>';
-        redownloadBtn.addEventListener('click', () => {
+        // The download is triggered here (not automatically) — the button can be
+        // clicked again if the file is misplaced.
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'button button-primary';
+        downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> <span>Download the file</span>';
+        downloadBtn.addEventListener('click', () => {
             if (onRedownload) onRedownload();
         });
 
@@ -185,7 +186,7 @@ export function createSummaryView() {
             if (checkbox.checked && onConfirmSaved) onConfirmSaved();
         });
 
-        wrapper.append(icon, title, logged, instruction, redownloadBtn, confirmRow, finishBtn);
+        wrapper.append(icon, title, logged, instruction, downloadBtn, confirmRow, finishBtn);
         summaryStatusPanel.appendChild(wrapper);
     }
 
