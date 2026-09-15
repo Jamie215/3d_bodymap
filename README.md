@@ -166,9 +166,11 @@ The app has **no backend**. `appController.js` routes to a "Save Your Response" 
 
 ```
 pain-assessment_<stamp>_<id>/
-  metadata.json                     full payload; image blobs replaced by file paths
-  snapshots/{front,back,left,right}.png
-  areas/area-<n>.png                per-area UV drawing (when present)
+  metadata.json                          full payload; image blobs replaced by file paths
+  snapshots/{front,back,left,right}.png  all areas on the body, four angles
+  areas/area-<n>/
+    {front,back,left,right}.png          this area on the body (anatomical reference)
+    drawing.png                          this area's raw UV drawing
 ```
 
 (A CSV export will be added to the same archive; its column layout is still being decided. `downloadSubmission()` — the plain single-JSON export — is retained as a fallback.) The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.

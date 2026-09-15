@@ -35,7 +35,8 @@ import coverageCalculator from './coverageService.js';
  * @typedef {Object} SubmissionArea
  * @property {number}              areaNumber              — 1-based area index
  * @property {string}              areaId                  — e.g. "drawing-1"
- * @property {string|null}         drawingImageData        — Base-64 PNG of the UV canvas
+ * @property {string|null}         drawingImageData        — Base-64 PNG of the UV canvas (raw drawing)
+ * @property {MultiViewSnapshots|null} bodyViews           — This area rendered on the 3D body (front/back/left/right)
  * @property {Object|null}         questionnaireResponses  — Area survey answers
  * @property {string[]}            drawnRegions            — Vertex group names with drawn content
  * @property {AreaCoverageData|null} coverage
@@ -272,13 +273,21 @@ export async function prepareSubmissionData() {
         throw new Error('Failed to capture multi-view snapshots');
     }
 
-    const areas = AppState.drawingInstances.map((instance, index) => {
+    const areas = [];
+    for (let index = 0; index < AppState.drawingInstances.length; index++) {
+        const instance = AppState.drawingInstances[index];
         const coverage = coverageCalculator.calculateCoverage(instance);
 
-        return {
+        // Render this single area onto the 3D body (front/back/left/right) so the
+        // drawing has anatomical reference — the raw UV drawing on its own is hard
+        // to interpret. Falls back to null if the capture fails.
+        const bodyViews = await captureMultiViewSnapshots(instance.canvas);
+
+        areas.push({
             areaNumber: index + 1,
             areaId: instance.id,
             drawingImageData: instance.uvDrawingData,
+            bodyViews,
             questionnaireResponses: instance.questionnaireData,
             drawnRegions: Array.from(instance.drawnRegionNames || []),
             coverage: coverage ? {
@@ -287,8 +296,8 @@ export async function prepareSubmissionData() {
                 regionBreakdown: coverage.regions,
                 bodyPartBreakdown: coverage.bodyParts
             } : null
-        };
-    });
+        });
+    }
 
     const startTime = AppState.sessionStartTime || new Date().toISOString();
 
@@ -444,15 +453,37 @@ export async function downloadSubmissionZip(payload) {
         meta.combinedDrawing = refs;
     }
 
-    // Per-area UV drawings → areas/area-<n>.png
+    // Per-area images → areas/area-<n>/
+    //   {front,back,left,right}.png — the area rendered on the 3D body (reference)
+    //   drawing.png                 — the raw UV drawing (exact painted texture)
     if (Array.isArray(payload.areas)) {
         const areasFolder = root.folder('areas');
         meta.areas = payload.areas.map((area) => {
-            const b64 = dataUrlToBase64(area.drawingImageData);
-            if (!b64) return { ...area };
-            const name = `area-${area.areaNumber}.png`;
-            areasFolder.file(name, b64, { base64: true });
-            return { ...area, drawingImageData: `areas/${name}` };
+            const dir = `area-${area.areaNumber}`;
+            const folder = areasFolder.folder(dir);
+            const next = { ...area };
+
+            if (area.bodyViews && typeof area.bodyViews === 'object') {
+                const refs = {};
+                for (const [label, dataUrl] of Object.entries(area.bodyViews)) {
+                    const b64 = dataUrlToBase64(dataUrl);
+                    if (b64) {
+                        folder.file(`${label}.png`, b64, { base64: true });
+                        refs[label] = `areas/${dir}/${label}.png`;
+                    } else {
+                        refs[label] = null;
+                    }
+                }
+                next.bodyViews = refs;
+            }
+
+            const drawingB64 = dataUrlToBase64(area.drawingImageData);
+            if (drawingB64) {
+                folder.file('drawing.png', drawingB64, { base64: true });
+                next.drawingImageData = `areas/${dir}/drawing.png`;
+            }
+
+            return next;
         });
     }
 

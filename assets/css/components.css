@@ -773,6 +773,11 @@ h3.control-title { margin-bottom: 20px; }
   height: 1.1em;
   cursor: pointer;
 }
+
+/* On narrow screens shrink the confirm label so it stays on one line */
+@media (max-width: 480px) {
+  .summary-save-confirm { font-size: var(--font-body-xsmall); }
+}
 .summary-title { font-size: var(--font-title-large); font-weight: bold; margin-bottom: var(--space-md); }
 .summary-instruction { color: var(--text-secondary, var(--dark-grey)); font-size: var(--font-body-medium); margin-bottom: var(--space-md); }
 
