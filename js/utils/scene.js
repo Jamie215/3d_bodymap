@@ -9,7 +9,11 @@ export function createScene(canvasContainer) {
     camera.position.set(0, 1.0, 1.5);
     camera.lookAt(0, 1.0, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // preserveDrawingBuffer: true is required so renderer.domElement.toDataURL()
+    // reads back the rendered frame. Without it the on-screen view still renders,
+    // but the drawing buffer may already be cleared when we read it — producing
+    // blank/grey snapshots (submission images and the drawing preview).
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0xf0f0f0);
     canvasContainer.appendChild(renderer.domElement);

@@ -191,6 +191,7 @@ export async function captureMultiViewSnapshots(combinedCanvas) {
     const originalPixelRatio     = renderer.getPixelRatio();
     const originalCameraPosition = camera.position.clone();
     const originalCameraTarget   = controls.target.clone();
+    const originalAspect         = camera.aspect;
 
     try {
         AppState.skinMesh.material.map = tempTexture;
@@ -200,6 +201,8 @@ export async function captureMultiViewSnapshots(combinedCanvas) {
         const previewHeight = 400;
         renderer.setSize(previewWidth, previewHeight, false);
         renderer.setPixelRatio(1);
+        // Match the camera to the square capture buffer so the model isn't stretched.
+        camera.aspect = previewWidth / previewHeight;
 
         // Calculate framing distance from model bounds
         const bbox = new THREE.Box3().setFromObject(AppState.skinMesh);
@@ -240,6 +243,8 @@ export async function captureMultiViewSnapshots(combinedCanvas) {
         controls.update();
         renderer.setSize(originalSize.x, originalSize.y, false);
         renderer.setPixelRatio(originalPixelRatio);
+        camera.aspect = originalAspect;
+        camera.updateProjectionMatrix();
 
         AppState.skinMesh.material.map = originalMap;
         AppState.skinMesh.material.needsUpdate = true;
