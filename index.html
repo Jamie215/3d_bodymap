@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>3D Body Map</title>
-    <link href="https://unpkg.com/survey-knockout/defaultV2.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
+    <link href="./vendor/surveyjs/defaultV2.min.css" rel="stylesheet" />
+    <link href="./vendor/fontawesome/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="./vendor/driverjs/driver.css"/>
     <link rel="stylesheet" href="./assets/css/styles.css">
 </head>
 <body>
@@ -28,15 +28,15 @@
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.175.0/examples/jsm/"
+            "three": "./vendor/three/three.module.js",
+            "three/addons/": "./vendor/three/addons/"
         }
     }
     </script>
-    <script src="https://unpkg.com/knockout@3.5.1/build/output/knockout-latest.js"></script>
-    <script src="https://unpkg.com/survey-knockout/survey.ko.min.js"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+    <script src="./vendor/knockout/knockout-latest.js"></script>
+    <script src="./vendor/surveyjs/survey.ko.min.js"></script>
+    <script src="./vendor/d3/d3.v7.min.js"></script>
+    <script src="./vendor/driverjs/driver.js.iife.js"></script>
 
     <!--
         Firebase removed for integration handover.

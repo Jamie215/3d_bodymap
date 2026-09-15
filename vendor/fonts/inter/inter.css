@@ -1,0 +1,35 @@
+/* Self-hosted Inter (subset: latin, weights 400/500/600/700).
+   Replaces the Google Fonts @import so the browser makes no request to
+   fonts.googleapis.com / fonts.gstatic.com. Vendored from @fontsource/inter. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('inter-latin-400-normal.woff2') format('woff2'),
+       url('inter-latin-400-normal.woff') format('woff');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('inter-latin-500-normal.woff2') format('woff2'),
+       url('inter-latin-500-normal.woff') format('woff');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('inter-latin-600-normal.woff2') format('woff2'),
+       url('inter-latin-600-normal.woff') format('woff');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('inter-latin-700-normal.woff2') format('woff2'),
+       url('inter-latin-700-normal.woff') format('woff');
+}
