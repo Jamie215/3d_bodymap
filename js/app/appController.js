@@ -183,7 +183,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     });
 
     // ── Save-to-device screen ───────────────────────────────────────────
-    summary.setRedownloadCallback(() => {
+    summary.setDownloadCallback(() => {
         if (AppState.submissionPayload) {
             downloadSubmission(AppState.submissionPayload);
         }

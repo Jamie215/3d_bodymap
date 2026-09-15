@@ -76,12 +76,12 @@ export function createSummaryView() {
     // ── Callbacks ──────────────────────────────────────────────────────
     let onEditArea    = null;
     let onDeleteArea  = null;
-    let onRedownload  = null;
+    let onDownload    = null;
     let onConfirmSaved = null;
 
     function setEditCallback(callback)        { onEditArea     = callback; }
     function setDeleteCallback(callback)      { onDeleteArea   = callback; }
-    function setRedownloadCallback(callback)  { onRedownload   = callback; }
+    function setDownloadCallback(callback)    { onDownload     = callback; }
     function setConfirmSavedCallback(callback){ onConfirmSaved = callback; }
 
     // ── Status update ──────────────────────────────────────────────────
@@ -135,20 +135,15 @@ export function createSummaryView() {
         title.className = 'summary-title';
         title.textContent = 'Save Your Response';
 
-        const logged = document.createElement('p');
-        logged.style.marginTop = 'var(--space-md)';
+        const instruction = document.createElement('p');
+        instruction.className = 'summary-instruction';
+        instruction.style.marginTop = 'var(--space-md)';
         const countStrong = document.createElement('strong');
         countStrong.textContent = String(count);
-        logged.append(
+        instruction.append(
             'You logged ',
             countStrong,
             ` pain or symptom area${count !== 1 ? 's' : ''}. `,
-            'Your response is ready to download as a file.'
-        );
-
-        const instruction = document.createElement('p');
-        instruction.className = 'summary-instruction';
-        instruction.append(
             'Click the button below to download the file, then save it to the ',
             (() => { const s = document.createElement('strong'); s.textContent = 'encrypted device provided to you'; return s; })(),
             '. Do not close this page until the file has been saved.'
@@ -158,9 +153,9 @@ export function createSummaryView() {
         // clicked again if the file is misplaced.
         const downloadBtn = document.createElement('button');
         downloadBtn.className = 'button button-primary';
-        downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> <span>Download the file</span>';
+        downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> <span>Download response</span>';
         downloadBtn.addEventListener('click', () => {
-            if (onRedownload) onRedownload();
+            if (onDownload) onDownload();
         });
 
         // Confirmation gate.
@@ -186,7 +181,7 @@ export function createSummaryView() {
             if (checkbox.checked && onConfirmSaved) onConfirmSaved();
         });
 
-        wrapper.append(icon, title, logged, instruction, downloadBtn, confirmRow, finishBtn);
+        wrapper.append(icon, title, instruction, downloadBtn, confirmRow, finishBtn);
         summaryStatusPanel.appendChild(wrapper);
     }
 
@@ -323,7 +318,7 @@ export function createSummaryView() {
         summaryDoneButton,
         setEditCallback,
         setDeleteCallback,
-        setRedownloadCallback,
+        setDownloadCallback,
         setConfirmSavedCallback
     };
 }
