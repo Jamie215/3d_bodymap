@@ -5,6 +5,7 @@ import AppState from '../app/state.js';
 import texturePool from './texturePool.js';
 import coverageCalculator from './coverageService.js';
 import { buildCsvFiles } from './csvExporter.js';
+import { DATA_DICTIONARY_MD } from '../data/dataDictionary.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -36,8 +37,7 @@ import { buildCsvFiles } from './csvExporter.js';
  * @typedef {Object} SubmissionArea
  * @property {number}              areaNumber              — 1-based area index
  * @property {string}              areaId                  — e.g. "drawing-1"
- * @property {string|null}         drawingImageData        — Base-64 PNG of the UV canvas (raw drawing)
- * @property {string|null}         areaImage               — Base-64 PNG: the drawing composited on the body UV atlas (single legible image)
+ * @property {MultiViewSnapshots|null} bodyViews           — This area rendered on the 3D body (front/back/left/right)
  * @property {Object|null}         questionnaireResponses  — Area survey answers
  * @property {string[]}            drawnRegions            — Vertex group names with drawn content
  * @property {AreaCoverageData|null} coverage
@@ -162,73 +162,6 @@ export function createCombinedTexture() {
     }
 }
 
-/**
- * Composites a single area's drawing on top of the body's UV atlas (the model's
- * ambient-occlusion map) so the painted region is legible on its own, in one
- * image, with anatomical reference — the raw UV drawing on a white background is
- * hard to interpret.
- *
- * The drawing texture (a CanvasTexture) is uploaded with flipY=true while the AO
- * map uses flipY=false, so on the 3D body they are vertically mirrored relative
- * to each other in UV space; the AO is therefore drawn vertically flipped so it
- * lines up with the drawing here.
- *
- * @param {import('../app/drawingInstanceManager.js').DrawingInstance} instance
- * @returns {string|null} base-64 PNG data URL, or null on failure
- */
-export function createAreaMeshComposite(instance) {
-    try {
-        const src = instance?.canvas;
-        if (!src) return null;
-
-        const w = src.width;
-        const h = src.height;
-        const out = document.createElement('canvas');
-        out.width = w;
-        out.height = h;
-        const ctx = out.getContext('2d');
-        if (!ctx) return null;
-
-        // Body UV atlas backdrop (flip vertically to match the drawing's flipY).
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, w, h);
-        const aoImage = AppState.skinMesh?.material?.aoMap?.image;
-        if (aoImage) {
-            try {
-                ctx.save();
-                ctx.translate(0, h);
-                ctx.scale(1, -1);
-                ctx.drawImage(aoImage, 0, 0, w, h);
-                ctx.restore();
-            } catch (e) {
-                // Keep the white background if the AO image can't be drawn.
-            }
-        }
-
-        // Overlay the drawing, making its white pixels transparent so only the
-        // painted region shows over the mesh.
-        const tmp = document.createElement('canvas');
-        tmp.width = w;
-        tmp.height = h;
-        const tctx = tmp.getContext('2d');
-        tctx.drawImage(src, 0, 0);
-        const imageData = tctx.getImageData(0, 0, w, h);
-        const px = imageData.data;
-        for (let i = 0; i < px.length; i += 4) {
-            if (px[i] === 255 && px[i + 1] === 255 && px[i + 2] === 255) {
-                px[i + 3] = 0;
-            }
-        }
-        tctx.putImageData(imageData, 0, 0);
-        ctx.drawImage(tmp, 0, 0);
-
-        return out.toDataURL('image/png');
-    } catch (error) {
-        console.error('createAreaMeshComposite failed', error);
-        return null;
-    }
-}
-
 // ============================================================================
 // MULTI-VIEW SNAPSHOTS
 // ============================================================================
@@ -341,16 +274,19 @@ export async function prepareSubmissionData() {
         throw new Error('Failed to capture multi-view snapshots');
     }
 
-    const areas = AppState.drawingInstances.map((instance, index) => {
+    const areas = [];
+    for (let index = 0; index < AppState.drawingInstances.length; index++) {
+        const instance = AppState.drawingInstances[index];
         const coverage = coverageCalculator.calculateCoverage(instance);
 
-        return {
+        // Render this single area onto the 3D body (front/back/left/right) so the
+        // drawing has anatomical reference. Null if the capture fails.
+        const bodyViews = await captureMultiViewSnapshots(instance.canvas);
+
+        areas.push({
             areaNumber: index + 1,
             areaId: instance.id,
-            drawingImageData: instance.uvDrawingData,
-            // The area's drawing composited on the body UV atlas — one legible
-            // image with anatomical reference (null if compositing fails).
-            areaImage: createAreaMeshComposite(instance),
+            bodyViews,
             questionnaireResponses: instance.questionnaireData,
             drawnRegions: Array.from(instance.drawnRegionNames || []),
             coverage: coverage ? {
@@ -359,8 +295,8 @@ export async function prepareSubmissionData() {
                 regionBreakdown: coverage.regions,
                 bodyPartBreakdown: coverage.bodyParts
             } : null
-        };
-    });
+        });
+    }
 
     const startTime = AppState.sessionStartTime || new Date().toISOString();
 
@@ -516,9 +452,8 @@ export async function downloadSubmissionZip(payload) {
         meta.combinedDrawing = refs;
     }
 
-    // Per-area images → areas/area-<n>/
-    //   overview.png — the drawing composited on the body UV atlas (legible)
-    //   drawing.png  — the raw UV drawing (exact painted texture)
+    // Per-area images → areas/area-<n>/{front,back,left,right}.png
+    // (this area rendered on the 3D body, for anatomical reference)
     if (Array.isArray(payload.areas)) {
         const areasFolder = root.folder('areas');
         meta.areas = payload.areas.map((area) => {
@@ -526,16 +461,18 @@ export async function downloadSubmissionZip(payload) {
             const folder = areasFolder.folder(dir);
             const next = { ...area };
 
-            const overviewB64 = dataUrlToBase64(area.areaImage);
-            if (overviewB64) {
-                folder.file('overview.png', overviewB64, { base64: true });
-                next.areaImage = `areas/${dir}/overview.png`;
-            }
-
-            const drawingB64 = dataUrlToBase64(area.drawingImageData);
-            if (drawingB64) {
-                folder.file('drawing.png', drawingB64, { base64: true });
-                next.drawingImageData = `areas/${dir}/drawing.png`;
+            if (area.bodyViews && typeof area.bodyViews === 'object') {
+                const refs = {};
+                for (const [label, dataUrl] of Object.entries(area.bodyViews)) {
+                    const b64 = dataUrlToBase64(dataUrl);
+                    if (b64) {
+                        folder.file(`${label}.png`, b64, { base64: true });
+                        refs[label] = `areas/${dir}/${label}.png`;
+                    } else {
+                        refs[label] = null;
+                    }
+                }
+                next.bodyViews = refs;
             }
 
             return next;
@@ -544,12 +481,14 @@ export async function downloadSubmissionZip(payload) {
 
     root.file('metadata.json', JSON.stringify(meta, null, 2));
 
-    // Tabular exports for analysis (region-by-region coverage in long format).
+    // Tabular exports for analysis (region-by-region coverage in long format),
+    // plus a data dictionary that explains every column.
     try {
         const csvFolder = root.folder('csv');
         for (const [name, text] of Object.entries(buildCsvFiles(payload))) {
             csvFolder.file(name, text);
         }
+        csvFolder.file('README.md', DATA_DICTIONARY_MD);
     } catch (error) {
         console.error('CSV export failed; continuing with JSON + images only', error);
     }
