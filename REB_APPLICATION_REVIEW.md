@@ -10,8 +10,18 @@ scope here.
 below are showstoppers; most are addressed with wording, a couple of survey
 settings, or minor code changes.
 
-**Basis:** code review of the prototype, 14 September 2026. File references point
-to where each item lives so it can be actioned later.
+**Basis:** code review of the prototype, 14 September 2026; updated 15 September
+2026 after the data-handling decision and follow-up work below. File references
+point to where each item lives.
+
+**Data-handling decision (15 Sep 2026):** the interim tool runs stand-alone as a
+web app with **no backend**, used while EmPOWER integration is pending. When a
+session is finished the participant **downloads their responses as a single file**
+(a `.zip` of `metadata.json` + model snapshots + per-region coverage CSVs) and
+**stores it on a provided encrypted device**. The download is entirely
+client-side — no network request — so nothing is transmitted to any server. What
+the file contains and how to read it is documented in
+[`docs/DATA_DICTIONARY.md`](./docs/DATA_DICTIONARY.md).
 
 ---
 
@@ -24,6 +34,9 @@ to where each item lives so it can be actioned later.
 - **Snapshots are of the 3D model, not the person** — no photographs of
   participants are taken.
 - **Only `sessionStorage`** is used, and only for one-time UI flags (not data).
+- **The session id is random and non-identifying** — generated per session
+  (`crypto.randomUUID`), not derived from anything about the participant; used
+  only to name the downloaded file and distinguish sessions.
 - **Reduced motion is respected** (`prefers-reduced-motion`).
 
 ---
@@ -33,35 +46,36 @@ to where each item lives so it can be actioned later.
 ### Likely to be raised
 
 #### 1. No consent or study-information step in the app
-The app opens straight into the drawing task. There is no screen stating that
-this is research, what is collected, that participation is voluntary, or how to
-decline or stop.
+**Decision (15 Sep 2026): no in-app consent step — consent is obtained outside
+the app.** The study coordinator **enrols participants into the study in advance**,
+so informed consent is handled through the study's own enrolment procedure before
+the participant uses the tool. No landing/consent screen is added; the consent
+procedure is documented in the REB application instead.
 
-- **Why REB cares:** informed consent and voluntariness are core TCPS 2
-  requirements.
-- **Where:** absent; onboarding (`js/components/modals/onboardingModal.js`,
-  `js/data/helpContent.js`) is usage instructions only.
-- **Mitigation:** confirm where consent is obtained. If it happens separately
-  (paper / REDCap / EmPOWER), document that in the REB application. If the
-  interim tool is used stand-alone, add a landing/consent step or a documented
-  consent procedure.
-- **Effort:** wording + process decision; small code change if an in-app screen
-  is wanted.
+_(Original finding, for reference: the app opens straight into the drawing task
+with no in-app statement that this is research, what is collected, or that
+participation is voluntary. Onboarding — `js/components/modals/onboardingModal.js`,
+`js/data/helpContent.js` — is usage instructions only. Informed consent and
+voluntariness are core TCPS 2 requirements; addressed via the enrolment procedure
+above rather than in-app.)_
 
 #### 2. Free-text boxes → inadvertent disclosure / re-identification
-Several open-text fields let participants type anything, including identifying
-details.
+**Decision (15 Sep 2026): handle at the analysis stage, not with an in-app
+warning.** An in-app "do not enter identifying information" note was considered
+and **rejected** — it risks misinforming participants and discouraging them from
+recording what they actually feel. Instead, free text will be **reviewed / scrubbed
+for identifiers before analysis**; this analysis-stage process is documented in the
+REB application.
 
-- **Where:**
-  - `js/data/areaSurvey.js` — "What does your pain feel like?" (required),
-    "What makes it worse?" (required), "What makes it better?" (required),
-    "anything else…" (optional).
+- **Where (fields):**
+  - `js/data/areaSurvey.js` — "What does your pain or symptom feel like?"
+    (required), "What makes it worse?" / "What makes it better?" (required on the
+    main area), "anything else…" (optional).
   - `js/data/generalSurvey.js` — medication comments (optional).
 - **Why REB cares:** free text is the usual way a "de-identified" dataset picks
-  up names or other identifiers.
-- **Mitigation:** add a short instruction not to enter identifying information;
-  and/or plan to review/scrub free text before analysis.
-- **Effort:** wording (survey text) + an analysis-stage process.
+  up names or other identifiers. The data dictionary
+  ([`docs/DATA_DICTIONARY.md`](./docs/DATA_DICTIONARY.md)) flags these fields and
+  carries the same scrub-before-analysis note.
 
 #### 3. Sensitive questions are mostly forced-response (voluntariness)
 **Decision (14 Sep 2026): no change — intentional by design.** The forced-response
@@ -80,14 +94,18 @@ above.)_
 ### Worth noting (lower priority)
 
 #### 7. Accessibility / equitable access
-The core task is a colour-based 3D drawing needing pointer control and colour
-discrimination, which may exclude participants with visual or motor impairments.
+**Decision (15 Sep 2026): no further work — the points that matter are already
+handled.** The app respects reduced motion (`prefers-reduced-motion` across all
+CSS), uses ARIA labels/roles and keyboard support on its controls, and offers a
+**name-based, non-drawing path** to indicate body regions via the region-selector
+modal (`js/components/modals/regionSelectorModal.js`) for participants who cannot
+do fine pointer drawing. No additional accessibility work is planned for the
+interim tool.
 
-- **Why REB cares:** inclusion / equitable access is an increasing REB
-  consideration.
-- **Mitigation:** note the access route in the application; consider an
-  alternative for participants who cannot use the drawing interface.
-- **Effort:** design consideration; document at minimum.
+_(Original finding, for reference: the core task is a colour-based 3D drawing
+needing pointer control and colour discrimination, which may exclude participants
+with visual or motor impairments. Inclusion / equitable access is an increasing
+REB consideration; addressed as above.)_
 
 ---
 
@@ -135,23 +153,31 @@ out of scope here.
 
 | # | Item | Priority | Type of fix | Effort | Status |
 |---|---|---|---|---|---|
-| 1 | No in-app consent / study info | High | Process / wording (± screen) | Small | Open |
-| 2 | Free-text fields (identifiers) | High | Wording + analysis process | Small | Open |
+| 1 | No in-app consent / study info | High | Process | Small | Decided — consent via enrolment (no in-app step) |
+| 2 | Free-text fields (identifiers) | High | Analysis process | Small | Decided — scrub before analysis (no in-app note) |
 | 3 | Forced-response on sensitive items | Medium | Survey config | Small | No change — intentional |
 | 4 | YouTube embed → Google contact | Medium | Code | Small | **Done** |
 | 5 | Full user-agent captured | Low | Code | Very small | **Done** |
 | 6 | Third-party CDNs | Low | Build / hosting | Moderate | **Done** |
-| 7 | Accessibility / equitable access | Low | Design / documentation | Varies | Open |
+| 7 | Accessibility / equitable access | Low | Design / documentation | Varies | Decided — already handled, no further work |
 
 ---
 
 ## Suggested next steps
 
-1. Decide where **consent** is obtained and document it (Item 1).
-2. Add a **do-not-enter-identifying-information** note near free-text fields and
-   plan free-text review (Item 2).
-3. Revisit **accessibility** (Item 7) if the review asks for an alternative to
-   the drawing interface.
+All application-level findings above are now either **done** or **decided**. The
+remaining actions are for the REB application text and process, not the code:
+
+1. **Document the consent procedure** — that the coordinator enrols participants
+   into the study in advance, so informed consent is obtained before the tool is
+   used (Item 1).
+2. **Document the free-text handling** — that open-text answers are reviewed /
+   scrubbed for identifiers before analysis (Item 2).
+3. **Describe the data flow and storage** — session responses are downloaded as a
+   single file and stored on a provided encrypted device; see
+   [`docs/DATA_DICTIONARY.md`](./docs/DATA_DICTIONARY.md) for exactly what the file
+   contains. (Data residency / device encryption are covered in the separate Data
+   Residency Decision Review.)
 
 *Planning notes — not a compliance determination. Confirm interpretation with
 the Western REB and Privacy Office.*

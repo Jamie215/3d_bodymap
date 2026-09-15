@@ -323,15 +323,21 @@ export async function generateDrawingPreview() {
     const previewHeight = 400;
     const originalSize       = renderer.getSize(new THREE.Vector2());
     const originalPixelRatio = renderer.getPixelRatio();
+    const originalAspect     = camera.aspect;
 
     renderer.setSize(previewWidth, previewHeight, false);
     renderer.setPixelRatio(1);
+    // Match the camera to the square preview buffer so the model isn't stretched.
+    camera.aspect = previewWidth / previewHeight;
+    camera.updateProjectionMatrix();
     renderer.render(scene, camera);
     const preview = renderer.domElement.toDataURL('image/png');
 
-    // Restore original renderer size
+    // Restore original renderer size and aspect
     renderer.setSize(originalSize.x, originalSize.y, false);
     renderer.setPixelRatio(originalPixelRatio);
+    camera.aspect = originalAspect;
+    camera.updateProjectionMatrix();
     renderer.render(scene, camera);
 
     return preview;
