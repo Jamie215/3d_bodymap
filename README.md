@@ -164,7 +164,7 @@ Each drawing instance owns its own canvas, texture, region tracking, and questio
 
 ## Integration
 
-Firebase has been removed. The submission endpoint in `appController.js` is a clearly marked stub:
+The submission endpoint in `appController.js` is a clearly marked stub:
 
 ```js
 // ── Integration point ──────────────────────────────────────
