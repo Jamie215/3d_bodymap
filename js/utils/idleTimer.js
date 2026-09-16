@@ -17,7 +17,7 @@ import {
 } from '../components/modal.js';
 
 // Tunable thresholds. Adjust here if the study wants a longer/shorter window.
-const IDLE_LIMIT_MS = 15 * 60 * 1000; // no interaction before the warning shows
+const IDLE_LIMIT_MS = 10 * 60 * 1000; // no interaction before the warning shows
 const WARNING_MS    = 60 * 1000;      // countdown shown before the reset fires
 const POLL_MS       = 1000;           // how often idle time is checked
 
