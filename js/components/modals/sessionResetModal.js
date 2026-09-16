@@ -5,7 +5,7 @@
 // was reset for inactivity — before they begin. Dismissing it reveals the
 // (already fresh) front page.
 
-import { createModal, createModalContent, createButton, createButtonGroup } from './modalBase.js';
+import { createModal, createModalContent } from './modalBase.js';
 
 let sessionResetModalEl = null;
 let titleEl   = null;
@@ -15,14 +15,12 @@ let dismissButton = null;
 const VARIANTS = {
     complete: {
         title: 'Assessment complete',
-        message: 'Your responses have been saved to the provided device. ' +
-            'Thank you for completing your pain and symptom assessment.',
+        message: 'Thank you for completing your pain and symptom assessment.',
         button: 'Start a new session'
     },
     idle: {
         title: 'Session reset',
-        message: 'This session was reset after a period of inactivity to protect ' +
-            'your privacy. You can start again from the beginning.',
+        message: 'You can start again from the beginning.',
         button: 'Start a new session'
     }
 };
@@ -33,16 +31,20 @@ export function initSessionResetModal(container) {
 
     titleEl = document.createElement('h2');
     titleEl.id = 'session-reset-title';
+    titleEl.className = 'modal-title';
 
     messageEl = document.createElement('p');
     messageEl.id = 'session-reset-message';
+    messageEl.className = 'modal-subtitle';
 
-    dismissButton = createButton('session-reset-dismiss', 'Start a new session');
+    dismissButton = document.createElement('button');
+    dismissButton.id = 'session-reset-dismiss';
+    dismissButton.className = 'modal-btn-primary';
     dismissButton.addEventListener('click', hideSessionResetModal);
 
     modalContent.appendChild(titleEl);
     modalContent.appendChild(messageEl);
-    modalContent.appendChild(createButtonGroup(dismissButton));
+    modalContent.appendChild(dismissButton);
     sessionResetModalEl.appendChild(modalContent);
     container.appendChild(sessionResetModalEl);
 }
