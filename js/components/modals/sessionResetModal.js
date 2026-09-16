@@ -20,7 +20,8 @@ const VARIANTS = {
     },
     idle: {
         title: 'Session reset',
-        message: 'You can start again from the beginning.',
+        message: 'This session was reset after a period of inactivity to protect ' +
+            'your privacy. You can start again from the beginning.',
         button: 'Start a new session'
     }
 };
