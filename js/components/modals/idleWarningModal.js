@@ -5,7 +5,7 @@
 // abandoned session does not leave one participant's answers on screen for
 // the next person.
 
-import { createModal, createModalContent, createButton, createButtonGroup } from './modalBase.js';
+import { createModal, createModalContent } from './modalBase.js';
 
 let idleWarningModalEl = null;
 let countdownValueEl   = null;
@@ -17,10 +17,12 @@ export function initIdleWarningModal(container) {
 
     const title = document.createElement('h2');
     title.id = 'idle-warning-title';
+    title.className = 'modal-title';
     title.textContent = 'Are you still there?';
 
     const message = document.createElement('p');
     message.id = 'idle-warning-message';
+    message.className = 'modal-subtitle';
     const countStrong = document.createElement('strong');
     countdownValueEl = countStrong;
     message.append(
@@ -29,13 +31,14 @@ export function initIdleWarningModal(container) {
         ' seconds.'
     );
 
-    continueButton = createButton('idle-warning-continue', 'Continue session');
-
-    const buttonGroup = createButtonGroup(continueButton);
+    continueButton = document.createElement('button');
+    continueButton.id = 'idle-warning-continue';
+    continueButton.className = 'modal-btn-primary';
+    continueButton.textContent = 'Continue session';
 
     modalContent.appendChild(title);
     modalContent.appendChild(message);
-    modalContent.appendChild(buttonGroup);
+    modalContent.appendChild(continueButton);
     idleWarningModalEl.appendChild(modalContent);
     container.appendChild(idleWarningModalEl);
 }
