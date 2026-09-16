@@ -6,7 +6,7 @@
 // per (area, region) rather than one column per region.
 //
 // Files produced (see buildCsvFiles):
-//   session.csv   one row: session metadata, device info, general questionnaire
+//   session.csv   one row: session metadata + general questionnaire
 //   areas.csv     one row per area: summary + area questionnaire answers
 //   coverage.csv  long: one row per (area, region) of drawn coverage
 
@@ -96,8 +96,8 @@ export function toCsv(rows, columns) {
 // ============================================================================
 
 /**
- * session.csv — a single row of session-level fields, device info, and the
- * (flattened) general questionnaire answers, prefixed `general.`.
+ * session.csv — a single row of session-level fields and the (flattened) general
+ * questionnaire answers, prefixed `general.`.
  *
  * @param {import('./submissionService.js').SubmissionPayload} payload
  * @returns {string}
@@ -110,10 +110,7 @@ export function buildSessionCsv(payload) {
         completionTime: payload.completionTime,
         durationSeconds: payload.durationSeconds,
         modelType: payload.modelType,
-        totalAreas: payload.totalAreas,
-        deviceType: payload.deviceInfo?.deviceType,
-        operatingSystem: payload.deviceInfo?.operatingSystem,
-        browser: payload.deviceInfo?.browser
+        totalAreas: payload.totalAreas
     };
 
     const general = flattenObject(payload.generalQuestionnaire || {});

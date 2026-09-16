@@ -44,16 +44,6 @@ import { DATA_DICTIONARY_MD } from '../data/dataDictionary.js';
  */
 
 /**
- * Browser and device metadata.
- *
- * @typedef {Object} DeviceInfo
- * @property {'Desktop'|'Tablet'|'Mobile'}  deviceType
- * @property {string}                        operatingSystem
- * @property {string}                        browser
- * (raw userAgent intentionally not captured — see REB #5 in prepareSubmissionData)
- */
-
-/**
  * The complete data payload assembled by {@link prepareSubmissionData}.
  *
  * There is no backend: this object is serialized to JSON and downloaded to the
@@ -72,7 +62,6 @@ import { DATA_DICTIONARY_MD } from '../data/dataDictionary.js';
  * @property {number}               totalAreas             — Number of pain/symptom areas
  * @property {SubmissionArea[]}     areas                  — Per-area data
  * @property {Object|null}          generalQuestionnaire   — General survey answers
- * @property {DeviceInfo}           deviceInfo
  */
 
 /**
@@ -263,7 +252,7 @@ export async function captureMultiViewSnapshots(combinedCanvas) {
  *   - Per-area drawing data, questionnaire responses, and coverage metrics
  *   - Combined multi-view snapshots
  *   - General questionnaire responses
- *   - Session timing and device metadata
+ *   - Session timing
  *
  * @returns {Promise<SubmissionPayload>}
  * @throws {Error} if texture compositing or snapshot capture fails
@@ -317,18 +306,11 @@ export async function prepareSubmissionData() {
         combinedDrawing: snapshot,
         totalAreas: areas.length,
         areas,
-        generalQuestionnaire: AppState.generalQuestionnaireResponse,
-        deviceInfo: {
-            deviceType: getDeviceType(),
-            operatingSystem: getOS(),
-            browser: getBrowser()
-            // REB #5 (data minimization): the raw navigator.userAgent string
-            // is not captured. The full UA contributes to browser
-            // fingerprinting / re-identification, and the coarse fields above
-            // (Desktop / Windows / Chrome) are all that is needed. Re-enable
-            // only if a specific analysis justifies it.
-            // userAgent: navigator.userAgent
-        }
+        generalQuestionnaire: AppState.generalQuestionnaireResponse
+        // Data minimization: no device or browser information is captured. The
+        // tool is intended for a supervised desktop setting, so device/OS/browser
+        // categories add nothing to the analysis while widening the data surface.
+        // The raw navigator.userAgent is likewise never read.
     };
 }
 
@@ -377,6 +359,82 @@ function triggerBlobDownload(blob, filename) {
 }
 
 /**
+ * Whether the browser supports the File System Access API, which lets the
+ * participant choose where the response file is written (e.g. straight to the
+ * provided encrypted device) instead of it landing in the default Downloads
+ * folder. Supported on Chromium desktop browsers (Chrome/Edge); unsupported on
+ * Firefox/Safari, where we fall back to a normal download.
+ *
+ * @returns {boolean}
+ */
+function supportsSavePicker() {
+    return typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function';
+}
+
+/**
+ * Opens the browser's "Save as…" dialog so the participant can choose the save
+ * location. Must be called while the triggering click still has user activation,
+ * so callers request the target BEFORE any long async work (e.g. zip building).
+ *
+ * @param {string} suggestedName
+ * @param {{description: string, mime: string, ext: string}} opts
+ * @returns {Promise<{handle: FileSystemFileHandle|null, cancelled: boolean}>}
+ *   handle — a writable file handle, or null to fall back to a normal download.
+ *   cancelled — true only when the participant dismissed the dialog themselves.
+ */
+async function requestSaveTarget(suggestedName, { description, mime, ext }) {
+    if (!supportsSavePicker()) return { handle: null, cancelled: false };
+    try {
+        const handle = await window.showSaveFilePicker({
+            suggestedName,
+            types: [{ description, accept: { [mime]: [ext] } }]
+        });
+        return { handle, cancelled: false };
+    } catch (error) {
+        // The participant closed the dialog without choosing — do nothing.
+        if (error && error.name === 'AbortError') return { handle: null, cancelled: true };
+        // Any other failure (e.g. a SecurityError): fall back to a normal download.
+        console.warn('Save dialog unavailable; falling back to default download', error);
+        return { handle: null, cancelled: false };
+    }
+}
+
+/**
+ * Writes a Blob to a chosen file handle, or downloads it the default way when no
+ * handle was obtained.
+ *
+ * @param {FileSystemFileHandle|null} handle
+ * @param {Blob} blob
+ * @param {string} filename
+ */
+async function writeToTarget(handle, blob, filename) {
+    if (handle) {
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+    }
+    triggerBlobDownload(blob, filename);
+}
+
+/**
+ * Prompt-then-write convenience for callers whose Blob is ready synchronously
+ * (no lengthy async between the click and the dialog). Returns false only if the
+ * participant cancelled the save dialog.
+ *
+ * @param {Blob} blob
+ * @param {string} filename
+ * @param {{description: string, mime: string, ext: string}} opts
+ * @returns {Promise<boolean>} whether the file was saved (or download triggered)
+ */
+async function saveBlob(blob, filename, opts) {
+    const { handle, cancelled } = await requestSaveTarget(filename, opts);
+    if (cancelled) return false;
+    await writeToTarget(handle, blob, filename);
+    return true;
+}
+
+/**
  * Extracts the base-64 body of a `data:` URL (e.g. a PNG snapshot). Returns null
  * if the value is missing or not a base-64 data URL.
  *
@@ -400,13 +458,17 @@ function dataUrlToBase64(dataUrl) {
  * Retained as a fallback / simple export; the app's default is the richer
  * {@link downloadSubmissionZip}.
  *
+ * Where the browser supports it, the participant is asked where to save (so the
+ * file can go straight to the encrypted device); otherwise it downloads normally.
+ *
  * @param {SubmissionPayload} payload
- * @returns {string} the filename that was offered for download
+ * @returns {Promise<string>} the filename that was offered for download
  */
-export function downloadSubmission(payload) {
+export async function downloadSubmission(payload) {
     const filename = `${buildSubmissionBaseName(payload)}.json`;
     const json = JSON.stringify(payload, null, 2);
-    triggerBlobDownload(new Blob([json], { type: 'application/json' }), filename);
+    await saveBlob(new Blob([json], { type: 'application/json' }), filename,
+        { description: 'Response file (JSON)', mime: 'application/json', ext: '.json' });
     return filename;
 }
 
@@ -419,13 +481,16 @@ export function downloadSubmission(payload) {
  *                                    replaced by the paths of the extracted files
  *     snapshots/{front,back,left,right}.png
  *     areas/area-<n>.png           — per-area UV drawing (when present)
+ *     csv/{session,areas,coverage}.csv + README.md
  *
- * (A CSV export will be added to the same archive later.)
- *
- * Entirely client-side — no network request. Uses the vendored global `JSZip`.
+ * Where the browser supports it, the participant is asked where to save the file
+ * (so it can go straight to the encrypted device, with no copy in Downloads);
+ * otherwise it downloads normally. Entirely client-side — no network request.
+ * Uses the vendored global `JSZip`.
  *
  * @param {SubmissionPayload} payload
- * @returns {Promise<string>} the filename that was offered for download
+ * @returns {Promise<string|null>} the filename offered, or null if the
+ *   participant cancelled the save dialog
  * @throws {Error} if JSZip is unavailable or zip generation fails
  */
 export async function downloadSubmissionZip(payload) {
@@ -434,6 +499,16 @@ export async function downloadSubmissionZip(payload) {
     }
 
     const base = buildSubmissionBaseName(payload);
+    const filename = `${base}.zip`;
+
+    // Ask where to save FIRST, while the triggering click still has user
+    // activation (the picker requires it, and zip generation below is async).
+    // This lets the participant write straight to the encrypted device with no
+    // copy left in the Downloads folder. If they cancel, do nothing.
+    const { handle, cancelled } = await requestSaveTarget(filename,
+        { description: 'Response bundle (ZIP archive)', mime: 'application/zip', ext: '.zip' });
+    if (cancelled) return null;
+
     const zip = new window.JSZip();
     const root = zip.folder(base);
 
@@ -499,39 +574,6 @@ export async function downloadSubmissionZip(payload) {
     }
 
     const blob = await zip.generateAsync({ type: 'blob' });
-    const filename = `${base}.zip`;
-    triggerBlobDownload(blob, filename);
+    await writeToTarget(handle, blob, filename);
     return filename;
-}
-
-// ============================================================================
-// DEVICE DETECTION HELPERS
-// ============================================================================
-
-function getDeviceType() {
-    const ua = navigator.userAgent;
-    if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return 'Tablet';
-    if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) return 'Mobile';
-    return 'Desktop';
-}
-
-function getOS() {
-    const ua = navigator.userAgent;
-    if (/windows phone/i.test(ua)) return 'Windows Phone';
-    if (/android/i.test(ua)) return 'Android';
-    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'iOS';
-    if (/Mac/.test(ua)) return 'macOS';
-    if (/Win/.test(ua)) return 'Windows';
-    if (/Linux/.test(ua)) return 'Linux';
-    return 'Unknown';
-}
-
-function getBrowser() {
-    const ua = navigator.userAgent;
-    if (/Edg/.test(ua)) return 'Edge';
-    if (/Chrome/.test(ua) && !/Edg/.test(ua)) return 'Chrome';
-    if (/Safari/.test(ua) && !/Chrome/.test(ua)) return 'Safari';
-    if (/Firefox/.test(ua)) return 'Firefox';
-    if (/MSIE|Trident/.test(ua)) return 'Internet Explorer';
-    return 'Unknown';
 }

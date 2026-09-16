@@ -48,7 +48,6 @@ pain-assessment_<stamp>_<id>/
 | \`durationSeconds\` | Wall-clock session length |
 | \`modelType\` | Body model used (e.g. "Type 1") |
 | \`totalAreas\` | Number of pain/symptom areas logged |
-| \`deviceType\` / \`operatingSystem\` / \`browser\` | Coarse device info (no raw user-agent) |
 | \`general.stressful\` | Stressful time at onset — \`Yes\` / \`No\` / \`Prefer not to answer\` |
 | \`general.medication\` | Takes medication for spinal pain — \`Yes\` / \`No\` |
 | \`general.medicationTable.<row>\` | Per medication type: \`baseline\` (routine), \`breakthrough\` (as needed), or \`none\`. Rows: over-the-counter, non-steroidal-anti-inflammatory, muscle-relaxant, narcotic-pain-medication, anti-depressant, neuroleptics, cannabis |
