@@ -113,14 +113,23 @@ above.)_
   `endSession(reason)` (`js/app/drawingInstanceManager.js`) that flushes the
   in-memory data (`resetSessionData()` disposes the drawing textures and nulls the
   drawings, questionnaire answers, and re-downloadable payload), records a one-time
-  notice, clears per-session UI flags, and **reloads to a clean front page**. On that
-  fresh page a short **session-ended modal** is shown, with a message tailored to the
-  reason (`js/components/modals/sessionResetModal.js`, `js/app/main.js`):
-  1. **Finish** — clicking **Finish** on the save screen ends the session with a
-     "**Assessment complete**" notice (`js/app/appController.js`).
-  2. **Inactivity** — an idle watchdog (`js/utils/idleTimer.js`, default **15 min**
-     idle → **60 s** warning modal) ends the session with a "**Session reset**" notice
-     if the participant does not respond. Thresholds are constants at the top of that file.
+  notice, clears per-session UI flags, and **reloads to a clean front page**:
+  1. **Finish** — clicking **Finish** on the save screen ends the session with an
+     "**Assessment complete**" reason (`js/app/appController.js`).
+  2. **Inactivity** — an idle watchdog (`js/utils/idleTimer.js`, default **10 min**
+     idle → **60 s** warning) ends the session with a "**Session reset**" reason if
+     the participant does not respond. Thresholds are constants at the top of that file.
+- **Notice modals (what the participant sees):** the reset is never silent — it is
+  wrapped in plain-language modals so the participant always knows the session ended
+  and lands back at the front page:
+  - **Inactivity warning** (`js/components/modals/idleWarningModal.js`) — before an
+    idle reset, an "**Are you still there?**" modal counts down and offers
+    "Continue session," so an active participant is never reset out from under them.
+  - **Session-ended notice** (`js/components/modals/sessionResetModal.js`, shown on
+    the reloaded page from `js/app/main.js`) — a message tailored to the reason:
+    "**Assessment complete**" (thank-you) after Finish, or "**Session reset**"
+    (reset after inactivity, to protect privacy) after a timeout, each with a
+    "Start a new session" button. All three modals use the shared modal style.
 - **Effect:** after either path the app is back at the front page with no participant
   data in memory, so the next person on a shared/provided device starts clean.
 - **Not changed:** the app still has no server copy; the safeguard operates on the
