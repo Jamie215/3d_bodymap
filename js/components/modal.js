@@ -56,5 +56,14 @@ export {
     hideHelpModal
 } from './modals/helpModal.js';
 
+// ---- Idle warning (session timeout) ----
+export {
+    initIdleWarningModal,
+    showIdleWarningModal,
+    hideIdleWarningModal,
+    setIdleWarningCountdown,
+    setOnIdleWarningContinue
+} from './modals/idleWarningModal.js';
+
 // ---- Unified element getter ----
 export { getModalElements } from './modals/getModalElements.js';

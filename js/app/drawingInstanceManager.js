@@ -302,6 +302,43 @@ export function refreshTextureAfterDelete() {
 }
 
 // ============================================================================
+// SESSION RESET (data flush)
+// ============================================================================
+
+/**
+ * Flushes every piece of participant data held in memory and returns the model
+ * surface to its blank base texture. Used when a session ends — on the final
+ * "Finish" click and on the idle timeout — so that on a shared/provided device
+ * the next participant can never reach the previous participant's drawings,
+ * questionnaire answers, or the re-downloadable submission payload (REB #8).
+ *
+ * Purely clears in-memory state; it does not reload the page. The idle-timeout
+ * path follows this with a reload for a fully fresh app.
+ */
+export function resetSessionData() {
+    // Dispose each instance's GPU texture, then drop all instances.
+    AppState.drawingInstances.forEach(instance => {
+        if (instance.texture) instance.texture.dispose();
+    });
+    AppState.drawingInstances = [];
+    AppState.currentDrawingIndex = 0;
+    AppState.currentSurveyIndex  = 0;
+
+    // Clear questionnaire answers and the prepared payload (the sensitive
+    // snapshots + responses). Nulling generalQuestionnaireResponse also disarms
+    // the beforeunload "unsaved data" guard so an idle reload isn't blocked.
+    AppState.generalQuestionnaireResponse = null;
+    AppState.submissionPayload = null;
+    AppState.selectedRegion = null;
+
+    // Return the visible model surface to the blank base texture.
+    if (AppState.skinMesh && AppState.baseTextureTexture) {
+        AppState.skinMesh.material.map = AppState.baseTextureTexture;
+        AppState.skinMesh.material.needsUpdate = true;
+    }
+}
+
+// ============================================================================
 // PREVIEW GENERATION
 // ============================================================================
 

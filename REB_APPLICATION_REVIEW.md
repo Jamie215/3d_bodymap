@@ -95,7 +95,7 @@ was to add "Prefer not to answer" on sensitive items. Not actioned — see decis
 above.)_
 
 #### 8. No in-app session reset → participant data persists on a shared device
-**Open — for discussion (15 Sep 2026).** Application/technology finding.
+**Addressed in code (16 Sep 2026).** Application/technology finding.
 
 - **Where:** after the participant confirms they saved the file,
   `updateSummaryStatus()` (`js/views/summaryView.js`) renders the final "All Done"
@@ -109,9 +109,19 @@ above.)_
   kiosk) device. If a coordinator hands the device to the next participant without
   reloading, participant B can reach participant A's drawings, answers, and
   downloadable file. This is application behaviour, not content — in scope here.
-- **Possible mitigations (for the team to choose):** an explicit in-app
-  "Finish & reset for next participant" action that clears `AppState` and reloads,
-  and/or a documented coordinator step to reload the page between participants.
+- **Resolution (implemented):** two safeguards clear the data in memory:
+  1. **Flush on finish** — clicking **Finish** on the save screen now calls
+     `resetSessionData()` (`js/app/drawingInstanceManager.js`), which disposes the
+     drawing textures and nulls the drawings, questionnaire answers, and the
+     re-downloadable payload; a `sessionComplete` flag pins the "All Done" screen so
+     the flush is invisible to the participant (`js/app/appController.js`,
+     `js/views/summaryView.js`, `js/app/state.js`).
+  2. **Inactivity reset** — for a session abandoned part-way, an idle watchdog
+     (`js/utils/idleTimer.js`, default **15 min** idle → **60 s** warning modal)
+     flushes the data, clears per-session UI flags, and reloads to a pristine app if
+     the participant does not respond. Thresholds are constants at the top of that file.
+- **Not changed:** the app still has no server copy; both safeguards operate on the
+  browser's in-memory data only, which is the whole risk surface here.
 
 ### Worth noting (lower priority)
 
@@ -221,7 +231,7 @@ out of scope here.
 | 5 | Full user-agent captured | Low | Code | Very small | **Done** |
 | 6 | Third-party CDNs | Low | Build / hosting | Moderate | **Done** |
 | 7 | Accessibility / equitable access | Low | Design / documentation | Varies | Decided — already handled, no further work |
-| 8 | No session reset → data remanence on shared device | Medium | Code | Small | **Open** — for discussion |
+| 8 | No session reset → data remanence on shared device | Medium | Code | Small | **Done** — flush on finish + idle reset |
 | 9 | No in-app research / non-clinical framing | Low | Presentation | Small | **Open** — surface gap; wording is PI's |
 | 10 | No technical withdrawal path (no backend) | Low | Process | — | **Open** — likely Data-Residency review |
 
@@ -229,9 +239,9 @@ out of scope here.
 
 ## Suggested next steps
 
-Items 1–7 are all **done** or **decided**. Items **8–10** are newly identified
-application/technology findings that are still **open for discussion**. The
-remaining actions:
+Items 1–7 are all **done** or **decided**. Of the newly identified
+application/technology findings, **Item 8 is now done in code**; **Items 9–10**
+remain **open for discussion**. The remaining actions:
 
 1. **Document the consent procedure** — that the coordinator enrols the participant
    and obtains signed consent before the tool is used (Item 1).
@@ -243,11 +253,11 @@ remaining actions:
    [`docs/DATA_DICTIONARY.md`](./docs/DATA_DICTIONARY.md) for exactly what the file
    contains. (Data residency / device encryption are covered in the separate Data
    Residency Decision Review.)
-4. **Decide on the open findings (8–10)** — in particular whether to add an in-app
-   session reset for shared-device use (Item 8); whether the app needs any
+4. **Decide on the remaining open findings (9–10)** — whether the app needs any
    research / non-clinical framing surface (Item 9, wording owned by the PI); and
    whether the no-backend withdrawal path (Item 10) is handled here or in the
-   Data-Residency review.
+   Data-Residency review. (Item 8 — shared-device data remanence — is now handled in
+   code via flush-on-finish and an inactivity reset; the idle thresholds are tunable.)
 
 *Planning notes — not a compliance determination. Confirm interpretation with
 the Western REB and Privacy Office.*

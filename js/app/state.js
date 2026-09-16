@@ -38,6 +38,7 @@
  * @property {string|null}                 sessionId           — Random, non-identifying id for this session (used in the download filename/payload)
  * @property {import('../services/submissionService.js').SubmissionPayload|null} submissionPayload — Prepared payload, kept for re-download
  * @property {boolean}                      downloadConfirmed   — True once the participant confirms they saved the downloaded file
+ * @property {boolean}                      sessionComplete     — True once "Finish" is clicked; pins the final "All Done" screen after data is flushed
  */
 
 /** @type {AppStateShape} */
@@ -96,7 +97,13 @@ const AppState = {
     // participant can re-download it, and downloadConfirmed gates the final
     // "complete" screen + the unsaved-data warning on tab close.
     submissionPayload: null,
-    downloadConfirmed: false
+    downloadConfirmed: false,
+
+    // True once the participant has clicked "Finish" on the save screen. Kept
+    // separate from the (now-cleared) response data so the final "All Done"
+    // screen stays put even after resetSessionData() flushes the answers — see
+    // REB #8 (no participant data left in memory on a shared device).
+    sessionComplete: false
 };
 
 export default AppState;

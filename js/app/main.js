@@ -12,10 +12,12 @@ import {
     initRegionSelectorModal,
     initOnboardingModal,
     initHelpModal,
+    initIdleWarningModal,
     showOnboardingModal,
     hasOnboardingBeenShown,
     setOnOnboardingComplete
 } from '../components/modal.js';
+import { initIdleTimer } from '../utils/idleTimer.js';
 import { createScene } from '../utils/scene.js';
 import { createDrawingViewElements } from '../views/drawingView.js';
 import { createCanvasRotationControls } from '../components/viewControls.js';
@@ -108,6 +110,7 @@ initDeleteAreaModal(document.body);
 initRegionSelectorModal(document.body);
 initOnboardingModal(document.body);
 initHelpModal(document.body);
+initIdleWarningModal(document.body);
 initRotatePrompt(document.body);
 
 // ====================================================================
@@ -178,6 +181,10 @@ initApp({
 if (!hasOnboardingBeenShown()) {
     showOnboardingModal();
 }
+
+// Inactivity watchdog: resets the session on a shared/provided device if the
+// participant walks away mid-session (REB #8).
+initIdleTimer();
 
 // ====================================================================
 // RESPONSIVE EVENT HANDLING

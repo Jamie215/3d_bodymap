@@ -88,6 +88,15 @@ export function createSummaryView() {
 
     function updateSummaryStatus() {
         const count      = AppState.drawingInstances.length;
+
+        // Once "Finish" is clicked the session data is flushed (REB #8), so we
+        // can't key off generalQuestionnaireResponse anymore — pin the final
+        // screen explicitly so a re-render (e.g. device rotation) keeps it.
+        if (AppState.sessionComplete) {
+            renderComplete(count);
+            return;
+        }
+
         const isComplete = !!AppState.generalQuestionnaireResponse;
 
         if (isComplete) {
