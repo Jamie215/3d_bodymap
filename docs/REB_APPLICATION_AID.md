@@ -136,6 +136,16 @@ Each measure below is already implemented in the tool.
 - **Participant retains control of their data.** Because there is no server copy, the participant
   physically holds the only copy of their responses (the downloaded file). This supports data
   control and makes withdrawal straightforward.
+- **Automatic session clearing (shared-device protection).** To prevent one participant's data
+  from lingering on a shared device, the application clears the session from memory — the
+  drawings, questionnaire answers, and the prepared response file — and returns to a fresh start
+  page in two cases: when the participant finishes (after they have saved their file), and after
+  a period of inactivity. An inactivity watchdog (by default, 10 minutes idle, then a 60-second
+  "Are you still there?" warning that the participant can dismiss with "Continue session") resets
+  an abandoned session so the next person on the same device does not see the previous
+  participant's responses. The reset is never silent — the participant is shown a brief
+  "Assessment complete" or "Session reset" notice. The idle thresholds are configurable for the
+  study.
 - **No third-party contact or tracking.** All libraries, fonts, and styles are self-hosted from
   the application's own origin; the tutorial video is served from the same origin as well. There
   are no analytics/tracking and no geolocation. The participant's browser contacts only the
