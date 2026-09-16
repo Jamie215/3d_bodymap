@@ -50,7 +50,7 @@ import {
     handleEmptyDrawing,
     executePendingAction,
     clearPendingAction,
-    resetSessionData
+    endSession
 } from './drawingInstanceManager.js';
 
 export function initApp({ scene, camera, renderer, controls, views, registerModelSelectionHandler, setStage }) {
@@ -195,13 +195,11 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     });
 
     summary.setConfirmSavedCallback(() => {
-        AppState.downloadConfirmed = true;
-        AppState.sessionComplete   = true;
-        summary.updateSummaryStatus(); // → renders the final "All Done" screen
-        // Flush all in-memory participant data now that the file is saved, so
-        // nothing is left behind on a shared/provided device (REB #8). Render
-        // the "All Done" screen first — it's pinned by sessionComplete above.
-        resetSessionData();
+        // The participant has confirmed the file is saved. End the session: flush
+        // all in-memory data and reload to a clean front page, where a "session
+        // complete" notice is shown (REB #8 — nothing left behind on a
+        // shared/provided device).
+        endSession('complete');
     });
 
     // ====================================================================

@@ -13,11 +13,14 @@ import {
     initOnboardingModal,
     initHelpModal,
     initIdleWarningModal,
+    initSessionResetModal,
+    showSessionResetModal,
     showOnboardingModal,
     hasOnboardingBeenShown,
     setOnOnboardingComplete
 } from '../components/modal.js';
 import { initIdleTimer } from '../utils/idleTimer.js';
+import { consumeSessionResetNotice } from '../utils/sessionFlags.js';
 import { createScene } from '../utils/scene.js';
 import { createDrawingViewElements } from '../views/drawingView.js';
 import { createCanvasRotationControls } from '../components/viewControls.js';
@@ -111,6 +114,7 @@ initRegionSelectorModal(document.body);
 initOnboardingModal(document.body);
 initHelpModal(document.body);
 initIdleWarningModal(document.body);
+initSessionResetModal(document.body);
 initRotatePrompt(document.body);
 
 // ====================================================================
@@ -178,7 +182,13 @@ initApp({
     }
 });
 
-if (!hasOnboardingBeenShown()) {
+// If we just reloaded from ending a session (Finish or idle timeout), show the
+// "session ended" notice instead of onboarding; otherwise run the normal
+// first-visit onboarding. (REB #8 — the reload returns to a clean front page.)
+const resetNotice = consumeSessionResetNotice();
+if (resetNotice) {
+    showSessionResetModal(resetNotice);
+} else if (!hasOnboardingBeenShown()) {
     showOnboardingModal();
 }
 

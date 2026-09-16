@@ -109,18 +109,21 @@ above.)_
   kiosk) device. If a coordinator hands the device to the next participant without
   reloading, participant B can reach participant A's drawings, answers, and
   downloadable file. This is application behaviour, not content — in scope here.
-- **Resolution (implemented):** two safeguards clear the data in memory:
-  1. **Flush on finish** — clicking **Finish** on the save screen now calls
-     `resetSessionData()` (`js/app/drawingInstanceManager.js`), which disposes the
-     drawing textures and nulls the drawings, questionnaire answers, and the
-     re-downloadable payload; a `sessionComplete` flag pins the "All Done" screen so
-     the flush is invisible to the participant (`js/app/appController.js`,
-     `js/views/summaryView.js`, `js/app/state.js`).
-  2. **Inactivity reset** — for a session abandoned part-way, an idle watchdog
-     (`js/utils/idleTimer.js`, default **15 min** idle → **60 s** warning modal)
-     flushes the data, clears per-session UI flags, and reloads to a pristine app if
-     the participant does not respond. Thresholds are constants at the top of that file.
-- **Not changed:** the app still has no server copy; both safeguards operate on the
+- **Resolution (implemented):** both session-ending paths route through a single
+  `endSession(reason)` (`js/app/drawingInstanceManager.js`) that flushes the
+  in-memory data (`resetSessionData()` disposes the drawing textures and nulls the
+  drawings, questionnaire answers, and re-downloadable payload), records a one-time
+  notice, clears per-session UI flags, and **reloads to a clean front page**. On that
+  fresh page a short **session-ended modal** is shown, with a message tailored to the
+  reason (`js/components/modals/sessionResetModal.js`, `js/app/main.js`):
+  1. **Finish** — clicking **Finish** on the save screen ends the session with a
+     "**Assessment complete**" notice (`js/app/appController.js`).
+  2. **Inactivity** — an idle watchdog (`js/utils/idleTimer.js`, default **15 min**
+     idle → **60 s** warning modal) ends the session with a "**Session reset**" notice
+     if the participant does not respond. Thresholds are constants at the top of that file.
+- **Effect:** after either path the app is back at the front page with no participant
+  data in memory, so the next person on a shared/provided device starts clean.
+- **Not changed:** the app still has no server copy; the safeguard operates on the
   browser's in-memory data only, which is the whole risk surface here.
 
 ### Worth noting (lower priority)
@@ -231,7 +234,7 @@ out of scope here.
 | 5 | Full user-agent captured | Low | Code | Very small | **Done** |
 | 6 | Third-party CDNs | Low | Build / hosting | Moderate | **Done** |
 | 7 | Accessibility / equitable access | Low | Design / documentation | Varies | Decided — already handled, no further work |
-| 8 | No session reset → data remanence on shared device | Medium | Code | Small | **Done** — flush on finish + idle reset |
+| 8 | No session reset → data remanence on shared device | Medium | Code | Small | **Done** — flush + reload to front page on finish / idle, with a notice modal |
 | 9 | No in-app research / non-clinical framing | Low | Presentation | Small | **Open** — surface gap; wording is PI's |
 | 10 | No technical withdrawal path (no backend) | Low | Process | — | **Open** — likely Data-Residency review |
 

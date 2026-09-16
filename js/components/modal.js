@@ -65,5 +65,12 @@ export {
     setOnIdleWarningContinue
 } from './modals/idleWarningModal.js';
 
+// ---- Session reset notice (shown after finish / idle reset + reload) ----
+export {
+    initSessionResetModal,
+    showSessionResetModal,
+    hideSessionResetModal
+} from './modals/sessionResetModal.js';
+
 // ---- Unified element getter ----
 export { getModalElements } from './modals/getModalElements.js';

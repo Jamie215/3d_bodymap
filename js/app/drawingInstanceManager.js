@@ -9,6 +9,7 @@ import { createCombinedTexture } from '../services/submissionService.js';
 import { showDeleteEmptyModal } from '../components/modal.js';
 import { clearSurveyInstance } from '../services/surveyManager.js';
 import texturePool from '../services/texturePool.js';
+import { setSessionResetNotice } from '../utils/sessionFlags.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -336,6 +337,26 @@ export function resetSessionData() {
         AppState.skinMesh.material.map = AppState.baseTextureTexture;
         AppState.skinMesh.material.needsUpdate = true;
     }
+}
+
+/**
+ * Ends the session and returns the app to a clean front page. Flushes the
+ * in-memory data (REB #8), records why the session ended so the reloaded page
+ * can show a short notice, clears per-session UI flags so the next participant
+ * starts fresh, then reloads. A full reload is the most robust way to guarantee
+ * no residual state from any stage (drawing, survey, save screen).
+ *
+ * @param {'complete'|'idle'} reason  — 'complete' after Finish, 'idle' after timeout
+ */
+export function endSession(reason) {
+    // Flushing first nulls generalQuestionnaireResponse, which also disarms the
+    // beforeunload "unsaved data" guard so the reload is never blocked.
+    try { resetSessionData(); } catch (e) { console.error('endSession: data flush failed', e); }
+
+    try { sessionStorage.clear(); } catch (e) { /* storage blocked — ignore */ }
+    setSessionResetNotice(reason); // written after clear() so it survives the reload
+
+    window.location.reload();
 }
 
 // ============================================================================

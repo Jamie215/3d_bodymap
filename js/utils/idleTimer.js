@@ -8,7 +8,7 @@
 // The final "Finish" click flushes data directly (see appController); this
 // timer covers the case where the participant walks away mid-session.
 
-import { resetSessionData } from '../app/drawingInstanceManager.js';
+import { endSession } from '../app/drawingInstanceManager.js';
 import {
     showIdleWarningModal,
     hideIdleWarningModal,
@@ -63,15 +63,9 @@ function performReset() {
     if (countdownId) { clearInterval(countdownId); countdownId = null; }
     if (pollId)      { clearInterval(pollId);      pollId = null; }
 
-    // Flush in-memory data first — this also nulls generalQuestionnaireResponse,
-    // disarming the beforeunload "unsaved data" guard so the reload isn't blocked.
-    try { resetSessionData(); } catch (e) { console.error('idle reset: data flush failed', e); }
-
-    // Clear per-session UI flags (onboarding/tooltip "shown") so the next
-    // participant gets a fully fresh app, then reload to a pristine state.
-    try { sessionStorage.clear(); } catch (e) { /* private mode / blocked — ignore */ }
-
-    window.location.reload();
+    // Flush data, record the "idle" notice, and reload to a clean front page,
+    // where the reloaded app shows the session-reset modal (REB #8).
+    endSession('idle');
 }
 
 function poll() {
