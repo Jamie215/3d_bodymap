@@ -135,7 +135,8 @@ Each measure below is already implemented in the tool.
   saved their file. An incomplete session leaves data nowhere.
 - **Participant retains control of their data.** Because there is no server copy, the participant
   physically holds the only copy of their responses (the downloaded file). This supports data
-  control and makes withdrawal straightforward.
+  control and makes withdrawal straightforward. As there is no central copy, a study-level plan
+  will be needed to handle any later withdrawal or data-deletion request.
 - **Automatic session clearing (shared-device protection).** To prevent one participant's data
   from lingering on a shared device, the application clears the session from memory — the
   drawings, questionnaire answers, and the prepared response file — and returns to a fresh start
