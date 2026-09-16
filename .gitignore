@@ -5,3 +5,7 @@
 /js/services/firebaseService.js
 admin-dashboard.html
 *.glb
+
+# Local dev / tooling
+.wrangler/
+node_modules/
