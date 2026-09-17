@@ -63,8 +63,8 @@ The application is a fully static website — a fixed set of files with no appli
 running behind them — hosted on Cloudflare Pages, a standard web-hosting service. Because there
 is no server-side application logic, nothing on the host processes or stores participant data.
 The only server-side component is a small helper that fetches the 3D-model asset files (the body
-models, a texture, and preview thumbnails) from a private content-delivery network so they are
-served from the application's own web address; it handles no participant data.
+models, a texture, and preview thumbnails) from Cloudflare R2 object storage so they are served
+from the application's own web address; it handles no participant data.
 
 Because participant responses are never uploaded, the host stores no participant data. As with
 any hosted web page, the host does see the participant's IP address as an inherent part of
