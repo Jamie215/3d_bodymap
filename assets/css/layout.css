@@ -486,28 +486,6 @@
   :root[data-stage="drawing"] .slot-left .drawing-tools-container .divider,
   :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 { display: none; }
   
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-sm);
-    min-width: 160px;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section label {
-    font-size: var(--font-body-small);
-    white-space: nowrap;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section input[type="range"] {
-    width: 110px;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: #e5e7eb;
-    border-radius: 3px;
-  }
-  
   :root[data-stage="drawing"] .slot-left .vertical-slider-container {
     height: auto !important;
     width: auto !important;
@@ -621,8 +599,7 @@
     padding: var(--space-sm) var(--space-md);
   }
 
-  /* Center the Done Drawing button when the drawing-nav siblings are
-     hidden, overriding the absolute-positioning rule lower in this file. */
+  /* Center the Done Drawing button in the drawing-stage footer. */
   :root[data-stage="drawing"] .slot-footer .button-success {
     position: static !important;
     padding-left: 48px !important;
@@ -663,32 +640,6 @@
   
   :root[data-stage="drawing"] .slot-left .drawing-tools-container .divider,
   :root[data-stage="drawing"] .slot-left .drawing-tools-container h2 { display: none; }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-xs);
-    min-width: 100px;
-    max-width: 140px;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section label { display: none; }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section input[type="range"] {
-    width: 70px;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: #e5e7eb;
-    border-radius: 3px;
-  }
-  
-  :root[data-stage="drawing"] .slot-left .drawing-tools-container .brush-size-section .brush-size-value {
-    font-size: var(--font-body-small);
-    min-width: 24px;
-    text-align: center;
-  }
 
   /* Inline slider/wrapper rules intentionally omitted — the slider is
      hidden via .marker-size-popover (display:none !important) and
@@ -718,23 +669,6 @@
   :root[data-stage="drawing"] #drawing-status-bar { padding: var(--space-xs); }
   :root[data-stage="drawing"] .status-title       { font-size: var(--font-title-small); }
   :root[data-stage="drawing"] .status-badge       { font-size: var(--font-body-xsmall); padding: var(--space-2xs) var(--space-sm); }
-}
-
-/* Drawing nav buttons */
-:root[data-stage="drawing"] .drawing-nav {
-  display: flex;
-  gap: var(--space-md);
-  justify-content: center;
-}
-
-:root[data-stage="drawing"] .drawing-nav:not([style*="display: none"]) ~ .button-success {
-  position: absolute;
-  right: var(--space-md);
-}
-
-:root[data-stage="drawing"] .drawing-nav[style*="display: none"] ~ .button-success {
-  position: static;
-  margin: 0 auto;
 }
 
 /* =========================
