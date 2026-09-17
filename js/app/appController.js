@@ -197,7 +197,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     summary.setConfirmSavedCallback(() => {
         // The participant has confirmed the file is saved. End the session: flush
         // all in-memory data and reload to a clean front page, where a "session
-        // complete" notice is shown (REB #8 — nothing left behind on a
+        // complete" notice is shown (nothing left behind on a
         // shared/provided device).
         endSession('complete');
     });

@@ -1,7 +1,7 @@
 // modals/idleWarningModal.js
 // Inactivity warning shown by the idle timer (see js/utils/idleTimer.js).
 // Gives the participant a chance to keep going before the session is reset
-// and the app reloads — a shared-device privacy safeguard (REB #8), so an
+// and the app reloads — a shared-device privacy safeguard, so an
 // abandoned session does not leave one participant's answers on screen for
 // the next person.
 

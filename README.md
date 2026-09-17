@@ -81,7 +81,7 @@ No build process required — the application runs directly in a modern browser 
 │   │   ├── drawingControls.js      Draw/erase/reset buttons, brush size slider
 │   │   ├── viewControls.js         Region selector setup, canvas rotation buttons
 │   │   ├── loadingIndicator.js     Model loading progress bar
-│   │   ├── videoEmbed.js           YouTube embed with fullscreen overlay
+│   │   ├── videoEmbed.js           Self-hosted tutorial video player with fullscreen overlay
 │   │   ├── rotatePrompt.js         Landscape-on-phone "please rotate" overlay
 │   │   ├── surveyDrawer.js         Mobile/tablet bottom drawer for the area survey
 │   │   ├── modal.js                Barrel re-export for all modal modules
@@ -93,7 +93,10 @@ No build process required — the application runs directly in a modern browser 
 │   │       ├── resetModal.js       "Erase All" confirmation
 │   │       ├── deleteEmptyModal.js Empty drawing warning
 │   │       ├── deleteAreaModal.js  Area deletion confirmation
-│   │       └── regionSelectorModal.js  Body region selector with cascading dropdowns
+│   │       ├── regionSelectorModal.js  Body region selector with cascading dropdowns
+│   │       ├── helpModal.js        Help panel with Q&A accordion + tutorial videos
+│   │       ├── idleWarningModal.js Inactivity warning before a shared-device session reset
+│   │       └── sessionResetModal.js  "Session ended" notice shown after a reset + reload
 │   │
 │   ├── services/                   Stateful singletons and business logic
 │   │   ├── cameraService.js        Camera control — focusing, rotation, animation
@@ -101,6 +104,7 @@ No build process required — the application runs directly in a modern browser 
 │   │   ├── drawingEngine.js        UV painting, pointer dispatch, region init
 │   │   ├── modelLoader.js          GLTF loading, material setup, region shader
 │   │   ├── submissionService.js    Payload assembly, multi-view snapshots
+│   │   ├── csvExporter.js          Builds the session/areas/coverage CSVs for the download bundle
 │   │   ├── surveyManager.js        SurveyJS lifecycle, validation, data persistence
 │   │   ├── surveyCustomRenderers.js  Custom onAfterRenderQuestion hooks
 │   │   └── texturePool.js          Canvas/texture pair management
@@ -108,6 +112,7 @@ No build process required — the application runs directly in a modern browser 
 │   ├── utils/                      Pure or near-pure utility functions
 │   │   ├── cursorManager.js        Custom draw/erase cursor
 │   │   ├── interaction.js          Pointer event handling for drawing
+│   │   ├── idleTimer.js            Inactivity watchdog — resets the session on shared devices
 │   │   ├── orientationAnalyzer.js  Region → viewing direction classification
 │   │   ├── orbitOffsets.js         Per-region camera orbit adjustments
 │   │   ├── regionHierarchy.js      Region hierarchy data + mapping functions
@@ -129,7 +134,8 @@ No build process required — the application runs directly in a modern browser 
 │       ├── areaSurvey.js           Area-specific questionnaire JSON
 │       ├── generalSurvey.js        General questionnaire JSON
 │       ├── helpContent.js          Help modal Q&A content (text + video steps)
-│       └── surveyTheme.js          SurveyJS theme and CSS variable overrides
+│       ├── surveyTheme.js          SurveyJS theme and CSS variable overrides
+│       └── dataDictionary.js       Data-dictionary markdown bundled into the download as csv/README.md
 ```
 
 > **Ambient occlusion note:** The app applies `body_ao_modified.png`, which is
@@ -171,7 +177,7 @@ pain-assessment_<stamp>_<id>/
   areas/area-<n>/
     {front,back,left,right}.png          this area alone on the body, four angles (anatomical reference)
   csv/
-    session.csv                          one row: session metadata, device info, general questionnaire
+    session.csv                          one row: session metadata + general questionnaire
     areas.csv                            one row per area: summary + area questionnaire answers
     coverage.csv                         long format, one row per (area, region) — region-by-region coverage
     README.md                            data dictionary explaining every column
@@ -179,7 +185,7 @@ pain-assessment_<stamp>_<id>/
 
 The CSVs (built by `csvExporter.js`) favour a "long / tidy" shape where a field would otherwise explode into sparse columns — most notably per-region coverage, emitted one row per (area, region). Every column is documented in the bundled data dictionary (`csv/README.md`, sourced from `js/data/dataDictionary.js` and mirrored at [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md)). The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
 
-The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, and general questionnaire data. No device, OS, or browser information is captured — not even a coarse category — as a data-minimization measure (see REB #5).
+The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, and general questionnaire data. No device, OS, or browser information is captured — not even a coarse category — as a data-minimization measure.
 
 ## Future backend integration
 

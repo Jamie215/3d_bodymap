@@ -3,7 +3,7 @@
 // interaction it warns the participant, then — if there is still no response —
 // resets the session and reloads the app. This ensures an abandoned session
 // does not leave one participant's drawings or questionnaire answers on screen
-// (and re-downloadable) for the next person on the same device (REB #8).
+// (and re-downloadable) for the next person on the same device.
 //
 // The final "Finish" click flushes data directly (see appController); this
 // timer covers the case where the participant walks away mid-session.
@@ -64,7 +64,7 @@ function performReset() {
     if (pollId)      { clearInterval(pollId);      pollId = null; }
 
     // Flush data, record the "idle" notice, and reload to a clean front page,
-    // where the reloaded app shows the session-reset modal (REB #8).
+    // where the reloaded app shows the session-reset modal.
     endSession('idle');
 }
 

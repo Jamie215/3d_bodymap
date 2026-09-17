@@ -179,7 +179,7 @@ initApp({
 
 // If we just reloaded from ending a session (Finish or idle timeout), show the
 // "session ended" notice instead of onboarding; otherwise run the normal
-// first-visit onboarding. (REB #8 — the reload returns to a clean front page.)
+// first-visit onboarding. (The reload returns to a clean front page.)
 const resetNotice = consumeSessionResetNotice();
 if (resetNotice) {
     showSessionResetModal(resetNotice);
@@ -188,7 +188,7 @@ if (resetNotice) {
 }
 
 // Inactivity watchdog: resets the session on a shared/provided device if the
-// participant walks away mid-session (REB #8).
+// participant walks away mid-session.
 initIdleTimer();
 
 // ====================================================================

@@ -311,7 +311,7 @@ export function refreshTextureAfterDelete() {
  * surface to its blank base texture. Used when a session ends — on the final
  * "Finish" click and on the idle timeout — so that on a shared/provided device
  * the next participant can never reach the previous participant's drawings,
- * questionnaire answers, or the re-downloadable submission payload (REB #8).
+ * questionnaire answers, or the re-downloadable submission payload.
  *
  * Purely clears in-memory state; it does not reload the page. The idle-timeout
  * path follows this with a reload for a fully fresh app.
@@ -341,7 +341,7 @@ function resetSessionData() {
 
 /**
  * Ends the session and returns the app to a clean front page. Flushes the
- * in-memory data (REB #8), records why the session ended so the reloaded page
+ * in-memory data, records why the session ended so the reloaded page
  * can show a short notice, clears per-session UI flags so the next participant
  * starts fresh, then reloads. A full reload is the most robust way to guarantee
  * no residual state from any stage (drawing, survey, save screen).
