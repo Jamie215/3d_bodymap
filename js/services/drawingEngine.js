@@ -53,7 +53,7 @@ export function buildGlobalUVMap(geometry, canvasWidth, canvasHeight) {
  * Paint or erase a circular brush stroke at a UV coordinate.
  * Only iterates the brush bounding box (not the full 1024×1024 canvas).
  */
-export function drawAtUV(uv, canvas, context, radius, isErasing = false) {
+function drawAtUV(uv, canvas, context, radius, isErasing = false) {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
     const cx = Math.floor(uv.x * canvas.width);
     const cy = Math.floor((1 - uv.y) * canvas.height);

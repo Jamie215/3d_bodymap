@@ -182,7 +182,7 @@ export function updateCurrentDrawing() {
  * Reassign palette colors to all drawing instances.
  * Called after deletion/re-indexing to keep colours sequential.
  */
-export function updateInstanceColors() {
+function updateInstanceColors() {
     AppState.drawingInstances.forEach((instance, index) => {
         const newColor = COLOR_PALETTE[index % COLOR_PALETTE.length];
         instance.color = newColor;
@@ -316,7 +316,7 @@ export function refreshTextureAfterDelete() {
  * Purely clears in-memory state; it does not reload the page. The idle-timeout
  * path follows this with a reload for a fully fresh app.
  */
-export function resetSessionData() {
+function resetSessionData() {
     // Dispose each instance's GPU texture, then drop all instances.
     AppState.drawingInstances.forEach(instance => {
         if (instance.texture) instance.texture.dispose();

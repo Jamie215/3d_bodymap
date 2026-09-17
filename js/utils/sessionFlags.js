@@ -49,7 +49,7 @@ export function markShown(key) {
 // happened. It is deliberately written *after* any sessionStorage.clear() so it
 // survives the reload, and is consumed (read once, then removed) on startup.
 
-export const SESSION_RESET_NOTICE_KEY = 'painSurvey_sessionResetNotice';
+const SESSION_RESET_NOTICE_KEY = 'painSurvey_sessionResetNotice';
 
 /**
  * Record why the session is ending, to be shown after the reload.

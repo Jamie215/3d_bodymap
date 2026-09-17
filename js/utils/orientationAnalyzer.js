@@ -20,7 +20,7 @@
  * @param {string} regionName — e.g. "knee_anteromedial.L"
  * @returns {'front'|'front-right'|'right'|'back-right'|'back'|'back-left'|'left'|'front-left'}
  */
-export function classifyRegionOctant(regionName) {
+function classifyRegionOctant(regionName) {
     const lower = regionName.toLowerCase();
 
     // Determine left/right from suffix
@@ -264,20 +264,4 @@ export function findDominantBodyPart(drawnRegionNames, regionMap) {
     }
 
     return dominantBodyPart;
-}
-
-/**
- * Get the initial viewing angle for a region (front vs back).
- *
- * @param {string} regionName
- * @returns {number} radians — 0 for front, PI for back
- */
-export function getInitialAngle(regionName) {
-    if (regionName.includes('Back') || regionName.includes('back')) {
-        return Math.PI;
-    }
-    if (regionName.includes('posterior') || regionName.includes('Posterior')) {
-        return Math.PI;
-    }
-    return 0;
 }

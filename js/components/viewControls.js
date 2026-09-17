@@ -7,14 +7,6 @@ import {
 } from "./modal.js";
 
 /**
- * Show the region selector modal
- * Can be called from anywhere to re-open the modal
- */
-export function showRegionSelector() {
-    showRegionSelectorModal();
-}
-
-/**
  * Setup region selector for the drawing view
  * - Sets up the callback for region selection
  * - Shows the modal
