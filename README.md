@@ -1,6 +1,8 @@
 # 3D Pain & Symptom Assessment Application
 
-A clinical web application where patients draw pain and symptom areas on an interactive 3D anatomical body model and complete associated questionnaires. It runs stand-alone with no backend: when a session is finished, the participant's responses are downloaded as a single JSON file that they store on a provided encrypted device. (A future EmPOWER/SPINA integration could POST the same payload instead.)
+A clinical web application where patients draw pain and symptom areas on an interactive 3D anatomical body model and complete associated questionnaires. When a session is finished, the participant's responses are assembled into a structured JSON payload and submitted to a backend.
+
+> **Branch note — two variants.** This branch is the **database-submission** variant: on completion the payload is handed to a submission "sink" (`js/services/responseSink.js`) that will POST it to the backend. The backend is not wired yet, so that sink currently logs the payload at a clearly marked integration point. A sibling **`local-save`** branch swaps in a different `responseSink.js` that instead saves the payload to a downloadable ZIP on a provided encrypted device. The two branches differ **only** in that one file (plus its supporting save-only assets) — see [Data Flow](#data-flow).
 
 ## Overview
 
@@ -11,7 +13,7 @@ The application guides patients through a multi-step workflow:
 3. **Complete an area questionnaire** — answer clinically validated questions about that specific area
 4. **Repeat** — add additional pain/symptom areas as needed
 5. **General questionnaire** — answer questions about overall medication use and history
-6. **Save** — all drawing data, coverage metrics, questionnaire responses, and multi-view snapshots are assembled into a structured JSON payload that the participant downloads and stores on the provided encrypted device
+6. **Submit** — all drawing data, coverage metrics, questionnaire responses, and multi-view snapshots are assembled into a structured JSON payload that is submitted to the backend (see [Data Flow](#data-flow))
 
 ## Core Capabilities
 
@@ -104,7 +106,7 @@ No build process required — the application runs directly in a modern browser 
 │   │   ├── drawingEngine.js        UV painting, pointer dispatch, region init
 │   │   ├── modelLoader.js          GLTF loading, material setup, region shader
 │   │   ├── submissionService.js    Payload assembly, multi-view snapshots
-│   │   ├── csvExporter.js          Builds the session/areas/coverage CSVs for the download bundle
+│   │   ├── responseSink.js         Persistence seam — submits the payload to the backend (integration-point stub)
 │   │   ├── surveyManager.js        SurveyJS lifecycle, validation, data persistence
 │   │   ├── surveyCustomRenderers.js  Custom onAfterRenderQuestion hooks
 │   │   └── texturePool.js          Canvas/texture pair management
@@ -134,8 +136,7 @@ No build process required — the application runs directly in a modern browser 
 │       ├── areaSurvey.js           Area-specific questionnaire JSON
 │       ├── generalSurvey.js        General questionnaire JSON
 │       ├── helpContent.js          Help modal Q&A content (text + video steps)
-│       ├── surveyTheme.js          SurveyJS theme and CSS variable overrides
-│       └── dataDictionary.js       Data-dictionary markdown bundled into the download as csv/README.md
+│       └── surveyTheme.js          SurveyJS theme and CSS variable overrides
 ```
 
 > **Ambient occlusion note:** The app applies `body_ao_modified.png`, which is
@@ -168,28 +169,22 @@ The app operates as a finite state machine with five stages, managed by `stageRo
 
 Each drawing instance owns its own canvas, texture, region tracking, and questionnaire data. When the general questionnaire is completed, `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload (`prepareSubmissionData`).
 
-The app has **no backend**. `appController.js` routes to a "Save Your Response" screen where the participant clicks **Download response**; `downloadSubmissionZip()` bundles the session into a single `.zip` and triggers a browser download — entirely client-side, no network request (uses the vendored global `JSZip`). The archive contains:
+Once the payload is assembled, `appController.js` hands it to the **persistence seam** — `persistResponse()` in `js/services/responseSink.js`. This is the single point where the two variants diverge: appController itself is variant-agnostic and never references how the response is stored. On this branch the sink submits to the backend; the participant then sees the "All Done" screen.
 
-```
-pain-assessment_<stamp>_<id>/
-  metadata.json                          full payload; image blobs replaced by file paths
-  snapshots/{front,back,left,right}.png  all areas on the body, four angles
-  areas/area-<n>/
-    {front,back,left,right}.png          this area alone on the body, four angles (anatomical reference)
-  csv/
-    session.csv                          one row: session metadata + general questionnaire
-    areas.csv                            one row per area: summary + area questionnaire answers
-    coverage.csv                         long format, one row per (area, region) — region-by-region coverage
-    README.md                            data dictionary explaining every column
-```
-
-The CSVs (built by `csvExporter.js`) favour a "long / tidy" shape where a field would otherwise explode into sparse columns — most notably per-region coverage, emitted one row per (area, region). Every column is documented in the bundled data dictionary (`csv/README.md`, sourced from `js/data/dataDictionary.js` and mirrored at [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md)). The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
+The backend is **not wired yet** (pending PI decision), so `persistResponse()` is currently an integration-point stub: it logs the payload where the real API call belongs. Wiring the backend is a one-function change — replace the body of `persistResponse()` with the platform's API call and let a rejected promise propagate so the caller surfaces the error and rolls back. The payload assembly (`prepareSubmissionData()`) does not need to change.
 
 The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, and general questionnaire data. No device, OS, or browser information is captured — not even a coarse category — as a data-minimization measure.
 
-## Future backend integration
+### Persistence seam (`responseSink.js`)
 
-There is intentionally no server call today. When EmPOWER integration is added, the same `SubmissionPayload` produced by `prepareSubmissionData()` can be POSTed instead of (or in addition to) the local download — the assembly logic does not need to change.
+Both variants implement the same four-function interface, so swapping persistence strategies is a single-file change:
+
+| Function | This branch (database submission) | `local-save` branch |
+|---|---|---|
+| `initResponseSink({ summary, endSession })` | no-op (no save screen) | wires the "Save to device" download + confirm-saved screen |
+| `persistResponse(payload)` | submit to backend (currently logs at the integration point) | keep the payload for the download screen |
+| `rollbackResponse()` | no-op | clears the kept payload |
+| `hasUnsavedResponse()` | `false` (nothing held locally) | `true` while prepared-but-not-saved (drives the `beforeunload` guard) |
 
 ## Getting Started
 

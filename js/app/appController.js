@@ -306,7 +306,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
                 goTo('summary');
             } catch (error) {
                 console.error('Submission failed:', error);
-                alert('There was an error preparing your responses for download. Please try again.');
+                alert('There was an error processing your responses. Please try again.');
                 // Roll back so the participant can retry
                 AppState.generalQuestionnaireResponse = null;
                 rollbackResponse();

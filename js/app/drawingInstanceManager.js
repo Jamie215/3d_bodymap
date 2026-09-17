@@ -325,11 +325,10 @@ function resetSessionData() {
     AppState.currentDrawingIndex = 0;
     AppState.currentSurveyIndex  = 0;
 
-    // Clear questionnaire answers and the prepared payload (the sensitive
-    // snapshots + responses). Nulling generalQuestionnaireResponse also disarms
-    // the beforeunload "unsaved data" guard so an idle reload isn't blocked.
+    // Clear questionnaire answers (the sensitive responses). Nulling
+    // generalQuestionnaireResponse also returns the summary to its pre-submit
+    // state so a reset session starts clean.
     AppState.generalQuestionnaireResponse = null;
-    AppState.submissionPayload = null;
     AppState.selectedRegion = null;
 
     // Return the visible model surface to the blank base texture.
