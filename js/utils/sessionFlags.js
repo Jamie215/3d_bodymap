@@ -39,3 +39,40 @@ export function markShown(key) {
         console.warn(`Could not save flag "${key}" to sessionStorage:`, e);
     }
 }
+
+// ----------------------------------------------------------------------------
+// Session-reset notice
+// ----------------------------------------------------------------------------
+// When a session is reset (on "Finish" or on the idle timeout) the app reloads
+// to a clean front page. This flag is set just before that reload so the fresh
+// page can show the participant a short "session ended" modal explaining what
+// happened. It is deliberately written *after* any sessionStorage.clear() so it
+// survives the reload, and is consumed (read once, then removed) on startup.
+
+const SESSION_RESET_NOTICE_KEY = 'painSurvey_sessionResetNotice';
+
+/**
+ * Record why the session is ending, to be shown after the reload.
+ * @param {'complete'|'idle'} reason
+ */
+export function setSessionResetNotice(reason) {
+    try {
+        sessionStorage.setItem(SESSION_RESET_NOTICE_KEY, reason);
+    } catch (e) {
+        // Storage blocked — the reset still happens, just without the notice.
+    }
+}
+
+/**
+ * Read and clear the session-reset notice.
+ * @returns {'complete'|'idle'|null}
+ */
+export function consumeSessionResetNotice() {
+    try {
+        const reason = sessionStorage.getItem(SESSION_RESET_NOTICE_KEY);
+        if (reason) sessionStorage.removeItem(SESSION_RESET_NOTICE_KEY);
+        return reason;
+    } catch (e) {
+        return null;
+    }
+}

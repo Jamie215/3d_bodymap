@@ -1,6 +1,8 @@
 # 3D Pain & Symptom Assessment Application
 
-A clinical web application where patients draw pain and symptom areas on an interactive 3D anatomical body model and complete associated questionnaires. Designed for integration with the EmPOWER/SPINA platform as an embeddable widget.
+A clinical web application where patients draw pain and symptom areas on an interactive 3D anatomical body model and complete associated questionnaires. When a session is finished, the participant's responses are assembled into a structured JSON payload and submitted to a backend.
+
+> **Branch note — two variants.** This branch is the **database-submission** variant: on completion the payload is handed to a submission "sink" (`js/services/responseSink.js`) that will POST it to the backend. The backend is not wired yet, so that sink currently logs the payload at a clearly marked integration point. A sibling **`local-save`** branch swaps in a different `responseSink.js` that instead saves the payload to a downloadable ZIP on a provided encrypted device. The two branches differ **only** in that one file (plus its supporting save-only assets) — see [Data Flow](#data-flow).
 
 ## Overview
 
@@ -11,7 +13,7 @@ The application guides patients through a multi-step workflow:
 3. **Complete an area questionnaire** — answer clinically validated questions about that specific area
 4. **Repeat** — add additional pain/symptom areas as needed
 5. **General questionnaire** — answer questions about overall medication use and history
-6. **Submission** — all drawing data, coverage metrics, questionnaire responses, and multi-view snapshots are assembled into a structured JSON payload
+6. **Submit** — all drawing data, coverage metrics, questionnaire responses, and multi-view snapshots are assembled into a structured JSON payload that is submitted to the backend (see [Data Flow](#data-flow))
 
 ## Core Capabilities
 
@@ -81,7 +83,7 @@ No build process required — the application runs directly in a modern browser 
 │   │   ├── drawingControls.js      Draw/erase/reset buttons, brush size slider
 │   │   ├── viewControls.js         Region selector setup, canvas rotation buttons
 │   │   ├── loadingIndicator.js     Model loading progress bar
-│   │   ├── videoEmbed.js           YouTube embed with fullscreen overlay
+│   │   ├── videoEmbed.js           Self-hosted tutorial video player with fullscreen overlay
 │   │   ├── rotatePrompt.js         Landscape-on-phone "please rotate" overlay
 │   │   ├── surveyDrawer.js         Mobile/tablet bottom drawer for the area survey
 │   │   ├── modal.js                Barrel re-export for all modal modules
@@ -93,7 +95,10 @@ No build process required — the application runs directly in a modern browser 
 │   │       ├── resetModal.js       "Erase All" confirmation
 │   │       ├── deleteEmptyModal.js Empty drawing warning
 │   │       ├── deleteAreaModal.js  Area deletion confirmation
-│   │       └── regionSelectorModal.js  Body region selector with cascading dropdowns
+│   │       ├── regionSelectorModal.js  Body region selector with cascading dropdowns
+│   │       ├── helpModal.js        Help panel with Q&A accordion + tutorial videos
+│   │       ├── idleWarningModal.js Inactivity warning before a shared-device session reset
+│   │       └── sessionResetModal.js  "Session ended" notice shown after a reset + reload
 │   │
 │   ├── services/                   Stateful singletons and business logic
 │   │   ├── cameraService.js        Camera control — focusing, rotation, animation
@@ -101,6 +106,7 @@ No build process required — the application runs directly in a modern browser 
 │   │   ├── drawingEngine.js        UV painting, pointer dispatch, region init
 │   │   ├── modelLoader.js          GLTF loading, material setup, region shader
 │   │   ├── submissionService.js    Payload assembly, multi-view snapshots
+│   │   ├── responseSink.js         Persistence seam — submits the payload to the backend (integration-point stub)
 │   │   ├── surveyManager.js        SurveyJS lifecycle, validation, data persistence
 │   │   ├── surveyCustomRenderers.js  Custom onAfterRenderQuestion hooks
 │   │   └── texturePool.js          Canvas/texture pair management
@@ -108,6 +114,7 @@ No build process required — the application runs directly in a modern browser 
 │   ├── utils/                      Pure or near-pure utility functions
 │   │   ├── cursorManager.js        Custom draw/erase cursor
 │   │   ├── interaction.js          Pointer event handling for drawing
+│   │   ├── idleTimer.js            Inactivity watchdog — resets the session on shared devices
 │   │   ├── orientationAnalyzer.js  Region → viewing direction classification
 │   │   ├── orbitOffsets.js         Per-region camera orbit adjustments
 │   │   ├── regionHierarchy.js      Region hierarchy data + mapping functions
@@ -160,24 +167,24 @@ The app operates as a finite state machine with five stages, managed by `stageRo
 
 ### Data Flow
 
-Each drawing instance owns its own canvas, texture, region tracking, and questionnaire data. On submission, `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload.
+Each drawing instance owns its own canvas, texture, region tracking, and questionnaire data. When the general questionnaire is completed, `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload (`prepareSubmissionData`).
 
-## Integration
+Once the payload is assembled, `appController.js` hands it to the **persistence seam** — `persistResponse()` in `js/services/responseSink.js`. This is the single point where the two variants diverge: appController itself is variant-agnostic and never references how the response is stored. On this branch the sink submits to the backend; the participant then sees the "All Done" screen.
 
-The submission endpoint in `appController.js` is a clearly marked stub:
+The backend is **not wired yet** (pending PI decision), so `persistResponse()` is currently an integration-point stub: it logs the payload where the real API call belongs. Wiring the backend is a one-function change — replace the body of `persistResponse()` with the platform's API call and let a rejected promise propagate so the caller surfaces the error and rolls back. The payload assembly (`prepareSubmissionData()`) does not need to change.
 
-```js
-// ── Integration point ──────────────────────────────────────
-// Replace with your platform's API call:
-//   const response = await apiService.submit(submissionData);
-//   const success = response.ok;
-//
-// For now, simulate success to keep the app testable:
-const success = true;
-// ───────────────────────────────────────────────────────────
-```
+The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, and general questionnaire data. No device, OS, or browser information is captured — not even a coarse category — as a data-minimization measure.
 
-The `submissionData` object (typed as `SubmissionPayload` in `submissionService.js`) contains session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, general questionnaire data, and device metadata.
+### Persistence seam (`responseSink.js`)
+
+Both variants implement the same four-function interface, so swapping persistence strategies is a single-file change:
+
+| Function | This branch (database submission) | `local-save` branch |
+|---|---|---|
+| `initResponseSink({ summary, endSession })` | no-op (no save screen) | wires the "Save to device" download + confirm-saved screen |
+| `persistResponse(payload)` | submit to backend (currently logs at the integration point) | keep the payload for the download screen |
+| `rollbackResponse()` | no-op | clears the kept payload |
+| `hasUnsavedResponse()` | `false` (nothing held locally) | `true` while prepared-but-not-saved (drives the `beforeunload` guard) |
 
 ## Getting Started
 

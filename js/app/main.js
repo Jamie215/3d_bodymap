@@ -12,10 +12,14 @@ import {
     initRegionSelectorModal,
     initOnboardingModal,
     initHelpModal,
+    initIdleWarningModal,
+    initSessionResetModal,
+    showSessionResetModal,
     showOnboardingModal,
-    hasOnboardingBeenShown,
-    setOnOnboardingComplete
+    hasOnboardingBeenShown
 } from '../components/modal.js';
+import { initIdleTimer } from '../utils/idleTimer.js';
+import { consumeSessionResetNotice } from '../utils/sessionFlags.js';
 import { createScene } from '../utils/scene.js';
 import { createDrawingViewElements } from '../views/drawingView.js';
 import { createCanvasRotationControls } from '../components/viewControls.js';
@@ -28,6 +32,12 @@ import AppState from './state.js';
 import { initRotatePrompt } from '../components/rotatePrompt.js';
 
 AppState.sessionStartTime = new Date().toISOString();
+
+// Random, non-identifying id for this session. Used only to name the downloaded
+// file and to distinguish one saved session from another — it is NOT derived
+// from anything about the participant.
+AppState.sessionId = (crypto?.randomUUID?.() ||
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
 
 // ====================================================================
 // RESPONSIVE MANAGER
@@ -102,6 +112,8 @@ initDeleteAreaModal(document.body);
 initRegionSelectorModal(document.body);
 initOnboardingModal(document.body);
 initHelpModal(document.body);
+initIdleWarningModal(document.body);
+initSessionResetModal(document.body);
 initRotatePrompt(document.body);
 
 // ====================================================================
@@ -153,10 +165,6 @@ ro.observe(canvasContent);
 // APPLICATION INIT
 // ====================================================================
 
-setOnOnboardingComplete(() => {
-    console.log('Onboarding completed');
-});
-
 initApp({
     scene,
     camera,
@@ -169,9 +177,19 @@ initApp({
     }
 });
 
-if (!hasOnboardingBeenShown()) {
+// If we just reloaded from ending a session (Finish or idle timeout), show the
+// "session ended" notice instead of onboarding; otherwise run the normal
+// first-visit onboarding. (The reload returns to a clean front page.)
+const resetNotice = consumeSessionResetNotice();
+if (resetNotice) {
+    showSessionResetModal(resetNotice);
+} else if (!hasOnboardingBeenShown()) {
     showOnboardingModal();
 }
+
+// Inactivity watchdog: resets the session on a shared/provided device if the
+// participant walks away mid-session.
+initIdleTimer();
 
 // ====================================================================
 // RESPONSIVE EVENT HANDLING
@@ -212,10 +230,6 @@ responsive.on('prefersReducedMotion', (prefersReduced) => {
 // ====================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Firebase removed for integration handover.
-    // To re-enable, add firebaseService.js to index.html and uncomment:
-    // if (window.firebaseService) window.firebaseService.init();
-
     document.documentElement.setAttribute('data-viewport', responsive.getViewportType());
     document.documentElement.setAttribute('data-orientation', responsive.is('isLandscape') ? 'landscape' : 'portrait');
 });

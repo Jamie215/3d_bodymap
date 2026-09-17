@@ -7,14 +7,6 @@ import {
 } from "./modal.js";
 
 /**
- * Show the region selector modal
- * Can be called from anywhere to re-open the modal
- */
-export function showRegionSelector() {
-    showRegionSelectorModal();
-}
-
-/**
  * Setup region selector for the drawing view
  * - Sets up the callback for region selection
  * - Shows the modal
@@ -26,7 +18,6 @@ export function showRegionSelector() {
 export function setupRegionSelectorForDrawing(buttonContainer, showModal = true, onRegionSelected = null) {
     // Set callback for region selection
     setOnRegionSelected((regionName) => {
-        console.log('Region selected:', regionName);
         // Store selected region in AppState
         AppState.selectedRegion = regionName;
 
@@ -94,12 +85,7 @@ export function createCanvasRotationControls(canvasPanel) {
         } else {
             AppState.cameraUtils.rotateRight();
         }
-        
-        // Log current view for debugging
-        // const viewName = AppState.cameraUtils.getCurrentViewName();
-        // const angleDegrees = AppState.cameraUtils.getRotationAngleDegrees().toFixed(0);
-        // console.log(`Rotation: ${viewName} (${angleDegrees}°)`);
-        
+
         // Visual feedback
         const button = direction === 'left' ? leftRotateBtn : rightRotateBtn;
         button.classList.add('clicked');

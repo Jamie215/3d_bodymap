@@ -35,27 +35,22 @@ import coverageCalculator from './coverageService.js';
  * @typedef {Object} SubmissionArea
  * @property {number}              areaNumber              — 1-based area index
  * @property {string}              areaId                  — e.g. "drawing-1"
- * @property {string|null}         drawingImageData        — Base-64 PNG of the UV canvas
+ * @property {MultiViewSnapshots|null} bodyViews           — This area rendered on the 3D body (front/back/left/right)
  * @property {Object|null}         questionnaireResponses  — Area survey answers
  * @property {string[]}            drawnRegions            — Vertex group names with drawn content
  * @property {AreaCoverageData|null} coverage
  */
 
 /**
- * Browser and device metadata.
- *
- * @typedef {Object} DeviceInfo
- * @property {'Desktop'|'Tablet'|'Mobile'}  deviceType
- * @property {string}                        operatingSystem
- * @property {string}                        browser
- * (raw userAgent intentionally not captured — see REB #5 in prepareSubmissionData)
- */
-
-/**
  * The complete data payload assembled by {@link prepareSubmissionData}.
- * This is the object that would be sent to the EmPOWER backend.
+ *
+ * This object is handed to the response sink (see responseSink.js), which
+ * submits it to the backend. The backend is not wired yet, so for now the
+ * payload is logged at the integration point.
  *
  * @typedef {Object} SubmissionPayload
+ * @property {string}               schemaVersion         — Payload format version (see SCHEMA_VERSION)
+ * @property {string}               sessionId             — Random, non-identifying session id
  * @property {string}               startTime             — ISO 8601 session start
  * @property {string}               completionTime        — ISO 8601 submission time
  * @property {number|null}          durationSeconds        — Wall-clock session duration
@@ -64,8 +59,13 @@ import coverageCalculator from './coverageService.js';
  * @property {number}               totalAreas             — Number of pain/symptom areas
  * @property {SubmissionArea[]}     areas                  — Per-area data
  * @property {Object|null}          generalQuestionnaire   — General survey answers
- * @property {DeviceInfo}           deviceInfo
  */
+
+/**
+ * Version of the {@link SubmissionPayload} shape. Bump this whenever the fields
+ * change, so downloaded files remain parseable at analysis time.
+ */
+export const SCHEMA_VERSION = '1.0';
 
 // Dependencies injected via initSubmissionService()
 let renderer = null;
@@ -162,7 +162,7 @@ export function createCombinedTexture() {
  * @param {HTMLCanvasElement} combinedCanvas
  * @returns {Promise<MultiViewSnapshots>}
  */
-export async function captureMultiViewSnapshots(combinedCanvas) {
+async function captureMultiViewSnapshots(combinedCanvas) {
     if (!AppState.skinMesh) {
         console.error('captureMultiViewSnapshots: no skin mesh available');
         return null;
@@ -177,6 +177,7 @@ export async function captureMultiViewSnapshots(combinedCanvas) {
     const originalPixelRatio     = renderer.getPixelRatio();
     const originalCameraPosition = camera.position.clone();
     const originalCameraTarget   = controls.target.clone();
+    const originalAspect         = camera.aspect;
 
     try {
         AppState.skinMesh.material.map = tempTexture;
@@ -186,6 +187,8 @@ export async function captureMultiViewSnapshots(combinedCanvas) {
         const previewHeight = 400;
         renderer.setSize(previewWidth, previewHeight, false);
         renderer.setPixelRatio(1);
+        // Match the camera to the square capture buffer so the model isn't stretched.
+        camera.aspect = previewWidth / previewHeight;
 
         // Calculate framing distance from model bounds
         const bbox = new THREE.Box3().setFromObject(AppState.skinMesh);
@@ -226,6 +229,8 @@ export async function captureMultiViewSnapshots(combinedCanvas) {
         controls.update();
         renderer.setSize(originalSize.x, originalSize.y, false);
         renderer.setPixelRatio(originalPixelRatio);
+        camera.aspect = originalAspect;
+        camera.updateProjectionMatrix();
 
         AppState.skinMesh.material.map = originalMap;
         AppState.skinMesh.material.needsUpdate = true;
@@ -244,7 +249,7 @@ export async function captureMultiViewSnapshots(combinedCanvas) {
  *   - Per-area drawing data, questionnaire responses, and coverage metrics
  *   - Combined multi-view snapshots
  *   - General questionnaire responses
- *   - Session timing and device metadata
+ *   - Session timing
  *
  * @returns {Promise<SubmissionPayload>}
  * @throws {Error} if texture compositing or snapshot capture fails
@@ -260,13 +265,19 @@ export async function prepareSubmissionData() {
         throw new Error('Failed to capture multi-view snapshots');
     }
 
-    const areas = AppState.drawingInstances.map((instance, index) => {
+    const areas = [];
+    for (let index = 0; index < AppState.drawingInstances.length; index++) {
+        const instance = AppState.drawingInstances[index];
         const coverage = coverageCalculator.calculateCoverage(instance);
 
-        return {
+        // Render this single area onto the 3D body (front/back/left/right) so the
+        // drawing has anatomical reference. Null if the capture fails.
+        const bodyViews = await captureMultiViewSnapshots(instance.canvas);
+
+        areas.push({
             areaNumber: index + 1,
             areaId: instance.id,
-            drawingImageData: instance.uvDrawingData,
+            bodyViews,
             questionnaireResponses: instance.questionnaireData,
             drawnRegions: Array.from(instance.drawnRegionNames || []),
             coverage: coverage ? {
@@ -275,12 +286,14 @@ export async function prepareSubmissionData() {
                 regionBreakdown: coverage.regions,
                 bodyPartBreakdown: coverage.bodyParts
             } : null
-        };
-    });
+        });
+    }
 
     const startTime = AppState.sessionStartTime || new Date().toISOString();
 
     return {
+        schemaVersion: SCHEMA_VERSION,
+        sessionId: AppState.sessionId,
         startTime,
         completionTime: new Date().toISOString(),
         durationSeconds: AppState.sessionStartTime
@@ -290,49 +303,11 @@ export async function prepareSubmissionData() {
         combinedDrawing: snapshot,
         totalAreas: areas.length,
         areas,
-        generalQuestionnaire: AppState.generalQuestionnaireResponse,
-        deviceInfo: {
-            deviceType: getDeviceType(),
-            operatingSystem: getOS(),
-            browser: getBrowser()
-            // REB #5 (data minimization): the raw navigator.userAgent string
-            // is not captured. The full UA contributes to browser
-            // fingerprinting / re-identification, and the coarse fields above
-            // (Desktop / Windows / Chrome) are all that is needed. Re-enable
-            // only if a specific analysis justifies it.
-            // userAgent: navigator.userAgent
-        }
+        generalQuestionnaire: AppState.generalQuestionnaireResponse
+        // Data minimization: no device or browser information is captured. The
+        // tool is intended for a supervised desktop setting, so device/OS/browser
+        // categories add nothing to the analysis while widening the data surface.
+        // The raw navigator.userAgent is likewise never read.
     };
 }
 
-// ============================================================================
-// DEVICE DETECTION HELPERS
-// ============================================================================
-
-function getDeviceType() {
-    const ua = navigator.userAgent;
-    if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return 'Tablet';
-    if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) return 'Mobile';
-    return 'Desktop';
-}
-
-function getOS() {
-    const ua = navigator.userAgent;
-    if (/windows phone/i.test(ua)) return 'Windows Phone';
-    if (/android/i.test(ua)) return 'Android';
-    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'iOS';
-    if (/Mac/.test(ua)) return 'macOS';
-    if (/Win/.test(ua)) return 'Windows';
-    if (/Linux/.test(ua)) return 'Linux';
-    return 'Unknown';
-}
-
-function getBrowser() {
-    const ua = navigator.userAgent;
-    if (/Edg/.test(ua)) return 'Edge';
-    if (/Chrome/.test(ua) && !/Edg/.test(ua)) return 'Chrome';
-    if (/Safari/.test(ua) && !/Chrome/.test(ua)) return 'Safari';
-    if (/Firefox/.test(ua)) return 'Firefox';
-    if (/MSIE|Trident/.test(ua)) return 'Internet Explorer';
-    return 'Unknown';
-}

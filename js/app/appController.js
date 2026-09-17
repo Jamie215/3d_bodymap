@@ -32,6 +32,12 @@ import {
     clearSurveyInstance
 } from '../services/surveyManager.js';
 import { initSubmissionService, prepareSubmissionData } from '../services/submissionService.js';
+import {
+    initResponseSink,
+    persistResponse,
+    rollbackResponse,
+    hasUnsavedResponse
+} from '../services/responseSink.js';
 import AppState from './state.js';
 import eventManager from './eventManager.js';
 import CameraUtils from '../services/cameraService.js';
@@ -49,7 +55,8 @@ import {
     generateDrawingPreview,
     handleEmptyDrawing,
     executePendingAction,
-    clearPendingAction
+    clearPendingAction,
+    endSession
 } from './drawingInstanceManager.js';
 
 export function initApp({ scene, camera, renderer, controls, views, registerModelSelectionHandler, setStage }) {
@@ -182,6 +189,12 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         );
     });
 
+    // ── Response persistence (see responseSink.js) ──────────────────────
+    // Wires the save/submit strategy. The local-save variant drives the
+    // "Save to device" download screen; the database variant swaps in a sink
+    // that submits to the backend. appController stays agnostic either way.
+    initResponseSink({ summary, endSession });
+
     // ====================================================================
     // SELECTION VIEW EVENTS
     // ====================================================================
@@ -282,30 +295,21 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
             try {
                 const submissionData = await prepareSubmissionData();
-                console.log('Submission data prepared:', submissionData);
 
-                // ── Integration point ──────────────────────────────────────
-                // Replace with your platform's API call:
-                //   const response = await apiService.submit(submissionData);
-                //   const success = response.ok;
-                //
-                // For now, simulate success to keep the app testable:
-                const success = true;
-                // ───────────────────────────────────────────────────────────
+                // Hand the payload to the persistence sink. For the local-save
+                // variant this keeps it for the "Save to device" screen (the
+                // summary stage renders that screen once the questionnaire is
+                // complete). The stage transition is variant-independent.
+                await persistResponse(submissionData);
 
-                if (success) {
-                    console.log('Submission complete (no backend connected — data logged above).');
-                    clearSurveyInstance();
-                    goTo('summary');
-                } else {
-                    console.error('Failed to submit data');
-                    alert('There was an error submitting your data. Please try again.');
-                }
+                clearSurveyInstance();
+                goTo('summary');
             } catch (error) {
                 console.error('Submission failed:', error);
-                alert('There was an error preparing your submission. Please try again.');
-                // Roll back so the user can retry
+                alert('There was an error processing your responses. Please try again.');
+                // Roll back so the participant can retry
                 AppState.generalQuestionnaireResponse = null;
+                rollbackResponse();
             }
 
             return;
@@ -323,6 +327,18 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     // ====================================================================
 
     goTo('summary');
+
+    // Warn before leaving if the response has been prepared but not yet saved.
+    // What counts as "unsaved" is the sink's call (see responseSink.js) — for
+    // the local-save variant, prepared but not confirmed saved to the device.
+    const warnIfUnsaved = (event) => {
+        if (hasUnsavedResponse()) {
+            event.preventDefault();
+            event.returnValue = '';
+            return '';
+        }
+    };
+    window.addEventListener('beforeunload', warnIfUnsaved);
 
     const cleanupApplication = () => {
         if (cameraUtils) cameraUtils.dispose();

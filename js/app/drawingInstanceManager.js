@@ -9,6 +9,7 @@ import { createCombinedTexture } from '../services/submissionService.js';
 import { showDeleteEmptyModal } from '../components/modal.js';
 import { clearSurveyInstance } from '../services/surveyManager.js';
 import texturePool from '../services/texturePool.js';
+import { setSessionResetNotice } from '../utils/sessionFlags.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -181,7 +182,7 @@ export function updateCurrentDrawing() {
  * Reassign palette colors to all drawing instances.
  * Called after deletion/re-indexing to keep colours sequential.
  */
-export function updateInstanceColors() {
+function updateInstanceColors() {
     AppState.drawingInstances.forEach((instance, index) => {
         const newColor = COLOR_PALETTE[index % COLOR_PALETTE.length];
         instance.color = newColor;
@@ -302,6 +303,62 @@ export function refreshTextureAfterDelete() {
 }
 
 // ============================================================================
+// SESSION RESET (data flush)
+// ============================================================================
+
+/**
+ * Flushes every piece of participant data held in memory and returns the model
+ * surface to its blank base texture. Used when a session ends — on the final
+ * "Finish" click and on the idle timeout — so that on a shared/provided device
+ * the next participant can never reach the previous participant's drawings,
+ * questionnaire answers, or the re-downloadable submission payload.
+ *
+ * Purely clears in-memory state; it does not reload the page. The idle-timeout
+ * path follows this with a reload for a fully fresh app.
+ */
+function resetSessionData() {
+    // Dispose each instance's GPU texture, then drop all instances.
+    AppState.drawingInstances.forEach(instance => {
+        if (instance.texture) instance.texture.dispose();
+    });
+    AppState.drawingInstances = [];
+    AppState.currentDrawingIndex = 0;
+    AppState.currentSurveyIndex  = 0;
+
+    // Clear questionnaire answers (the sensitive responses). Nulling
+    // generalQuestionnaireResponse also returns the summary to its pre-submit
+    // state so a reset session starts clean.
+    AppState.generalQuestionnaireResponse = null;
+    AppState.selectedRegion = null;
+
+    // Return the visible model surface to the blank base texture.
+    if (AppState.skinMesh && AppState.baseTextureTexture) {
+        AppState.skinMesh.material.map = AppState.baseTextureTexture;
+        AppState.skinMesh.material.needsUpdate = true;
+    }
+}
+
+/**
+ * Ends the session and returns the app to a clean front page. Flushes the
+ * in-memory data, records why the session ended so the reloaded page
+ * can show a short notice, clears per-session UI flags so the next participant
+ * starts fresh, then reloads. A full reload is the most robust way to guarantee
+ * no residual state from any stage (drawing, survey, save screen).
+ *
+ * @param {'complete'|'idle'} reason  — 'complete' after Finish, 'idle' after timeout
+ */
+export function endSession(reason) {
+    // Flushing first nulls generalQuestionnaireResponse, which also disarms the
+    // beforeunload "unsaved data" guard so the reload is never blocked.
+    try { resetSessionData(); } catch (e) { console.error('endSession: data flush failed', e); }
+
+    try { sessionStorage.clear(); } catch (e) { /* storage blocked — ignore */ }
+    setSessionResetNotice(reason); // written after clear() so it survives the reload
+
+    window.location.reload();
+}
+
+// ============================================================================
 // PREVIEW GENERATION
 // ============================================================================
 
@@ -323,15 +380,21 @@ export async function generateDrawingPreview() {
     const previewHeight = 400;
     const originalSize       = renderer.getSize(new THREE.Vector2());
     const originalPixelRatio = renderer.getPixelRatio();
+    const originalAspect     = camera.aspect;
 
     renderer.setSize(previewWidth, previewHeight, false);
     renderer.setPixelRatio(1);
+    // Match the camera to the square preview buffer so the model isn't stretched.
+    camera.aspect = previewWidth / previewHeight;
+    camera.updateProjectionMatrix();
     renderer.render(scene, camera);
     const preview = renderer.domElement.toDataURL('image/png');
 
-    // Restore original renderer size
+    // Restore original renderer size and aspect
     renderer.setSize(originalSize.x, originalSize.y, false);
     renderer.setPixelRatio(originalPixelRatio);
+    camera.aspect = originalAspect;
+    camera.updateProjectionMatrix();
     renderer.render(scene, camera);
 
     return preview;

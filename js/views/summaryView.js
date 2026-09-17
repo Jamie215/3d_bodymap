@@ -74,11 +74,11 @@ export function createSummaryView() {
     modelSummaryView.appendChild(summaryFooter);
 
     // ── Callbacks ──────────────────────────────────────────────────────
-    let onEditArea   = null;
-    let onDeleteArea = null;
+    let onEditArea    = null;
+    let onDeleteArea  = null;
 
-    function setEditCallback(callback)   { onEditArea   = callback; }
-    function setDeleteCallback(callback) { onDeleteArea = callback; }
+    function setEditCallback(callback)        { onEditArea     = callback; }
+    function setDeleteCallback(callback)      { onDeleteArea   = callback; }
 
     // ── Status update ──────────────────────────────────────────────────
 
@@ -87,6 +87,8 @@ export function createSummaryView() {
         const isComplete = !!AppState.generalQuestionnaireResponse;
 
         if (isComplete) {
+            // Once the general questionnaire is submitted, show the final
+            // "done" screen.
             renderComplete(count);
             return;
         }
@@ -114,22 +116,17 @@ export function createSummaryView() {
 
         const title = document.createElement('span');
         title.className = 'summary-title';
-        title.textContent = 'Submission Complete';
+        title.textContent = 'All Done';
 
         const thankYou = document.createElement('p');
         thankYou.style.marginTop = 'var(--space-md)';
         thankYou.textContent = 'Thank you for completing your pain assessment.';
 
-        const logged = document.createElement('p');
-        const countStrong = document.createElement('strong');
-        countStrong.textContent = String(count);
-        logged.append(
-            'You logged ',
-            countStrong,
-            ` pain or symptom area${count !== 1 ? 's' : ''}.`
-        );
+        const saved = document.createElement('p');
+        saved.textContent =
+            'Your responses have been submitted. You may now close this page.';
 
-        wrapper.append(icon, title, thankYou, logged);
+        wrapper.append(icon, title, thankYou, saved);
         summaryStatusPanel.appendChild(wrapper);
 
         summaryDoneButton.style.display    = 'none';

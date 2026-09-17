@@ -14,7 +14,6 @@ import { enableInteraction, cleanupInteraction, syncEraserState } from '../utils
 import { setupCursorManagement, disableCursorManagement } from '../utils/cursorManager.js';
 import { createCombinedTexture } from '../services/submissionService.js';
 import { renderAreaSurvey, renderGeneralSurvey } from '../services/surveyManager.js';
-import coverageCalculator from '../services/coverageService.js';
 
 // ============================================================================
 // MODULE STATE
@@ -189,7 +188,6 @@ export function goTo(stage) {
         case 'area-survey': {
             const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
             cameraUtils.focusOnDrawing(currentInstance);
-            coverageCalculator.logCoverage(currentInstance);
 
             const canvasPanel = document.getElementById('canvas-panel');
             if (canvasPanel && !canvasPanel.contains(survey.editDrawingButton)) {

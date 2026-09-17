@@ -136,21 +136,6 @@ canvas {
   outline-offset: 2px;
 }
 
-.skip-link {
-  position: absolute;
-  top: -100%;
-  left: 0;
-  background: var(--primary-color);
-  color: white;
-  padding: var(--space-sm) var(--space-md);
-  text-decoration: none;
-  z-index: var(--z-toast);
-}
-
-.skip-link:focus {
-  top: 0;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -165,7 +150,6 @@ canvas {
    Print
 ========================= */
 @media print {
-  .fab,
   .drawer,
   .drawer-scrim,
   .footer,

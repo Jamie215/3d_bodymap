@@ -405,8 +405,6 @@ export default class CameraUtils {
             return this.resetView();
         }
 
-        console.log('Dominant body part:', dominantBodyPart);
-
         const regions = this.regionMap[dominantBodyPart];
         if (!regions) {
             return this.resetView();

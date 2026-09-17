@@ -35,6 +35,7 @@
  * @property {Object|null}                 generalQuestionnaireResponse — Saved general survey data (null until submitted)
  *
  * @property {string|null}                 sessionStartTime    — ISO 8601 timestamp of when the session began
+ * @property {string|null}                 sessionId           — Random, non-identifying id for this session (used in the submission payload)
  */
 
 /** @type {AppStateShape} */
@@ -84,7 +85,10 @@ const AppState = {
     generalQuestionnaireResponse: null,
 
     // Session timing
-    sessionStartTime: null
+    sessionStartTime: null,
+
+    // Random, non-identifying session id (set once at startup in main.js)
+    sessionId: null
 };
 
 export default AppState;
