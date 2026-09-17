@@ -31,7 +31,13 @@ import {
     getCurrentSurveyData,
     clearSurveyInstance
 } from '../services/surveyManager.js';
-import { initSubmissionService, prepareSubmissionData, downloadSubmissionZip } from '../services/submissionService.js';
+import { initSubmissionService, prepareSubmissionData } from '../services/submissionService.js';
+import {
+    initResponseSink,
+    persistResponse,
+    rollbackResponse,
+    hasUnsavedResponse
+} from '../services/responseSink.js';
 import AppState from './state.js';
 import eventManager from './eventManager.js';
 import CameraUtils from '../services/cameraService.js';
@@ -183,24 +189,11 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         );
     });
 
-    // ── Save-to-device screen ───────────────────────────────────────────
-    summary.setDownloadCallback(async () => {
-        if (!AppState.submissionPayload) return;
-        try {
-            await downloadSubmissionZip(AppState.submissionPayload);
-        } catch (error) {
-            console.error('Download failed:', error);
-            alert('There was an error preparing your response for download. Please try again.');
-        }
-    });
-
-    summary.setConfirmSavedCallback(() => {
-        // The participant has confirmed the file is saved. End the session: flush
-        // all in-memory data and reload to a clean front page, where a "session
-        // complete" notice is shown (nothing left behind on a
-        // shared/provided device).
-        endSession('complete');
-    });
+    // ── Response persistence (see responseSink.js) ──────────────────────
+    // Wires the save/submit strategy. The local-save variant drives the
+    // "Save to device" download screen; the database variant swaps in a sink
+    // that submits to the backend. appController stays agnostic either way.
+    initResponseSink({ summary, endSession });
 
     // ====================================================================
     // SELECTION VIEW EVENTS
@@ -303,22 +296,20 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
             try {
                 const submissionData = await prepareSubmissionData();
 
-                // No backend: the responses are saved by downloading a JSON file
-                // that the participant then stores on the provided encrypted
-                // device. Keep the payload so the "Save to device" screen can
-                // download it when the participant clicks the button — the
-                // download is not triggered automatically.
-                AppState.submissionPayload = submissionData;
-                AppState.downloadConfirmed = false;
+                // Hand the payload to the persistence sink. For the local-save
+                // variant this keeps it for the "Save to device" screen (the
+                // summary stage renders that screen once the questionnaire is
+                // complete). The stage transition is variant-independent.
+                await persistResponse(submissionData);
 
                 clearSurveyInstance();
-                goTo('summary'); // → renders the "Save to device" screen
+                goTo('summary');
             } catch (error) {
                 console.error('Submission failed:', error);
                 alert('There was an error preparing your responses for download. Please try again.');
                 // Roll back so the participant can retry
                 AppState.generalQuestionnaireResponse = null;
-                AppState.submissionPayload = null;
+                rollbackResponse();
             }
 
             return;
@@ -337,11 +328,11 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     goTo('summary');
 
-    // Warn before leaving if the responses have been prepared/downloaded but the
-    // participant has not yet confirmed saving the file to the encrypted device.
-    // Without a backend, closing here would lose the session's data.
+    // Warn before leaving if the response has been prepared but not yet saved.
+    // What counts as "unsaved" is the sink's call (see responseSink.js) — for
+    // the local-save variant, prepared but not confirmed saved to the device.
     const warnIfUnsaved = (event) => {
-        if (AppState.generalQuestionnaireResponse && !AppState.downloadConfirmed) {
+        if (hasUnsavedResponse()) {
             event.preventDefault();
             event.returnValue = '';
             return '';
