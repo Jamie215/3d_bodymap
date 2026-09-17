@@ -16,8 +16,7 @@ import {
     initSessionResetModal,
     showSessionResetModal,
     showOnboardingModal,
-    hasOnboardingBeenShown,
-    setOnOnboardingComplete
+    hasOnboardingBeenShown
 } from '../components/modal.js';
 import { initIdleTimer } from '../utils/idleTimer.js';
 import { consumeSessionResetNotice } from '../utils/sessionFlags.js';
@@ -165,10 +164,6 @@ ro.observe(canvasContent);
 // ====================================================================
 // APPLICATION INIT
 // ====================================================================
-
-setOnOnboardingComplete(() => {
-    console.log('Onboarding completed');
-});
 
 initApp({
     scene,

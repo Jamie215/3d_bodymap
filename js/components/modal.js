@@ -8,8 +8,7 @@ export {
     initOnboardingModal,
     showOnboardingModal,
     hideOnboardingModal,
-    hasOnboardingBeenShown,
-    setOnOnboardingComplete
+    hasOnboardingBeenShown
 } from './modals/onboardingModal.js';
 
 // ---- Confirm Drawing ("Done Drawing" modal) ----

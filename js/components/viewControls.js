@@ -26,7 +26,6 @@ export function showRegionSelector() {
 export function setupRegionSelectorForDrawing(buttonContainer, showModal = true, onRegionSelected = null) {
     // Set callback for region selection
     setOnRegionSelected((regionName) => {
-        console.log('Region selected:', regionName);
         // Store selected region in AppState
         AppState.selectedRegion = regionName;
 
@@ -94,12 +93,7 @@ export function createCanvasRotationControls(canvasPanel) {
         } else {
             AppState.cameraUtils.rotateRight();
         }
-        
-        // Log current view for debugging
-        // const viewName = AppState.cameraUtils.getCurrentViewName();
-        // const angleDegrees = AppState.cameraUtils.getRotationAngleDegrees().toFixed(0);
-        // console.log(`Rotation: ${viewName} (${angleDegrees}°)`);
-        
+
         // Visual feedback
         const button = direction === 'left' ? leftRotateBtn : rightRotateBtn;
         button.classList.add('clicked');

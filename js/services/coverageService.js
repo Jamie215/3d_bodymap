@@ -286,62 +286,6 @@ class CoverageCalculator {
             totalFaceCount: this.faceAreas.length
         };
     }
-
-    /**
-     * Debug: Log coverage breakdown to console.
-     *
-     * @param {DrawingInstance} instance
-     */
-    logCoverage(instance) {
-        if (!this.initialized) {
-            console.warn('CoverageCalculator not initialized');
-            return;
-        }
-
-        const coverage = this.calculateCoverage(instance);
-        if (!coverage) return;
-
-        const sortedRegions = Object.entries(coverage.regions)
-            .sort((a, b) => b[1].percentage - a[1].percentage);
-
-        const sortedBodyParts = Object.entries(coverage.bodyParts)
-            .sort((a, b) => b[1].percentage - a[1].percentage);
-
-        console.group('Coverage Breakdown');
-        console.log(`Overall: ${coverage.overall.percentage.toFixed(2)}% of body (${coverage.coloredFaceCount} faces)`);
-        console.log('─'.repeat(50));
-        
-        if (sortedBodyParts.length > 0) {
-            console.log('Body Parts:');
-            console.table(
-                sortedBodyParts.reduce((acc, [part, data]) => {
-                    acc[part] = {
-                        'Part %': data.percentage.toFixed(1) + '%',
-                        'Body %': data.bodyContribution.toFixed(2) + '%',
-                        'Area': data.coloredArea.toFixed(4)
-                    };
-                    return acc;
-                }, {})
-            );
-        }
-
-        if (sortedRegions.length > 0) {
-            console.log('Fine-grained Regions:');
-            console.table(
-                sortedRegions.reduce((acc, [region, data]) => {
-                    acc[region] = {
-                        'Region %': data.percentage.toFixed(1) + '%',
-                        'Body %': data.bodyContribution.toFixed(2) + '%',
-                        'Area': data.coloredArea.toFixed(4)
-                    };
-                    return acc;
-                }, {})
-            );
-        } else {
-            console.log('No regions colored yet');
-        }
-        console.groupEnd();
-    }
 }
 
 const coverageCalculator = new CoverageCalculator();

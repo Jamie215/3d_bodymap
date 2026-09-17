@@ -9,7 +9,6 @@ import { hasShown, markShown } from '../../utils/sessionFlags.js';
 let onboardingModalEl = null;
 let onboardingModalOverlay = null;
 let onboardingStartButton = null;
-let onOnboardingCompleteCallback = null;
 
 const ONBOARDING_SHOWN_KEY = 'painSurvey_onboardingShown';
 
@@ -73,9 +72,6 @@ export function initOnboardingModal(container) {
     onboardingStartButton.addEventListener('click', () => {
         hideOnboardingModal();
         markShown(ONBOARDING_SHOWN_KEY);
-        if (onOnboardingCompleteCallback) {
-            onOnboardingCompleteCallback();
-        }
     });
 }
 
@@ -109,10 +105,6 @@ export function hideOnboardingModal() {
  */
 export function hasOnboardingBeenShown() {
     return hasShown(ONBOARDING_SHOWN_KEY);
-}
-
-export function setOnOnboardingComplete(callback) {
-    onOnboardingCompleteCallback = callback;
 }
 
 export function getOnboardingElements() {
