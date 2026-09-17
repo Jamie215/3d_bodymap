@@ -177,9 +177,9 @@ pain-assessment_<stamp>_<id>/
     README.md                            data dictionary explaining every column
 ```
 
-The CSVs (built by `csvExporter.js`) favour a "long / tidy" shape where a field would otherwise explode into sparse columns — most notably per-region coverage, emitted one row per (area, region). Every column is documented in the bundled data dictionary (`csv/README.md`, sourced from `js/data/dataDictionary.js` and mirrored at [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md)). `downloadSubmission()` — the plain single-JSON export — is retained as a fallback. The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
+The CSVs (built by `csvExporter.js`) favour a "long / tidy" shape where a field would otherwise explode into sparse columns — most notably per-region coverage, emitted one row per (area, region). Every column is documented in the bundled data dictionary (`csv/README.md`, sourced from `js/data/dataDictionary.js` and mirrored at [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md)). The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
 
-The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, general questionnaire data, and coarse device metadata (no raw user-agent — see REB #5).
+The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, and general questionnaire data. No device, OS, or browser information is captured — not even a coarse category — as a data-minimization measure (see REB #5).
 
 ## Future backend integration
 

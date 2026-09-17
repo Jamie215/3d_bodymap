@@ -46,10 +46,10 @@ import { DATA_DICTIONARY_MD } from '../data/dataDictionary.js';
 /**
  * The complete data payload assembled by {@link prepareSubmissionData}.
  *
- * There is no backend: this object is serialized to JSON and downloaded to the
- * participant's machine by {@link downloadSubmission}, so it can be stored on the
- * provided encrypted device. (A future EmPOWER integration could POST the same
- * object instead.)
+ * There is no backend: this object is serialized and downloaded to the
+ * participant's machine by {@link downloadSubmissionZip}, so it can be stored on
+ * the provided encrypted device. (A future EmPOWER integration could POST the
+ * same object instead.)
  *
  * @typedef {Object} SubmissionPayload
  * @property {string}               schemaVersion         — Payload format version (see SCHEMA_VERSION)
@@ -165,7 +165,7 @@ export function createCombinedTexture() {
  * @param {HTMLCanvasElement} combinedCanvas
  * @returns {Promise<MultiViewSnapshots>}
  */
-export async function captureMultiViewSnapshots(combinedCanvas) {
+async function captureMultiViewSnapshots(combinedCanvas) {
     if (!AppState.skinMesh) {
         console.error('captureMultiViewSnapshots: no skin mesh available');
         return null;
@@ -327,7 +327,7 @@ export async function prepareSubmissionData() {
  * @param {SubmissionPayload} payload
  * @returns {string}
  */
-export function buildSubmissionBaseName(payload) {
+function buildSubmissionBaseName(payload) {
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
     const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
@@ -418,23 +418,6 @@ async function writeToTarget(handle, blob, filename) {
 }
 
 /**
- * Prompt-then-write convenience for callers whose Blob is ready synchronously
- * (no lengthy async between the click and the dialog). Returns false only if the
- * participant cancelled the save dialog.
- *
- * @param {Blob} blob
- * @param {string} filename
- * @param {{description: string, mime: string, ext: string}} opts
- * @returns {Promise<boolean>} whether the file was saved (or download triggered)
- */
-async function saveBlob(blob, filename, opts) {
-    const { handle, cancelled } = await requestSaveTarget(filename, opts);
-    if (cancelled) return false;
-    await writeToTarget(handle, blob, filename);
-    return true;
-}
-
-/**
  * Extracts the base-64 body of a `data:` URL (e.g. a PNG snapshot). Returns null
  * if the value is missing or not a base-64 data URL.
  *
@@ -444,32 +427,10 @@ async function saveBlob(blob, filename, opts) {
 function dataUrlToBase64(dataUrl) {
     if (typeof dataUrl !== 'string') return null;
     const comma = dataUrl.indexOf(',');
-    if (!dataUrl.startsWith('data:') || !/;base64/i.test(dataUrl.slice(0, comma)) || comma === -1) {
+    if (comma === -1 || !dataUrl.startsWith('data:') || !/;base64/i.test(dataUrl.slice(0, comma))) {
         return null;
     }
     return dataUrl.slice(comma + 1);
-}
-
-/**
- * Serializes the submission payload to a single JSON file and downloads it.
- * The snapshot images ride along as base-64 inside the JSON, so the file is
- * self-contained. Entirely client-side — no network request.
- *
- * Retained as a fallback / simple export; the app's default is the richer
- * {@link downloadSubmissionZip}.
- *
- * Where the browser supports it, the participant is asked where to save (so the
- * file can go straight to the encrypted device); otherwise it downloads normally.
- *
- * @param {SubmissionPayload} payload
- * @returns {Promise<string>} the filename that was offered for download
- */
-export async function downloadSubmission(payload) {
-    const filename = `${buildSubmissionBaseName(payload)}.json`;
-    const json = JSON.stringify(payload, null, 2);
-    await saveBlob(new Blob([json], { type: 'application/json' }), filename,
-        { description: 'Response file (JSON)', mime: 'application/json', ext: '.json' });
-    return filename;
 }
 
 /**

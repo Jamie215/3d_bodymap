@@ -21,7 +21,7 @@
  * @param {*} value
  * @returns {string}
  */
-export function escapeCsv(value) {
+function escapeCsv(value) {
     if (value === null || value === undefined) return '';
     let s;
     if (typeof value === 'boolean') s = value ? 'true' : 'false';
@@ -44,7 +44,7 @@ export function escapeCsv(value) {
  * @param {Object<string,string>} [out]
  * @returns {Object<string,string>}
  */
-export function flattenObject(obj, prefix = '', out = {}) {
+function flattenObject(obj, prefix = '', out = {}) {
     if (obj === null || obj === undefined) return out;
 
     if (Array.isArray(obj)) {
@@ -78,7 +78,7 @@ export function flattenObject(obj, prefix = '', out = {}) {
  * @param {string[]} [columns]
  * @returns {string}
  */
-export function toCsv(rows, columns) {
+function toCsv(rows, columns) {
     const cols = columns || (() => {
         const seen = [];
         const set = new Set();
@@ -102,7 +102,7 @@ export function toCsv(rows, columns) {
  * @param {import('./submissionService.js').SubmissionPayload} payload
  * @returns {string}
  */
-export function buildSessionCsv(payload) {
+function buildSessionCsv(payload) {
     const row = {
         sessionId: payload.sessionId,
         schemaVersion: payload.schemaVersion,
@@ -127,7 +127,7 @@ export function buildSessionCsv(payload) {
  * @param {import('./submissionService.js').SubmissionPayload} payload
  * @returns {string}
  */
-export function buildAreasCsv(payload) {
+function buildAreasCsv(payload) {
     const rows = (payload.areas || []).map((area) => {
         const row = {
             sessionId: payload.sessionId,
@@ -152,7 +152,7 @@ export function buildAreasCsv(payload) {
  * @param {import('./submissionService.js').SubmissionPayload} payload
  * @returns {string}
  */
-export function buildCoverageCsv(payload) {
+function buildCoverageCsv(payload) {
     const rows = [];
     for (const area of payload.areas || []) {
         const regions = area.coverage?.regionBreakdown || {};
