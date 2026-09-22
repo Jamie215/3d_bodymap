@@ -1061,7 +1061,7 @@ input[type="range"]::-moz-range-thumb {
 .video-thumbnail-poster {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #0277BD 0%, #01579B 100%);
+  background: #000000;
   transition: opacity 0.2s ease;
 }
 .video-thumbnail:hover .video-thumbnail-poster { opacity: 0.85; }
