@@ -1079,12 +1079,17 @@ input[type="range"]::-moz-range-thumb {
   align-items: center;
   justify-content: center;
   color: #ffffff;
+  border: 2px solid #ffffff;
   font-size: 1.25rem;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
   padding-left: 3px;
 }
 
-.video-thumbnail:hover .video-play-btn { background: var(--primary-color, #0277BD); transform: translate(-50%, -50%) scale(1.1); }
+.video-thumbnail:hover .video-play-btn {
+  background: #ffffff;
+  color: #000000;
+  transform: translate(-50%, -50%) scale(1.1);
+}
 
 .video-thumbnail-label {
   position: absolute;
