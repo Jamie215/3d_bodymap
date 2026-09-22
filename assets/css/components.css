@@ -1061,14 +1061,14 @@ input[type="range"]::-moz-range-thumb {
 .video-thumbnail-poster {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #0277BD 0%, #01579B 100%);
+  background: #000000;
   transition: opacity 0.2s ease;
 }
 .video-thumbnail:hover .video-thumbnail-poster { opacity: 0.85; }
 
 .video-play-btn {
   position: absolute;
-  top: 50%;
+  top: 42%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 64px;
@@ -1079,12 +1079,31 @@ input[type="range"]::-moz-range-thumb {
   align-items: center;
   justify-content: center;
   color: #ffffff;
+  border: 2px solid #ffffff;
   font-size: 1.25rem;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
   padding-left: 3px;
 }
 
-.video-thumbnail:hover .video-play-btn { background: var(--primary-color, #0277BD); transform: translate(-50%, -50%) scale(1.1); }
+.video-thumbnail:hover .video-play-btn {
+  background: #ffffff;
+  color: #000000;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.video-thumbnail-label {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, calc(32px + var(--space-sm)));
+  color: #ffffff;
+  font-weight: 600;
+  font-size: var(--font-body-medium, 1rem);
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  pointer-events: none;
+}
 
 .video-overlay {
   position: fixed;
@@ -1128,6 +1147,7 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 480px) {
   .video-overlay-content { width: 96vw; }
   .video-play-btn { width: 48px; height: 48px; font-size: 1rem; }
+  .video-thumbnail-label { transform: translate(-50%, calc(24px + var(--space-sm))); font-size: var(--font-body-small, 0.875rem); }
 }
 
 /* =========================

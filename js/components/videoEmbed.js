@@ -72,7 +72,12 @@ export function createVideoEmbed(videoSrc = 'assets/video/intro.mp4', titleText 
     playIcon.className = 'fa-solid fa-play';
     playBtn.appendChild(playIcon);
 
-    thumbnail.append(poster, playBtn);
+    // "Watch Video" label so the thumbnail reads as a video, not a blank tile.
+    const label = document.createElement('span');
+    label.className = 'video-thumbnail-label';
+    label.textContent = 'Watch Video';
+
+    thumbnail.append(poster, playBtn, label);
 
     if (titleText) container.append(title, thumbnail);
     else container.append(thumbnail);
