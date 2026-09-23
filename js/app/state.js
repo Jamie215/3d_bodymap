@@ -35,7 +35,9 @@
  * @property {Object|null}                 generalQuestionnaireResponse — Saved general survey data (null until submitted)
  *
  * @property {string|null}                 sessionStartTime    — ISO 8601 timestamp of when the session began
- * @property {string|null}                 sessionId           — Random, non-identifying id for this session (used in the submission payload)
+ * @property {string|null}                 sessionId           — Random, non-identifying id for this session (used in the download filename/payload)
+ * @property {import('../services/submissionService.js').SubmissionPayload|null} submissionPayload — Prepared payload, kept for re-download
+ * @property {boolean}                      downloadConfirmed   — True once the participant confirms they saved the downloaded file
  */
 
 /** @type {AppStateShape} */
@@ -88,7 +90,13 @@ const AppState = {
     sessionStartTime: null,
 
     // Random, non-identifying session id (set once at startup in main.js)
-    sessionId: null
+    sessionId: null,
+
+    // Save-to-device flow (no backend): the prepared payload is kept so the
+    // participant can re-download it, and downloadConfirmed gates the final
+    // "complete" screen + the unsaved-data warning on tab close.
+    submissionPayload: null,
+    downloadConfirmed: false
 };
 
 export default AppState;

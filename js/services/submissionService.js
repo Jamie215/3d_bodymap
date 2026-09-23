@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import AppState from '../app/state.js';
 import texturePool from './texturePool.js';
 import coverageCalculator from './coverageService.js';
+import { buildCsvFiles } from './csvExporter.js';
+import { DATA_DICTIONARY_MD } from '../data/dataDictionary.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -44,9 +46,10 @@ import coverageCalculator from './coverageService.js';
 /**
  * The complete data payload assembled by {@link prepareSubmissionData}.
  *
- * This object is handed to the response sink (see responseSink.js), which
- * submits it to the backend. The backend is not wired yet, so for now the
- * payload is logged at the integration point.
+ * There is no backend: this object is serialized and downloaded to the
+ * participant's machine by {@link downloadSubmissionZip}, so it can be stored on
+ * the provided encrypted device. (A future EmPOWER integration could POST the
+ * same object instead.)
  *
  * @typedef {Object} SubmissionPayload
  * @property {string}               schemaVersion         — Payload format version (see SCHEMA_VERSION)
@@ -311,3 +314,227 @@ export async function prepareSubmissionData() {
     };
 }
 
+// ============================================================================
+// LOCAL DOWNLOAD (no backend)
+// ============================================================================
+
+/**
+ * Builds a no-identifier base name for a downloaded session, e.g.
+ * `pain-assessment_2026-09-15T1430_a1b2c3d4`. The timestamp is local wall-clock
+ * (colons stripped so it's filesystem-safe); the id is the random,
+ * non-identifying session id. Callers append their own extension.
+ *
+ * @param {SubmissionPayload} payload
+ * @returns {string}
+ */
+function buildSubmissionBaseName(payload) {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+        `T${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const idPart = String(payload?.sessionId || 'session').slice(0, 8);
+    return `pain-assessment_${stamp}_${idPart}`;
+}
+
+/**
+ * Triggers a browser download of a Blob, entirely client-side (no network).
+ *
+ * @param {Blob} blob
+ * @param {string} filename
+ */
+function triggerBlobDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    try {
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.style.display = 'none';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+    } finally {
+        // Revoke on the next tick so the download has a chance to start first.
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+}
+
+/**
+ * Whether the browser supports the File System Access API, which lets the
+ * participant choose where the response file is written (e.g. straight to the
+ * provided encrypted device) instead of it landing in the default Downloads
+ * folder. Supported on Chromium desktop browsers (Chrome/Edge); unsupported on
+ * Firefox/Safari, where we fall back to a normal download.
+ *
+ * @returns {boolean}
+ */
+function supportsSavePicker() {
+    return typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function';
+}
+
+/**
+ * Opens the browser's "Save as…" dialog so the participant can choose the save
+ * location. Must be called while the triggering click still has user activation,
+ * so callers request the target BEFORE any long async work (e.g. zip building).
+ *
+ * @param {string} suggestedName
+ * @param {{description: string, mime: string, ext: string}} opts
+ * @returns {Promise<{handle: FileSystemFileHandle|null, cancelled: boolean}>}
+ *   handle — a writable file handle, or null to fall back to a normal download.
+ *   cancelled — true only when the participant dismissed the dialog themselves.
+ */
+async function requestSaveTarget(suggestedName, { description, mime, ext }) {
+    if (!supportsSavePicker()) return { handle: null, cancelled: false };
+    try {
+        const handle = await window.showSaveFilePicker({
+            suggestedName,
+            types: [{ description, accept: { [mime]: [ext] } }]
+        });
+        return { handle, cancelled: false };
+    } catch (error) {
+        // The participant closed the dialog without choosing — do nothing.
+        if (error && error.name === 'AbortError') return { handle: null, cancelled: true };
+        // Any other failure (e.g. a SecurityError): fall back to a normal download.
+        console.warn('Save dialog unavailable; falling back to default download', error);
+        return { handle: null, cancelled: false };
+    }
+}
+
+/**
+ * Writes a Blob to a chosen file handle, or downloads it the default way when no
+ * handle was obtained.
+ *
+ * @param {FileSystemFileHandle|null} handle
+ * @param {Blob} blob
+ * @param {string} filename
+ */
+async function writeToTarget(handle, blob, filename) {
+    if (handle) {
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+    }
+    triggerBlobDownload(blob, filename);
+}
+
+/**
+ * Extracts the base-64 body of a `data:` URL (e.g. a PNG snapshot). Returns null
+ * if the value is missing or not a base-64 data URL.
+ *
+ * @param {string|null|undefined} dataUrl
+ * @returns {string|null}
+ */
+function dataUrlToBase64(dataUrl) {
+    if (typeof dataUrl !== 'string') return null;
+    const comma = dataUrl.indexOf(',');
+    if (comma === -1 || !dataUrl.startsWith('data:') || !/;base64/i.test(dataUrl.slice(0, comma))) {
+        return null;
+    }
+    return dataUrl.slice(comma + 1);
+}
+
+/**
+ * Bundles the submission as a `.zip` and downloads it, so the participant can
+ * store one file on the provided encrypted device. The archive contains:
+ *
+ *   <base>/
+ *     metadata.json                — full payload, with the base-64 image blobs
+ *                                    replaced by the paths of the extracted files
+ *     snapshots/{front,back,left,right}.png
+ *     areas/area-<n>.png           — per-area UV drawing (when present)
+ *     csv/{session,areas,coverage}.csv + README.md
+ *
+ * Where the browser supports it, the participant is asked where to save the file
+ * (so it can go straight to the encrypted device, with no copy in Downloads);
+ * otherwise it downloads normally. Entirely client-side — no network request.
+ * Uses the vendored global `JSZip`.
+ *
+ * @param {SubmissionPayload} payload
+ * @returns {Promise<string|null>} the filename offered, or null if the
+ *   participant cancelled the save dialog
+ * @throws {Error} if JSZip is unavailable or zip generation fails
+ */
+export async function downloadSubmissionZip(payload) {
+    if (typeof window === 'undefined' || !window.JSZip) {
+        throw new Error('JSZip is not available (vendor/jszip/jszip.min.js not loaded)');
+    }
+
+    const base = buildSubmissionBaseName(payload);
+    const filename = `${base}.zip`;
+
+    // Ask where to save FIRST, while the triggering click still has user
+    // activation (the picker requires it, and zip generation below is async).
+    // This lets the participant write straight to the encrypted device with no
+    // copy left in the Downloads folder. If they cancel, do nothing.
+    const { handle, cancelled } = await requestSaveTarget(filename,
+        { description: 'Response bundle (ZIP archive)', mime: 'application/zip', ext: '.zip' });
+    if (cancelled) return null;
+
+    const zip = new window.JSZip();
+    const root = zip.folder(base);
+
+    // Shallow-clone the payload so we can swap image blobs for file references
+    // without mutating the live AppState payload.
+    const meta = { ...payload };
+
+    // Combined multi-view snapshots → snapshots/<label>.png
+    if (payload.combinedDrawing && typeof payload.combinedDrawing === 'object') {
+        const snapshots = root.folder('snapshots');
+        const refs = {};
+        for (const [label, dataUrl] of Object.entries(payload.combinedDrawing)) {
+            const b64 = dataUrlToBase64(dataUrl);
+            if (b64) {
+                snapshots.file(`${label}.png`, b64, { base64: true });
+                refs[label] = `snapshots/${label}.png`;
+            } else {
+                refs[label] = null;
+            }
+        }
+        meta.combinedDrawing = refs;
+    }
+
+    // Per-area images → areas/area-<n>/{front,back,left,right}.png
+    // (this area rendered on the 3D body, for anatomical reference)
+    if (Array.isArray(payload.areas)) {
+        const areasFolder = root.folder('areas');
+        meta.areas = payload.areas.map((area) => {
+            const dir = `area-${area.areaNumber}`;
+            const folder = areasFolder.folder(dir);
+            const next = { ...area };
+
+            if (area.bodyViews && typeof area.bodyViews === 'object') {
+                const refs = {};
+                for (const [label, dataUrl] of Object.entries(area.bodyViews)) {
+                    const b64 = dataUrlToBase64(dataUrl);
+                    if (b64) {
+                        folder.file(`${label}.png`, b64, { base64: true });
+                        refs[label] = `areas/${dir}/${label}.png`;
+                    } else {
+                        refs[label] = null;
+                    }
+                }
+                next.bodyViews = refs;
+            }
+
+            return next;
+        });
+    }
+
+    root.file('metadata.json', JSON.stringify(meta, null, 2));
+
+    // Tabular exports for analysis (region-by-region coverage in long format),
+    // plus a data dictionary that explains every column.
+    try {
+        const csvFolder = root.folder('csv');
+        for (const [name, text] of Object.entries(buildCsvFiles(payload))) {
+            csvFolder.file(name, text);
+        }
+        csvFolder.file('README.md', DATA_DICTIONARY_MD);
+    } catch (error) {
+        console.error('CSV export failed; continuing with JSON + images only', error);
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    await writeToTarget(handle, blob, filename);
+    return filename;
+}

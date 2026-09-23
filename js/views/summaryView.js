@@ -76,9 +76,13 @@ export function createSummaryView() {
     // ── Callbacks ──────────────────────────────────────────────────────
     let onEditArea    = null;
     let onDeleteArea  = null;
+    let onDownload    = null;
+    let onConfirmSaved = null;
 
     function setEditCallback(callback)        { onEditArea     = callback; }
     function setDeleteCallback(callback)      { onDeleteArea   = callback; }
+    function setDownloadCallback(callback)    { onDownload     = callback; }
+    function setConfirmSavedCallback(callback){ onConfirmSaved = callback; }
 
     // ── Status update ──────────────────────────────────────────────────
 
@@ -87,9 +91,14 @@ export function createSummaryView() {
         const isComplete = !!AppState.generalQuestionnaireResponse;
 
         if (isComplete) {
-            // Once the general questionnaire is submitted, show the final
-            // "done" screen.
-            renderComplete(count);
+            // After the questionnaire is done the responses are downloaded; the
+            // participant must confirm they saved the file before we show the
+            // final "done" screen.
+            if (AppState.downloadConfirmed) {
+                renderComplete(count);
+            } else {
+                renderSaveToDevice(count);
+            }
             return;
         }
 
@@ -102,6 +111,77 @@ export function createSummaryView() {
     }
 
     // ── Render states ──────────────────────────────────────────────────
+
+    // Save-to-encrypted-device screen. Shown after the questionnaire is complete
+    // and the responses have been downloaded, before the final "done" screen.
+    // There is no backend — the participant stores the downloaded file on the
+    // encrypted device provided to them.
+    function renderSaveToDevice(count) {
+        summaryStatusPanel.textContent = '';
+
+        summaryDoneButton.style.display    = 'none';
+        addNewInstanceButton.style.display = 'none';
+        helpButton.style.display           = 'none';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'summary-save';
+
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-circle-exclamation';
+        icon.style.color = 'var(--primary-color)';
+        icon.style.fontSize = 'var(--font-title-large)';
+
+        const title = document.createElement('span');
+        title.className = 'summary-title';
+        title.textContent = 'Save Your Response';
+
+        const instruction = document.createElement('p');
+        instruction.className = 'summary-instruction';
+        const countStrong = document.createElement('strong');
+        countStrong.textContent = String(count);
+        instruction.append(
+            'You logged ',
+            countStrong,
+            ` pain or symptom area${count !== 1 ? 's' : ''}. Download your response and save it to the `,
+            (() => { const s = document.createElement('strong'); s.textContent = 'encrypted device provided'; return s; })(),
+            ' before closing this page.'
+        );
+
+        // The download is triggered here (not automatically) — the button can be
+        // clicked again if the file is misplaced.
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'button button-primary';
+        downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> <span>Download response</span>';
+        downloadBtn.addEventListener('click', () => {
+            if (onDownload) onDownload();
+        });
+
+        // Confirmation gate.
+        const confirmRow = document.createElement('label');
+        confirmRow.className = 'summary-save-confirm';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+
+        const confirmText = document.createElement('span');
+        confirmText.textContent = 'I have saved the file to the provided device.';
+
+        confirmRow.append(checkbox, confirmText);
+
+        const finishBtn = document.createElement('button');
+        finishBtn.className = 'button button-success';
+        finishBtn.textContent = 'Finish';
+        finishBtn.disabled = true;
+        checkbox.addEventListener('change', () => {
+            finishBtn.disabled = !checkbox.checked;
+        });
+        finishBtn.addEventListener('click', () => {
+            if (checkbox.checked && onConfirmSaved) onConfirmSaved();
+        });
+
+        wrapper.append(icon, title, instruction, downloadBtn, confirmRow, finishBtn);
+        summaryStatusPanel.appendChild(wrapper);
+    }
 
     function renderComplete(count) {
         summaryStatusPanel.textContent = '';
@@ -124,7 +204,7 @@ export function createSummaryView() {
 
         const saved = document.createElement('p');
         saved.textContent =
-            'Your responses have been submitted. You may now close this page.';
+            'Your responses have been saved to the provided device. You may now close this page.';
 
         wrapper.append(icon, title, thankYou, saved);
         summaryStatusPanel.appendChild(wrapper);
@@ -235,6 +315,8 @@ export function createSummaryView() {
         addNewInstanceButton,
         summaryDoneButton,
         setEditCallback,
-        setDeleteCallback
+        setDeleteCallback,
+        setDownloadCallback,
+        setConfirmSavedCallback
     };
 }
