@@ -34,6 +34,10 @@ How it works:
 
 The mode lives in `js/app/studyMode.js`; the choice screen is `js/components/modals/modeChoiceModal.js`.
 
+## Guided tours
+
+Each screen's **Help** panel has a **Show me around this screen** button that runs a short tooltip tour of that screen's controls. Tours never start on their own, and can be replayed any number of times.
+
 ## Core Capabilities
 
 - **UV-based drawing** on a 3D mesh with 315 anatomical regions defined as Blender vertex groups
