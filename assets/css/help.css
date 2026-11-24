@@ -127,6 +127,14 @@
 .help-modal-content::-webkit-scrollbar-track { background: transparent; }
 .help-modal-content::-webkit-scrollbar-thumb { background-color: #cccccc; border-radius: 9999px; }
 
+/* ----- Guided tour button (top of the panel) ----- */
+.help-tour-button {
+  width: 100%;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
 /* =========================
    Accordion
 ========================= */

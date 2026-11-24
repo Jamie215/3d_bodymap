@@ -8,7 +8,6 @@
 
 import { getResponsiveManager } from '../utils/responsiveManager.js';
 import { setupRegionSelectorForDrawing } from '../components/viewControls.js';
-import { runDrawingTooltips, runReturnToSummaryTooltips, haveDrawingTooltipsShown } from './tooltipRunner.js';
 import { attachSurveyDrawer, detachSurveyDrawer } from '../components/surveyDrawer.js';
 import AppState from './state.js';
 
@@ -164,15 +163,6 @@ function layoutSummary(summary, isRelayout) {
     if (isRelayout) {
         summary.updateSummaryStatus();
     }
-
-    // Return-to-summary tooltips (once, after first completed area)
-    if (
-        !isRelayout &&
-        hasAreas &&
-        !AppState.generalQuestionnaireResponse
-    ) {
-        runReturnToSummaryTooltips();
-    }
 }
 
 function layoutSelection(selection) {
@@ -190,22 +180,11 @@ function layoutDrawing(drawing, survey, isRelayout) {
     // Footer: region selector (left) + done drawing (right)
     slotFooter.appendChild(drawing.drawingFooter);
 
-    const isFirstDrawingEntry = !AppState.isEditingArea;
-
     // Setup region selector — adds button to footerLeft.
-    // Only show the modal on genuine stage entry (not viewport relayouts).
-    if (isFirstDrawingEntry && !isRelayout) {
-        setupRegionSelectorForDrawing(drawing.footerLeft, true, (regionName) => {
-            drawing.updateStatusBar(regionName);
-
-            // Trigger drawing tooltips once after first region selection
-            if (!haveDrawingTooltipsShown()) {
-                runDrawingTooltips();
-            }
-        });
-    } else {
-        setupRegionSelectorForDrawing(drawing.footerLeft, false, drawing.updateStatusBar);
-    }
+    // Only open the selector modal when starting a new area on a genuine stage
+    // entry (not when re-editing an area, and not on viewport relayouts).
+    const openRegionSelector = !AppState.isEditingArea && !isRelayout;
+    setupRegionSelectorForDrawing(drawing.footerLeft, openRegionSelector, drawing.updateStatusBar);
 
     // Help button floats over the canvas
     canvasContent.appendChild(drawing.helpButton);

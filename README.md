@@ -33,7 +33,7 @@ The application guides patients through a multi-step workflow:
 | Vanilla ES modules | Application code — no bundler, no framework |
 | Import map (`index.html`) | Resolves `three` and `three/addons/` from CDN |
 | [SurveyJS / SurveyKO](https://surveyjs.io/) | Questionnaire rendering and validation |
-| [Driver.js](https://driverjs.com/) | Onboarding tooltip sequences |
+| [Driver.js](https://driverjs.com/) | Guided-tour tooltips, started from the Help panel |
 | [Font Awesome](https://fontawesome.com/) 7 | UI icons |
 | [D3.js](https://d3js.org/) v7 | Available for data visualization (loaded, not actively used) |
 
@@ -76,7 +76,7 @@ No build process required — the application runs directly in a modern browser 
 │   │   ├── drawingInstanceManager.js  Drawing instance CRUD, color assignment, previews
 │   │   ├── state.js                Global AppState singleton (fully typed with JSDoc)
 │   │   ├── eventManager.js         Centralized event listener tracking and cleanup
-│   │   ├── tooltipRunner.js        Driver.js wrapper — runs tooltip sequences
+│   │   ├── tooltipRunner.js        Driver.js wrapper — runs a screen's guided tour on request
 │   │   └── tooltipSteps.js         Tooltip step definitions (pure data)
 │   │
 │   ├── components/                 Reusable UI components

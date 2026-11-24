@@ -1,5 +1,5 @@
 // tooltipSteps.js
-// Driver.js tooltip step definitions, extracted from main.js.
+// Driver.js tooltip step definitions for the guided tours.
 // Pure data — no DOM manipulation or Driver.js instantiation,
 // with one exception: the marker-size step uses Driver.js's own
 // onHighlightStarted / onDeselected callbacks to open the size
@@ -68,7 +68,7 @@ function buildMarkerSizeInlineStep() {
 }
 
 /**
- * Steps shown the first time a user enters the drawing view.
+ * Guided tour of the drawing view (started from the Help panel).
  * Highlights: region selector, draw/erase tools, brush size, rotation, zoom.
  *
  * Built as a function (rather than a static const) so the marker-size
@@ -138,39 +138,43 @@ export function buildDrawingSteps() {
 }
 
 /**
- * Steps shown when the user returns to the summary view after
- * completing their first pain/symptom area.
+ * Guided tour of the summary view (started from the Help panel, which is only
+ * offered once at least one area exists — the first step targets an area card).
  * Highlights: area card, add-more button, proceed button.
+ *
+ * @returns {Array} Driver.js step definitions
  */
-export const RETURN_TO_SUMMARY_STEPS = [
-    {
-        element: '.area-item',
-        popover: {
-            title: 'Your Logged Area',
-            description: 'Each pain or symptom area you complete will appear here. You can edit or delete any area at any time.',
-            side: 'bottom',
-            align: 'center'
+export function buildSummarySteps() {
+    return [
+        {
+            element: '.area-item',
+            popover: {
+                title: 'Your Logged Area',
+                description: 'Each pain or symptom area you complete will appear here. You can edit or delete any area at any time.',
+                side: 'bottom',
+                align: 'center'
+            }
+        },
+        {
+            element: '#add-new-instance-summary',
+            popover: {
+                title: 'Add More Areas',
+                description: 'If you have pain or symptoms in other areas, click here to draw and log another one.',
+                side: 'top',
+                align: 'center'
+            }
+        },
+        {
+            element: '#summary-done-button',
+            popover: {
+                title: 'Finish Up',
+                description: "Once you've added all your areas, click here to complete the general questionnaire and submit.",
+                side: 'top',
+                align: 'center'
+            }
         }
-    },
-    {
-        element: '#add-new-instance-summary',
-        popover: {
-            title: 'Add More Areas',
-            description: 'If you have pain or symptoms in other areas, click here to draw and log another one.',
-            side: 'top',
-            align: 'center'
-        }
-    },
-    {
-        element: '#summary-done-button',
-        popover: {
-            title: 'Finish Up',
-            description: "Once you've added all your areas, click here to complete the general questionnaire and submit.",
-            side: 'top',
-            align: 'center'
-        }
-    }
-];
+    ];
+}
 
 /**
  * Shared Driver.js configuration used by all tooltip sequences.
