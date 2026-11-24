@@ -28,7 +28,7 @@ How it works:
 
 - The choice comes **before** onboarding, because onboarding's steps depend on it (drawing only drops the "Answer the questionnaire" step).
 - The choice is **locked for the session**. One participant's record is never a mix of areas with and without answers. To change mode, start a new session.
-- A page refresh in the middle of a session does not ask again (the choice is remembered for the browser tab). Ending a session, by finishing or by the inactivity timeout, clears it, so the next participant chooses afresh.
+- A page refresh in the middle of a session does not ask again (the choice is remembered for the browser tab). Ending a session, by finishing or by the inactivity timeout, clears it, so the next participant chooses afresh and then sees onboarding.
 - In drawing only, "Done Drawing" returns to the list of areas; "Edit" opens the drawing directly; and the summary's last button is **Finish and Save My Drawings**, which leads to the usual save-to-device screen.
 - The saved data records the choice in `studyMode`. In drawing-only sessions the questionnaire fields are empty (`null`) on purpose — see [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md#drawing-only-sessions).
 

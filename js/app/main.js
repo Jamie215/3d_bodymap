@@ -186,13 +186,14 @@ initApp({
 //      idle timeout) and the app reloaded to a clean front page.
 //   2. Mode choice — full form or drawing only. Every new session; skipped on
 //      a mid-session page refresh because the choice is remembered.
-//   3. Onboarding — first visit only. As before, it is not shown after a
-//      session-ended notice.
+//   3. Onboarding — once per session, including for the next participant
+//      after a session-ended notice (ending a session clears the "seen" flag).
+//      Skipped on a mid-session page refresh.
 const resetNotice = consumeSessionResetNotice();
 
 function showStartScreens() {
     const showOnboardingIfNeeded = () => {
-        if (!resetNotice && !hasOnboardingBeenShown()) showOnboardingModal();
+        if (!hasOnboardingBeenShown()) showOnboardingModal();
     };
 
     if (hasStudyMode()) {
