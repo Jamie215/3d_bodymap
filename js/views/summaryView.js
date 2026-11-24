@@ -5,6 +5,7 @@
 // are placed above the 3D model by stageLayout.
 
 import AppState from '../app/state.js';
+import { isDrawingOnly } from '../app/studyMode.js';
 import { createVideoEmbed, createVideoLink } from '../components/videoEmbed.js';
 import { showHelpModal } from '../components/modal.js';
 import { getResponsiveManager } from '../utils/responsiveManager.js';
@@ -60,11 +61,10 @@ export function createSummaryView() {
         '<span class="summary-btn-text-short">Add a New Area</span>';
     addNewInstanceButton.classList.add('button', 'button-primary');
 
+    // Label is set in renderAreaList(): it depends on the study mode, which the
+    // participant chooses after this view is created.
     const summaryDoneButton = document.createElement('button');
     summaryDoneButton.id = 'summary-done-button';
-    summaryDoneButton.innerHTML =
-        '<span class="summary-btn-text-full">Proceed to General Questionnaire</span>' +
-        '<span class="summary-btn-text-short">Continue</span>';
     summaryDoneButton.classList.add('button', 'button-success');
 
     summaryFooter.appendChild(addNewInstanceButton);
@@ -88,12 +88,12 @@ export function createSummaryView() {
 
     function updateSummaryStatus() {
         const count      = AppState.drawingInstances.length;
-        const isComplete = !!AppState.generalQuestionnaireResponse;
+        const isComplete = AppState.isSubmitted;
 
         if (isComplete) {
-            // After the questionnaire is done the responses are downloaded; the
-            // participant must confirm they saved the file before we show the
-            // final "done" screen.
+            // Once the participant has finished, the responses are downloaded;
+            // they must confirm they saved the file before we show the final
+            // "done" screen.
             if (AppState.downloadConfirmed) {
                 renderComplete(count);
             } else {
@@ -233,6 +233,12 @@ export function createSummaryView() {
         changeModelButton.style.display = 'none';
         summaryDoneButton.style.display = '';
         summaryDoneButton.disabled      = false;
+        // Drawing-only mode has no general questionnaire: this button finishes.
+        summaryDoneButton.innerHTML = isDrawingOnly()
+            ? '<span class="summary-btn-text-full">Finish and Save My Drawings</span>' +
+              '<span class="summary-btn-text-short">Finish</span>'
+            : '<span class="summary-btn-text-full">Proceed to General Questionnaire</span>' +
+              '<span class="summary-btn-text-short">Continue</span>';
 
         summaryStatusPanel.textContent = '';
 
@@ -247,7 +253,9 @@ export function createSummaryView() {
 
         const instruction = document.createElement('p');
         instruction.className = 'summary-instruction';
-        instruction.textContent = 'You can add more areas or proceed to the general questionnaire.';
+        instruction.textContent = isDrawingOnly()
+            ? 'You can add more areas, or finish when you have drawn them all.'
+            : 'You can add more areas or proceed to the general questionnaire.';
 
         const areasList = document.createElement('div');
         areasList.className = 'areas-list';

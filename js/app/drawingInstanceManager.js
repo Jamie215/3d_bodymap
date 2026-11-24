@@ -326,9 +326,10 @@ function resetSessionData() {
     AppState.currentSurveyIndex  = 0;
 
     // Clear questionnaire answers and the prepared payload (the sensitive
-    // snapshots + responses). Nulling generalQuestionnaireResponse also disarms
-    // the beforeunload "unsaved data" guard so an idle reload isn't blocked.
+    // snapshots + responses). Clearing isSubmitted also disarms the
+    // beforeunload "unsaved data" guard so an idle reload isn't blocked.
     AppState.generalQuestionnaireResponse = null;
+    AppState.isSubmitted = false;
     AppState.submissionPayload = null;
     AppState.selectedRegion = null;
 
@@ -349,7 +350,7 @@ function resetSessionData() {
  * @param {'complete'|'idle'} reason  — 'complete' after Finish, 'idle' after timeout
  */
 export function endSession(reason) {
-    // Flushing first nulls generalQuestionnaireResponse, which also disarms the
+    // Flushing first clears isSubmitted, which also disarms the
     // beforeunload "unsaved data" guard so the reload is never blocked.
     try { resetSessionData(); } catch (e) { console.error('endSession: data flush failed', e); }
 

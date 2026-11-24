@@ -5,6 +5,7 @@
 // accidental page refresh mid-form.
 
 import { hasShown, markShown } from '../../utils/sessionFlags.js';
+import { isDrawingOnly } from '../../app/studyMode.js';
 
 let onboardingModalEl = null;
 let onboardingModalOverlay = null;
@@ -47,7 +48,7 @@ export function initOnboardingModal(container) {
                     </div>
                 </div>
                 
-                <div class="onboarding-step">
+                <div class="onboarding-step" data-step="questionnaire">
                     <div class="onboarding-step-icon">
                         <i class="fa-solid fa-clipboard-list"></i>
                     </div>
@@ -80,6 +81,11 @@ export function showOnboardingModal() {
         console.warn('Onboarding modal not initialized. Call initOnboardingModal first.');
         return;
     }
+
+    // The questionnaire step only applies to the full form. Decided here, not
+    // at init, because the participant chooses the mode after the page loads.
+    const questionnaireStep = onboardingModalEl.querySelector('[data-step="questionnaire"]');
+    if (questionnaireStep) questionnaireStep.style.display = isDrawingOnly() ? 'none' : '';
 
     onboardingModalOverlay.style.display = 'flex';
     requestAnimationFrame(() => {

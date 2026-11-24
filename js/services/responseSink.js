@@ -75,5 +75,5 @@ export function rollbackResponse() {
  * @returns {boolean}
  */
 export function hasUnsavedResponse() {
-    return !!AppState.generalQuestionnaireResponse && !AppState.downloadConfirmed;
+    return AppState.isSubmitted && !AppState.downloadConfirmed;
 }

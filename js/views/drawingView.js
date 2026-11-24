@@ -3,6 +3,7 @@
 import { createDrawingControls } from '../components/drawingControls.js';
 import { showHelpModal } from '../components/modal.js';
 import AppState from '../app/state.js';
+import { isDrawingOnly } from '../app/studyMode.js';
 
 export function createDrawingViewElements(controls) {
     const drawingView = document.createElement('div');
@@ -64,7 +65,8 @@ export function createDrawingViewElements(controls) {
         badge.style.backgroundColor = bgColor;
 
         if (AppState.isEditingArea) {
-            titleSpan.append(titleIcon, ' Make your changes, then click "Done Editing" to return to the questionnaire');
+            const returnTo = isDrawingOnly() ? 'your list of areas' : 'the questionnaire';
+            titleSpan.append(titleIcon, ` Make your changes, then click "Done Editing" to return to ${returnTo}`);
             badge.textContent = `Editing Area #${current}`;
         } else {
             titleSpan.append(titleIcon, ' Draw one area of pain or symptom area on the body');

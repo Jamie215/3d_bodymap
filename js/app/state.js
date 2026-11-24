@@ -32,7 +32,8 @@
  *
  * @property {number}                      currentSurveyIndex  — Index of the drawing instance whose survey is active
  * @property {boolean}                     isEditingArea       — True when re-editing an existing area's drawing (not drawing a new one)
- * @property {Object|null}                 generalQuestionnaireResponse — Saved general survey data (null until submitted)
+ * @property {Object|null}                 generalQuestionnaireResponse — Saved general survey data (null until submitted; always null in drawing-only mode)
+ * @property {boolean}                     isSubmitted         — True once the participant has finished and the payload was handed to the response sink
  *
  * @property {string|null}                 sessionStartTime    — ISO 8601 timestamp of when the session began
  * @property {string|null}                 sessionId           — Random, non-identifying id for this session (used in the download filename/payload)
@@ -85,6 +86,11 @@ const AppState = {
     currentSurveyIndex: 0,
     isEditingArea: false,
     generalQuestionnaireResponse: null,
+
+    // Set once the participant has finished and the payload has been handed to
+    // the response sink. This — not the general questionnaire — marks a
+    // session as finished, because drawing-only mode has no questionnaire.
+    isSubmitted: false,
 
     // Session timing
     sessionStartTime: null,

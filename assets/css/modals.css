@@ -528,6 +528,85 @@
 }
 
 /* =========================
+   Mode choice (first screen) — reuses the onboarding overlay above;
+   only the subtitle and option cards are styled here.
+========================= */
+.mode-choice-subtitle {
+  font-size: var(--font-body-large);
+  color: var(--dark-grey);
+  margin: 0 0 var(--space-xl) 0;
+  line-height: 1.5;
+}
+
+.mode-choice-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.mode-choice-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+  padding: var(--space-lg);
+  background: var(--panel-background);
+  border: 2px solid #e5e7eb;
+  border-radius: var(--border-radius-lg);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.mode-choice-card:hover,
+.mode-choice-card:focus-visible {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.mode-choice-card:active { transform: translateY(0); }
+
+#mode-choice-overlay [role="dialog"]:focus { outline: none; }
+
+.mode-choice-card-icon {
+  flex: 0 0 48px;
+  font-size: 36px;
+  color: var(--primary-color);
+  text-align: center;
+}
+
+.mode-choice-card-text { display: flex; flex-direction: column; gap: var(--space-2xs); }
+
+.mode-choice-card-title {
+  font-size: var(--font-title-small);
+  font-weight: 700;
+  color: var(--secondary-color);
+}
+
+.mode-choice-card-description {
+  font-size: var(--font-body-small);
+  color: var(--dark-grey);
+  line-height: 1.4;
+}
+
+@media (max-width: 540px) {
+  .mode-choice-subtitle { font-size: var(--font-body-medium); margin-bottom: var(--space-lg); }
+  .mode-choice-card { gap: var(--space-md); padding: var(--space-md); }
+  .mode-choice-card-icon { flex-basis: 36px; font-size: 28px; }
+}
+
+@media (max-height: 500px) {
+  .mode-choice-subtitle { margin-bottom: var(--space-md); }
+  .mode-choice-options { gap: var(--space-sm); }
+  .mode-choice-card { padding: var(--space-sm) var(--space-md); }
+}
+
+/* =========================
    Onboarding — Mobile Fullscreen
 ========================= */
 @media (max-width: 767px) {

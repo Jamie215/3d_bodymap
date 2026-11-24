@@ -6,6 +6,8 @@
 // popover on touch viewports. This is a step-level lifecycle hook,
 // not free-floating DOM work.
 
+import { isDrawingOnly } from './studyMode.js';
+
 // ============================================================================
 // MARKER SIZE STEP
 // ============================================================================
@@ -168,7 +170,9 @@ export function buildSummarySteps() {
             element: '#summary-done-button',
             popover: {
                 title: 'Finish Up',
-                description: "Once you've added all your areas, click here to complete the general questionnaire and submit.",
+                description: isDrawingOnly()
+                    ? "Once you've added all your areas, click here to finish and save your drawings."
+                    : "Once you've added all your areas, click here to complete the general questionnaire and submit.",
                 side: 'top',
                 align: 'center'
             }

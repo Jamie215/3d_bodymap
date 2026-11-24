@@ -2,6 +2,7 @@
 
 import * as THREE from 'three';
 import AppState from '../app/state.js';
+import { getStudyMode } from '../app/studyMode.js';
 import texturePool from './texturePool.js';
 import coverageCalculator from './coverageService.js';
 import { buildCsvFiles } from './csvExporter.js';
@@ -38,7 +39,7 @@ import { DATA_DICTIONARY_MD } from '../data/dataDictionary.js';
  * @property {number}              areaNumber              — 1-based area index
  * @property {string}              areaId                  — e.g. "drawing-1"
  * @property {MultiViewSnapshots|null} bodyViews           — This area rendered on the 3D body (front/back/left/right)
- * @property {Object|null}         questionnaireResponses  — Area survey answers
+ * @property {Object|null}         questionnaireResponses  — Area survey answers (always null in drawing-only mode)
  * @property {string[]}            drawnRegions            — Vertex group names with drawn content
  * @property {AreaCoverageData|null} coverage
  */
@@ -53,6 +54,7 @@ import { DATA_DICTIONARY_MD } from '../data/dataDictionary.js';
  *
  * @typedef {Object} SubmissionPayload
  * @property {string}               schemaVersion         — Payload format version (see SCHEMA_VERSION)
+ * @property {'full'|'drawing-only'} studyMode           — Form version the participant chose (see studyMode.js)
  * @property {string}               sessionId             — Random, non-identifying session id
  * @property {string}               startTime             — ISO 8601 session start
  * @property {string}               completionTime        — ISO 8601 submission time
@@ -61,14 +63,19 @@ import { DATA_DICTIONARY_MD } from '../data/dataDictionary.js';
  * @property {MultiViewSnapshots}   combinedDrawing        — 4-angle model snapshots
  * @property {number}               totalAreas             — Number of pain/symptom areas
  * @property {SubmissionArea[]}     areas                  — Per-area data
- * @property {Object|null}          generalQuestionnaire   — General survey answers
+ * @property {Object|null}          generalQuestionnaire   — General survey answers (always null in drawing-only mode)
  */
 
 /**
  * Version of the {@link SubmissionPayload} shape. Bump this whenever the fields
  * change, so downloaded files remain parseable at analysis time.
+ *
+ *   1.0  initial format
+ *   1.1  added `studyMode`. In 'drawing-only' sessions every area's
+ *        `questionnaireResponses` and the top-level `generalQuestionnaire` are
+ *        null on purpose — the questionnaires were never shown.
  */
-export const SCHEMA_VERSION = '1.0';
+export const SCHEMA_VERSION = '1.1';
 
 // Dependencies injected via initSubmissionService()
 let renderer = null;
@@ -296,6 +303,7 @@ export async function prepareSubmissionData() {
 
     return {
         schemaVersion: SCHEMA_VERSION,
+        studyMode: getStudyMode(),
         sessionId: AppState.sessionId,
         startTime,
         completionTime: new Date().toISOString(),

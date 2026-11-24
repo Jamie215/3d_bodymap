@@ -35,12 +35,21 @@ pain-assessment_<stamp>_<id>/
 - `sessionId` links every file to this session.
 - `areaNumber` (1-based) links `areas.csv` ↔ `coverage.csv` ↔ `areas/area-<n>/`.
 
+## Drawing-only sessions
+
+When `studyMode` is `drawing-only`, no questionnaire was shown. The drawings,
+snapshots and coverage are complete, but there are **no** `general.*` columns
+in session.csv and **no** `q.*` columns in areas.csv. In metadata.json,
+`generalQuestionnaire` and every area's `questionnaireResponses` are `null`.
+This is intentional, not missing data.
+
 ## session.csv (one row)
 
 | Column | Meaning |
 |---|---|
 | `sessionId` | Random, non-identifying session id |
 | `schemaVersion` | Payload format version |
+| `studyMode` | Form version the participant chose: `full` (drawings + questionnaires) or `drawing-only` (drawings, no questionnaires) |
 | `startTime` / `completionTime` | ISO 8601 timestamps (session start / submit) |
 | `durationSeconds` | Wall-clock session length |
 | `modelType` | Body model used (e.g. "Type 1") |

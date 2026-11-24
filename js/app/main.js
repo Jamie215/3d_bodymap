@@ -10,6 +10,8 @@ import {
     initDeleteEmptyModal,
     initDeleteAreaModal,
     initRegionSelectorModal,
+    initModeChoiceModal,
+    showModeChoiceModal,
     initOnboardingModal,
     initHelpModal,
     initIdleWarningModal,
@@ -29,6 +31,7 @@ import { createSurveyViewElements } from '../views/surveyView.js';
 import { getResponsiveManager } from '../utils/responsiveManager.js';
 import { initStageLayout, setStage } from './stageLayout.js';
 import AppState from './state.js';
+import { hasStudyMode, setStudyMode } from './studyMode.js';
 import { initRotatePrompt } from '../components/rotatePrompt.js';
 
 AppState.sessionStartTime = new Date().toISOString();
@@ -110,6 +113,7 @@ initDrawResetModal(document.body);
 initDeleteEmptyModal(document.body);
 initDeleteAreaModal(document.body);
 initRegionSelectorModal(document.body);
+initModeChoiceModal(document.body);
 initOnboardingModal(document.body);
 initHelpModal(document.body);
 initIdleWarningModal(document.body);
@@ -177,14 +181,34 @@ initApp({
     }
 });
 
-// If we just reloaded from ending a session (Finish or idle timeout), show the
-// "session ended" notice instead of onboarding; otherwise run the normal
-// first-visit onboarding. (The reload returns to a clean front page.)
+// Start-up screens, in order:
+//   1. "Session ended" notice — only right after a session ended (Finish or
+//      idle timeout) and the app reloaded to a clean front page.
+//   2. Mode choice — full form or drawing only. Every new session; skipped on
+//      a mid-session page refresh because the choice is remembered.
+//   3. Onboarding — first visit only. As before, it is not shown after a
+//      session-ended notice.
 const resetNotice = consumeSessionResetNotice();
+
+function showStartScreens() {
+    const showOnboardingIfNeeded = () => {
+        if (!resetNotice && !hasOnboardingBeenShown()) showOnboardingModal();
+    };
+
+    if (hasStudyMode()) {
+        showOnboardingIfNeeded();
+        return;
+    }
+    showModeChoiceModal(mode => {
+        setStudyMode(mode);
+        showOnboardingIfNeeded();
+    });
+}
+
 if (resetNotice) {
-    showSessionResetModal(resetNotice);
-} else if (!hasOnboardingBeenShown()) {
-    showOnboardingModal();
+    showSessionResetModal(resetNotice, showStartScreens);
+} else {
+    showStartScreens();
 }
 
 // Inactivity watchdog: resets the session on a shared/provided device if the

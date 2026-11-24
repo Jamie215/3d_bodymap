@@ -14,6 +14,7 @@
 
 import { HELP_CONTENT } from '../../data/helpContent.js';
 import { hasScreenTour, runScreenTour } from '../../app/tooltipRunner.js';
+import { getStudyMode } from '../../app/studyMode.js';
 import { createVideoEmbed } from '../videoEmbed.js';
 
 // ============================================================================
@@ -90,7 +91,9 @@ export function showHelpModal(context = 'drawing') {
         return;
     }
 
-    const entries = HELP_CONTENT[context];
+    // Drop entries meant only for the other study mode (see helpContent.js).
+    const mode    = getStudyMode();
+    const entries = HELP_CONTENT[context]?.filter(entry => !entry.modes || entry.modes.includes(mode));
     if (!entries) {
         console.warn(`No help content found for context: ${context}`);
         return;

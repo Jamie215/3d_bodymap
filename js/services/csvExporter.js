@@ -106,6 +106,7 @@ function buildSessionCsv(payload) {
     const row = {
         sessionId: payload.sessionId,
         schemaVersion: payload.schemaVersion,
+        studyMode: payload.studyMode,
         startTime: payload.startTime,
         completionTime: payload.completionTime,
         durationSeconds: payload.durationSeconds,

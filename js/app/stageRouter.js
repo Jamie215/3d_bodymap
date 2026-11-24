@@ -113,7 +113,7 @@ export function goTo(stage) {
             if (cameraUtils) cameraUtils.resetView();
             setVisibleRegions(null, null);
 
-            const isSessionComplete = AppState.generalQuestionnaireResponse !== null;
+            const isSessionComplete = AppState.isSubmitted;
 
             if (isSessionComplete && AppState.drawingInstances.length > 0) {
                 // Completed session — show combined texture, hide controls
