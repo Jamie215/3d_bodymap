@@ -3,7 +3,7 @@
 // Consumes step definitions from tooltipSteps.js.
 //
 // Tours never start on their own. The participant starts one from the Help
-// panel ("Show me around this screen"), so they can replay it as often as they
+// panel ("Take a quick tour"), so they can replay it as often as they
 // like. Because nothing runs automatically, there is no "already shown" state
 // to track.
 

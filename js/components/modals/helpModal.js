@@ -8,8 +8,8 @@
 // While open, sets data-help-open="true" on <html> so CSS can disable
 // pointer events on the canvas. Only one accordion item open at a time.
 //
-// Screens with a guided tour (see tooltipRunner.js) get a "Show me around this
-// screen" button above the questions. It is the only way to start a tour —
+// Screens with a guided tour (see tooltipRunner.js) get a "Take a quick tour"
+// button above the questions. It is the only way to start a tour —
 // tours never start on their own.
 
 import { HELP_CONTENT } from '../../data/helpContent.js';
@@ -151,7 +151,7 @@ function createTourButton(context) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'button button-primary help-tour-button';
-    button.innerHTML = '<i class="fa-solid fa-route"></i> <span>Show me around this screen</span>';
+    button.innerHTML = '<i class="fa-solid fa-route"></i> <span>Take a quick tour</span>';
     button.addEventListener('click', () => {
         hideHelpModal();
         runScreenTour(context);

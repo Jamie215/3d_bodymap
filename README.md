@@ -36,7 +36,7 @@ The mode lives in `js/app/studyMode.js`; the choice screen is `js/components/mod
 
 ## Guided tours
 
-Each screen's **Help** panel has a **Show me around this screen** button that runs a short tooltip tour of that screen's controls. Tours never start on their own, and can be replayed any number of times.
+Each screen's **Help** panel has a **Take a quick tour** button that runs a short tooltip tour of that screen's controls. Tours never start on their own, and can be replayed any number of times.
 
 ## Core Capabilities
 
