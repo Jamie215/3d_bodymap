@@ -31,7 +31,7 @@
  * @property {string|null}                 selectedRegion      — Currently selected region from the region selector modal
  *
  * @property {number}                      currentSurveyIndex  — Index of the drawing instance whose survey is active
- * @property {boolean}                     isEditingFromSurvey — True when editing a drawing from the survey stage
+ * @property {boolean}                     isEditingArea       — True when re-editing an existing area's drawing (not drawing a new one)
  * @property {Object|null}                 generalQuestionnaireResponse — Saved general survey data (null until submitted)
  *
  * @property {string|null}                 sessionStartTime    — ISO 8601 timestamp of when the session began
@@ -83,7 +83,7 @@ const AppState = {
     
     // Survey state
     currentSurveyIndex: 0,
-    isEditingFromSurvey: false,
+    isEditingArea: false,
     generalQuestionnaireResponse: null,
 
     // Session timing

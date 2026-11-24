@@ -190,7 +190,7 @@ function layoutDrawing(drawing, survey, isRelayout) {
     // Footer: region selector (left) + done drawing (right)
     slotFooter.appendChild(drawing.drawingFooter);
 
-    const isFirstDrawingEntry = !AppState.isEditingFromSurvey;
+    const isFirstDrawingEntry = !AppState.isEditingArea;
 
     // Setup region selector — adds button to footerLeft.
     // Only show the modal on genuine stage entry (not viewport relayouts).

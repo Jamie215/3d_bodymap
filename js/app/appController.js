@@ -145,7 +145,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     summary.changeModelButton.addEventListener('click', () => goTo('selection'));
 
     summary.addNewInstanceButton.addEventListener('click', () => {
-        AppState.isEditingFromSurvey = false;
+        AppState.isEditingArea = false;
         addNewDrawingInstance();
         goTo('drawing');
     });
@@ -202,7 +202,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     selection.returnSummaryButton.addEventListener('click', () => goTo('summary'));
 
     selection.addNewInstanceButton.addEventListener('click', () => {
-        AppState.isEditingFromSurvey = false;
+        AppState.isEditingArea = false;
         addNewDrawingInstance();
         goTo('drawing');
     });
@@ -213,12 +213,12 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     drawing.continueButton.addEventListener('click', async () => {
         // Editing an existing area — return to its survey
-        if (AppState.isEditingFromSurvey) {
+        if (AppState.isEditingArea) {
             if (isDrawingBlank()) {
                 if (handleEmptyDrawing('returnFromEdit')) return;
             }
             updateCurrentDrawing();
-            AppState.isEditingFromSurvey  = false;
+            AppState.isEditingArea  = false;
             AppState.currentDrawingIndex  = AppState.currentSurveyIndex;
             cleanupInteraction();
             disableCursorManagement();
@@ -281,7 +281,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     survey.editDrawingButton.addEventListener('click', () => {
         saveCurrentSurveyData();
-        AppState.isEditingFromSurvey  = true;
+        AppState.isEditingArea  = true;
         AppState.currentDrawingIndex  = AppState.currentSurveyIndex;
         goTo('drawing');
     });

@@ -63,7 +63,7 @@ export function createDrawingViewElements(controls) {
         badge.style.color = color;
         badge.style.backgroundColor = bgColor;
 
-        if (AppState.isEditingFromSurvey) {
+        if (AppState.isEditingArea) {
             titleSpan.append(titleIcon, ' Make your changes, then click "Done Editing" to return to the questionnaire');
             badge.textContent = `Editing Area #${current}`;
         } else {

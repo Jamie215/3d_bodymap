@@ -455,7 +455,7 @@ export function executePendingAction() {
 
         case 'returnFromEdit':
             deleteDrawingInstance(currentIndex);
-            AppState.isEditingFromSurvey = false;
+            AppState.isEditingArea = false;
             goTo('summary');
             break;
 

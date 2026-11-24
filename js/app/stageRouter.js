@@ -61,7 +61,7 @@ export function initStageRouter(deps) {
 function updateDrawingNavigationButtons() {
     const { drawing } = views;
 
-    if (AppState.isEditingFromSurvey) {
+    if (AppState.isEditingArea) {
         drawing.continueButton.textContent = 'Done Editing';
         drawing.continueButton.classList.add('button-drawing-center');
         drawing.continueButton.classList.remove('button-success');
@@ -162,7 +162,7 @@ export function goTo(stage) {
                 const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
                 const ctx = currentInstance.context;
 
-                if (!currentInstance.initialized && !AppState.isEditingFromSurvey) {
+                if (!currentInstance.initialized && !AppState.isEditingArea) {
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, currentInstance.canvas.width, currentInstance.canvas.height);
                     if (AppState.baseTextureCanvas) ctx.drawImage(AppState.baseTextureCanvas, 0, 0);
