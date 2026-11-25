@@ -15,8 +15,15 @@
 // definitions, not from the answers that happen to be present. A question that
 // was not shown (a conditional follow-up, or every question in drawing-only
 // mode) is a blank cell, never a missing column. Blank is used rather than a
-// text code like "N/A" so numeric columns stay numeric in R/pandas/Excel, which
-// all read a blank cell as missing. `studyMode` says why a cell is blank.
+// text code like "N/A" so numeric columns stay numeric in R/pandas/Excel;
+// pandas and readr read a blank cell as missing, base R needs na.strings = ""
+// for text columns. `studyMode` says why a cell is blank.
+//
+// Encoding: UTF-8 *with* a byte-order mark (BOM). Without it, Excel on Windows
+// misreads any non-ASCII character — including the curly apostrophe (’) that
+// iPad/iPhone keyboards insert by default — as garbage like "â€™". pandas and
+// readr strip the BOM automatically; base R and Python's csv module need one
+// extra argument (see the data dictionary, "Opening the CSVs").
 
 import { areaSurveyJson } from '../data/areaSurvey.js';
 import { generalSurveyJson } from '../data/generalSurvey.js';
@@ -156,6 +163,9 @@ const AREA_COLUMNS = [
 
 const COVERAGE_COLUMNS = ['sessionId', 'areaNumber', 'region', 'coloredArea', 'percentage', 'bodyContribution'];
 
+/** UTF-8 byte-order mark, prepended to every CSV so Excel detects UTF-8. */
+const UTF8_BOM = '\uFEFF';
+
 /**
  * The fixed columns, plus any key found in the rows that the fixed list does
  * not know about. That should never happen, but if a survey definition and the
@@ -260,15 +270,16 @@ function buildCoverageCsv(payload) {
 }
 
 /**
- * Builds every CSV file for the download bundle.
+ * Builds every CSV file for the download bundle. Each text starts with a UTF-8
+ * byte-order mark (see the encoding note at the top of this file).
  *
  * @param {import('./submissionService.js').SubmissionPayload} payload
  * @returns {Object<string,string>} filename → CSV text
  */
 export function buildCsvFiles(payload) {
     return {
-        'session.csv': buildSessionCsv(payload),
-        'areas.csv': buildAreasCsv(payload),
-        'coverage.csv': buildCoverageCsv(payload)
+        'session.csv': UTF8_BOM + buildSessionCsv(payload),
+        'areas.csv': UTF8_BOM + buildAreasCsv(payload),
+        'coverage.csv': UTF8_BOM + buildCoverageCsv(payload)
     };
 }

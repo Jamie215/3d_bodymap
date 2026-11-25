@@ -48,14 +48,33 @@ pain-assessment_<stamp>_<id>/
   as standard CSV. Some stored answers contain commas (see \`q.onsetCause\`).
 - **Timestamps** are ISO 8601 in UTC (ending \`Z\`).
 
+## Opening the CSVs
+
+The CSVs are UTF-8 text **with a byte-order mark** (BOM — an invisible marker
+at the very start of the file). The marker lets Excel show accented letters and
+curly apostrophes (’, which iPad and iPhone keyboards type by default)
+correctly; without it, Excel shows them as garbage such as \`â€™\`.
+
+| Tool | How to open |
+|---|---|
+| Excel | Double-click the file. No extra steps. |
+| Python, pandas | \`pd.read_csv("areas.csv")\` — the marker is handled, and blank cells become missing (\`NaN\`). |
+| Python, \`csv\` module | \`open("areas.csv", newline="", encoding="utf-8-sig")\` — \`utf-8-sig\` removes the marker. With plain \`utf-8\`, the first column name starts with an invisible character. |
+| R, readr / tidyverse | \`readr::read_csv("areas.csv")\` — the marker is handled, and blank cells become \`NA\`. |
+| R, base | \`read.csv("areas.csv", fileEncoding = "UTF-8-BOM", na.strings = "")\` — \`fileEncoding\` removes the marker (otherwise the first column name comes out garbled, e.g. \`X.U.FEFF.sessionId\`); \`na.strings = ""\` makes blank text cells \`NA\` instead of \`""\`. |
+
+\`csv/README.md\` (this file) and \`metadata.json\` have no marker.
+
 ## Columns are always the same
 
 Every session.csv and every areas.csv has **the same columns in the same
 order**, whatever the participant answered or which study mode they used. So
 files from different sessions can be stacked directly. A question that was not
 shown is a **blank cell**, never a missing column. Blank (rather than a text
-code like "N/A") keeps number columns such as \`q.intensityScale\` numeric; R,
-pandas and Excel all read a blank cell as missing.
+code like "N/A") keeps number columns such as \`q.intensityScale\` numeric.
+pandas and R's readr read every blank cell as missing automatically; base R's
+\`read.csv\` needs \`na.strings = ""\` to do the same for text columns (see
+"Opening the CSVs").
 
 A blank questionnaire cell means the question was not shown, because either:
 
