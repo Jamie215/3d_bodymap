@@ -9,6 +9,7 @@ import { createCombinedTexture } from '../services/submissionService.js';
 import { showDeleteEmptyModal } from '../components/modal.js';
 import { clearSurveyInstance } from '../services/surveyManager.js';
 import texturePool from '../services/texturePool.js';
+import coverageCalculator from '../services/coverageService.js';
 import { setSessionResetNotice } from '../utils/sessionFlags.js';
 
 // ============================================================================
@@ -19,8 +20,9 @@ import { setSessionResetNotice } from '../utils/sessionFlags.js';
  * A single pain/symptom drawing area.
  *
  * Created by addNewDrawingInstance(), stored in AppState.drawingInstances.
- * Each instance owns its own texture canvas and tracks which anatomical
- * regions have been drawn on.
+ * Each instance owns its own texture canvas and a painted mask recording
+ * exactly which texture pixels are painted (used for coverage and
+ * drawnRegions — see coverageService.js).
  *
  * @typedef {Object} DrawingInstance
  *
@@ -28,9 +30,7 @@ import { setSessionResetNotice } from '../utils/sessionFlags.js';
  * @property {HTMLCanvasElement}         canvas           — 1024×1024 texture canvas
  * @property {CanvasRenderingContext2D}  context          — 2D drawing context for the canvas
  * @property {THREE.CanvasTexture}      texture          — Three.js texture bound to the canvas
- * @property {Set<string>}              drawnRegionNames  — Vertex group names that have drawn pixels
- * @property {Object<string, Set<string>>} regionPixelMap — Region name → set of "x,y" pixel keys
- * @property {Set<number>}              coloredFaces      — Face indices with drawn content
+ * @property {Uint8Array}               paintedMask       — One entry per texture pixel: 1 = painted, 0 = not
  * @property {Object|null}              questionnaireData  — Saved area survey responses (null until saved)
  * @property {string|null}              uvDrawingData      — Base-64 PNG of the drawing canvas (set on survey save)
  * @property {string}                   color              — Hex colour from the palette, e.g. "#4269d0"
@@ -97,9 +97,7 @@ export function addNewDrawingInstance() {
         canvas: textureBundle.canvas,
         context: textureBundle.context,
         texture: textureBundle.texture,
-        drawnRegionNames: new Set(),
-        regionPixelMap: {},
-        coloredFaces: new Set(),
+        paintedMask: new Uint8Array(textureBundle.canvas.width * textureBundle.canvas.height),
         questionnaireData: null,
         uvDrawingData: null,
         color: COLOR_PALETTE[AppState.drawingInstances.length % COLOR_PALETTE.length]
@@ -150,8 +148,7 @@ export function isDrawingBlank() {
 // ============================================================================
 
 /**
- * Apply the current drawing instance's texture to the 3D model
- * and rebuild drawnRegionNames from the regionPixelMap.
+ * Apply the current drawing instance's texture to the 3D model.
  *
  * @returns {void}
  */
@@ -166,12 +163,6 @@ export function updateCurrentDrawing() {
     AppState.skinMesh.material.map        = currentInstance.texture;
     AppState.skinMesh.material.needsUpdate = true;
     currentInstance.texture.needsUpdate    = true;
-
-    // Rebuild drawnRegionNames from the regionPixelMap
-    const pixelMap = currentInstance.regionPixelMap;
-    currentInstance.drawnRegionNames = new Set(
-        Object.keys(pixelMap).filter(group => pixelMap[group].size > 0)
-    );
 }
 
 // ============================================================================
@@ -372,7 +363,7 @@ export async function generateDrawingPreview() {
     const cameraUtils      = AppState.cameraUtils;
     const currentInstance   = AppState.drawingInstances[AppState.currentDrawingIndex];
 
-    if (cameraUtils && currentInstance?.drawnRegionNames?.size > 0) {
+    if (cameraUtils && currentInstance && coverageCalculator.getDrawnRegions(currentInstance).size > 0) {
         await cameraUtils.focusOnDrawing(currentInstance);
     }
 

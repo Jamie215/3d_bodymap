@@ -14,7 +14,7 @@
  * @param {number}         canvasWidth
  * @param {number}         canvasHeight
  * @param {Object}         idToRegionMap — numeric ID → region name
- * @returns {{ globalUVMap: Map, globalPixelRegionMap: Map, faceRegionMap: Map }}
+ * @returns {{ globalUVMap: Map, globalPixelRegionMap: Map, faceRegionMap: Map, pixelMap: PixelFaceMap }}
  */
 export function buildGlobalUVMap(geometry, canvasWidth, canvasHeight, idToRegionMap) {
     const indexAttr    = geometry.index;
@@ -45,7 +45,89 @@ export function buildGlobalUVMap(geometry, canvasWidth, canvasHeight, idToRegion
         rasterizeTriangle(uvA, uvB, uvC, canvasWidth, canvasHeight, globalUVMap, globalPixelRegionMap, dominantRegion);
     }
 
-    return { globalUVMap, globalPixelRegionMap, faceRegionMap };
+    const pixelMap = buildPixelFaceMap(geometry, canvasWidth, canvasHeight);
+
+    return { globalUVMap, globalPixelRegionMap, faceRegionMap, pixelMap };
+}
+
+/**
+ * @typedef {Object} PixelFaceMap
+ * @property {Int32Array}  pixelFace      — pixel (y * width + x) → owning face index, or -1
+ * @property {Uint32Array} facePixelCount — face index → number of pixels it owns
+ * @property {Int32Array}  tinyFaces      — flat [face, pixel, …] for faces that own no
+ *                                          pixel (smaller than one pixel in the texture);
+ *                                          each is linked to the pixel at its centre
+ */
+
+/**
+ * Work out which triangle owns each texture pixel, for measuring painted area.
+ *
+ * A pixel belongs to the triangle whose UV footprint contains the pixel's
+ * centre. This matches how painting picks pixels (Math.floor of u × width)
+ * and how the GPU samples the texture. Unlike buildGlobalUVMap above, there
+ * is no 1-pixel border, so each pixel is counted for exactly one triangle.
+ *
+ * @param {BufferGeometry} geometry — needs .index and .attributes.uv
+ * @param {number} width
+ * @param {number} height
+ * @returns {PixelFaceMap}
+ */
+export function buildPixelFaceMap(geometry, width, height) {
+    const indexAttr = geometry.index;
+    const uvAttr    = geometry.attributes.uv;
+    const faceCount = indexAttr.count / 3;
+
+    const pixelFace      = new Int32Array(width * height).fill(-1);
+    const facePixelCount = new Uint32Array(faceCount);
+    const centrePixel    = new Int32Array(faceCount);
+
+    for (let face = 0; face < faceCount; face++) {
+        const a = indexAttr.getX(face * 3);
+        const b = indexAttr.getX(face * 3 + 1);
+        const c = indexAttr.getX(face * 3 + 2);
+
+        // Continuous texture coordinates (pixel units, y down like the canvas)
+        const x0 = uvAttr.getX(a) * width, y0 = (1 - uvAttr.getY(a)) * height;
+        const x1 = uvAttr.getX(b) * width, y1 = (1 - uvAttr.getY(b)) * height;
+        const x2 = uvAttr.getX(c) * width, y2 = (1 - uvAttr.getY(c)) * height;
+
+        const cx = clamp(Math.floor((x0 + x1 + x2) / 3), 0, width - 1);
+        const cy = clamp(Math.floor((y0 + y1 + y2) / 3), 0, height - 1);
+        centrePixel[face] = cy * width + cx;
+
+        const denom = (y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2);
+        if (denom === 0) continue; // zero-area in the texture
+
+        const minX = Math.max(0, Math.floor(Math.min(x0, x1, x2)));
+        const maxX = Math.min(width - 1, Math.ceil(Math.max(x0, x1, x2)));
+        const minY = Math.max(0, Math.floor(Math.min(y0, y1, y2)));
+        const maxY = Math.min(height - 1, Math.ceil(Math.max(y0, y1, y2)));
+
+        for (let py = minY; py <= maxY; py++) {
+            const sy = py + 0.5;
+            for (let px = minX; px <= maxX; px++) {
+                const sx = px + 0.5;
+                // Barycentric weights of the pixel centre
+                const w0 = ((y1 - y2) * (sx - x2) + (x2 - x1) * (sy - y2)) / denom;
+                const w1 = ((y2 - y0) * (sx - x2) + (x0 - x2) * (sy - y2)) / denom;
+                const w2 = 1 - w0 - w1;
+                if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+                // A centre exactly on a shared edge goes to the later face
+                pixelFace[py * width + px] = face;
+            }
+        }
+    }
+
+    for (let p = 0; p < pixelFace.length; p++) {
+        if (pixelFace[p] >= 0) facePixelCount[pixelFace[p]]++;
+    }
+
+    const tiny = [];
+    for (let face = 0; face < faceCount; face++) {
+        if (facePixelCount[face] === 0) tiny.push(face, centrePixel[face]);
+    }
+
+    return { pixelFace, facePixelCount, tinyFaces: Int32Array.from(tiny) };
 }
 
 // ============================================================================
@@ -119,4 +201,8 @@ function pointInTriangle(p, a, b, c) {
     const t = (1 / (2 * area)) * (a.x * b.y - a.y * b.x + (a.y - b.y) * p.x + (b.x - a.x) * p.y);
     const u = 1 - s - t;
     return s >= 0 && t >= 0 && u >= 0;
+}
+
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
 }

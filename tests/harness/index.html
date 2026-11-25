@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Coverage measurement harness</title>
+    <!-- Test-only page. Loads the real body model with the app's own drawing
+         and coverage code, without the UI. Driven by tests/measure-real-model.mjs. -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "../../vendor/three/three.module.js",
+                "three/addons/": "../../vendor/three/addons/"
+            }
+        }
+    </script>
+    <script type="module" src="./harness.js"></script>
+</head>
+<body>
+    <p id="status">loading…</p>
+</body>
+</html>
