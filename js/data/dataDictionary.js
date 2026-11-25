@@ -38,6 +38,16 @@ pain-assessment_<stamp>_<id>/
 - \`sessionId\` links every file to this session.
 - \`areaNumber\` (1-based) links \`areas.csv\` ↔ \`coverage.csv\` ↔ \`areas/area-<n>/\`.
 
+## Value formats
+
+- **Lists** (\`drawnRegions\` and the checkbox answers) are joined with \`; \`
+  (semicolon + space), e.g. \`start-of-day; bedtime\`.
+- **Percentages** (\`overallPercentage\`, \`percentage\`, \`bodyContribution\`) are on
+  a 0–100 scale: \`0.18\` means 0.18 %, not 18 %.
+- **Text containing a comma, quote or line break** is wrapped in double quotes,
+  as standard CSV. Some stored answers contain commas (see \`q.onsetCause\`).
+- **Timestamps** are ISO 8601 in UTC (ending \`Z\`).
+
 ## Columns are always the same
 
 Every session.csv and every areas.csv has **the same columns in the same
@@ -67,14 +77,15 @@ This is intentional, not missing data.
 | \`sessionId\` | Random, non-identifying session id |
 | \`schemaVersion\` | Payload format version |
 | \`studyMode\` | Form version the participant chose: \`full\` (drawings + questionnaires) or \`drawing-only\` (drawings, no questionnaires) |
-| \`startTime\` / \`completionTime\` | ISO 8601 timestamps (session start / submit) |
-| \`durationSeconds\` | Wall-clock session length |
-| \`modelType\` | Body model used (e.g. "Type 1") |
+| \`startTime\` | When the app page loaded for this session — before the participant chose a study mode or saw onboarding |
+| \`completionTime\` | When the participant pressed the final button (general questionnaire "Done", or "Finish and Save My Drawings"). Not when the file was saved. |
+| \`durationSeconds\` | \`completionTime\` − \`startTime\`, so it includes the mode choice, onboarding and any time spent watching help videos |
+| \`modelType\` | Body model used: \`Type 1\` or \`Type 2\` (the two body models offered on the body-type screen) |
 | \`totalAreas\` | Number of pain/symptom areas logged |
 | \`general.stressful\` | Stressful time at onset — \`Yes\` / \`No\` / \`Prefer not to answer\` |
 | \`general.medication\` | Takes medication for spinal pain — \`Yes\` / \`No\` |
-| \`general.medicationTable.<row>\` | Per medication type: \`baseline\` (routine), \`breakthrough\` (as needed), or \`none\`. Rows: over-the-counter, non-steroidal-anti-inflammatory, muscle-relaxant, narcotic-pain-medication, anti-depressant, neuroleptics, cannabis |
-| \`general.narcoticPainDuration\` | How long narcotics taken (only if narcotic = baseline/breakthrough) |
+| \`general.medicationTable.<row>\` | Per medication type: \`baseline\` (routinely taking), \`breakthrough\` (taking as needed), or \`none\` (not taking). Rows: \`over-the-counter\`, \`non-steroidal-anti-inflammatory\`, \`muscle-relaxant\`, \`narcotic-pain-medication\`, \`anti-depressant\`, \`neuroleptics\`, \`cannabis\`. **Shown to, and required of, every full-form participant — even when \`general.medication\` = \`No\`**; those participants will usually answer \`none\` on every row. |
+| \`general.narcoticPainDuration\` | How long narcotics taken — \`Less than 6 weeks\` / \`6 weeks to less than 12 weeks\` / \`12 weeks to less than 1 year\` / \`Greater than 1 year\`. Shown only if the narcotic row is \`baseline\` or \`breakthrough\`. |
 | \`general.medicationComment\` | Free text (optional) |
 
 ## areas.csv (one row per area)
@@ -83,33 +94,56 @@ Coverage summary + the area questionnaire. **Conditional questions are blank
 for areas where they weren't shown.** The follow-up questions (\`q.makingWorse\`
 onward) are shown only when \`q.mainArea = Yes\`.
 
+**At most 3 areas per participant can be main areas.** Once 3 areas are marked
+\`Yes\`, the app sets \`q.mainArea\` to \`No\` automatically for any further area and
+the participant cannot change it. So \`No\` does not always mean the participant
+judged that area less important; with 4 or more areas, check how many are \`Yes\`.
+
 | Column | Meaning |
 |---|---|
 | \`sessionId\`, \`areaNumber\`, \`areaId\` | Identifiers |
-| \`drawnRegions\` | Body regions with drawn pixels, \`;\`-separated |
+| \`drawnRegions\` | Body regions with drawn pixels, \`; \`-separated (region names explained under coverage.csv) |
 | \`overallPercentage\` | Drawn area as % of **total body surface** |
 | \`coloredArea\` | Drawn surface area, world units² (see coverage.csv) |
 | \`q.description\` | "What does your pain or symptom feel like?" (free text) |
 | \`q.firstEpisode\` | First episode? \`Yes\` / \`No\` |
 | \`q.severity\` | \`mild\` / \`moderate\` / \`severe\` |
 | \`q.frequency\` | \`Always there\` / \`Comes and goes\` |
-| \`q.duration\` | How long they've had it (banded) |
+| \`q.duration\` | How long they've had it — \`Less than 7 days\` / \`7 days to less than 1 month\` / \`1 month to less than 3 months\` / \`3 months to less than 6 months\` / \`6 months to less than 1 year\` / \`1-5 years\` / \`More than 5 years\` |
 | \`q.intensityScale\` | Average intensity past week, **0–10** (0 = none, 10 = worst imaginable) |
 | \`q.comment\` | Free text (optional) |
-| \`q.mainArea\` | Is this the main area? \`Yes\` / \`No\` — gates all fields below |
+| \`q.mainArea\` | Is this a main area? \`Yes\` / \`No\` — gates all fields below. See the 3-area limit above. |
 | \`q.makingWorse\` / \`q.makingBetter\` | Free text |
-| \`q.timeNotExperiencing\` (+\`...Detail\`) | Any pain-free time of day, and when (checkbox list) |
-| \`q.timeExperienceWorse\` (+\`...Detail\`) | Any worse time of day, and when (checkbox list) |
-| \`q.onsetCause\` | Onset related to trauma / activity / arthritis / no clear cause, or \`other\` |
+| \`q.timeNotExperiencing\` (+\`...Detail\`) | Any pain-free time of day (\`Yes\` / \`No\`), and when (checkbox list — codes below) |
+| \`q.timeExperienceWorse\` (+\`...Detail\`) | Any worse time of day (\`Yes\` / \`No\`), and when (checkbox list — codes below) |
+| \`q.onsetCause\` | What the onset was related to — one of the four full sentences below, or \`other\` |
 | \`q.onsetCause-Comment\` | The participant's own words when \`q.onsetCause\` = \`other\` |
-| \`q.interfereActivity\` | Interference past 7 days — Not at all … Very much |
-| \`q.treatmentForImprovement\` (+\`...Detail\`) | Any treatment helped, and which (single choice, or \`other\`) |
+| \`q.interfereActivity\` | Interference with day-to-day activities, past 7 days — \`Not at all\` / \`A little bit\` / \`Somewhat\` / \`Quite a bit\` / \`Very much\` |
+| \`q.treatmentForImprovement\` (+\`...Detail\`) | Any treatment helped (\`Yes\` / \`No\`), and which — \`Surgery\` / \`Physiotherapy\` / \`Injection\` / \`Counselling\` / \`other\` (single choice) |
 | \`q.treatmentForImprovementDetail-Comment\` | The participant's own words when \`q.treatmentForImprovementDetail\` = \`other\` |
 | \`q.medicationForImprovement\` (+\`...Detail\`) | Any medication helped, and which (free text) |
 
 Checkbox answers (\`q.timeNotExperiencingDetail\`, \`q.timeExperienceWorseDetail\`)
-are \`;\`-separated. When a participant picks "Other", the answer column holds the
-value \`other\` and their typed text is in the matching \`-Comment\` column.
+are \`; \`-separated codes, in the order listed:
+
+| Code | Shown to the participant as |
+|---|---|
+| \`start-of-day\` | Start of your day |
+| \`middle-of-day\` | Middle of your day |
+| \`end-of-day\` | End of your day |
+| \`bedtime\` | Bedtime |
+| \`sleeping\` | Sleeping |
+
+\`q.onsetCause\` stores the full sentence the participant picked (they contain
+commas, so they are quoted in the CSV):
+
+- \`Physical trauma (e.g., motor vehicle collision, fall, extreme exertion, workplace injury, etc.)\`
+- \`A common physical activity (e.g., exercise, putting on socks, typical lifting activities, etc.)\`
+- \`Arthritis\`
+- \`No clear event or cause\`
+
+When a participant picks "Other", the answer column holds the value \`other\` and
+their typed text is in the matching \`-Comment\` column.
 
 ## coverage.csv (long — one row per area × region)
 
@@ -119,7 +153,7 @@ pixels appear.
 | Column | Meaning |
 |---|---|
 | \`sessionId\`, \`areaNumber\` | Join keys |
-| \`region\` | Vertex-group / anatomical region name (e.g. \`back_upper\`, \`thigh_front.L\`; \`.L\`/\`.R\` = left/right) |
+| \`region\` | Anatomical region name (see below) |
 | \`coloredArea\` | Drawn surface area in this region (world units²) |
 | \`percentage\` | Drawn area as % of **this region's** total area |
 | \`bodyContribution\` | Drawn area as % of the **whole body's** surface area |
@@ -127,6 +161,39 @@ pixels appear.
 For an area, the sum of its regions' \`coloredArea\` equals that area's
 \`coloredArea\` in areas.csv; the sum of \`bodyContribution\` equals its
 \`overallPercentage\`.
+
+**Region names.** There are 315 regions, named \`<part>_<subdivision>\` plus a
+side suffix, e.g. \`back_upper.L\`, \`thigh_anterior.R\`:
+
+- \`.L\` / \`.R\` — the participant's left / right side.
+- \`.M\` — midline (5 regions: \`neck_anterior.M\`, \`neck_posterior.M\`,
+  \`back_upper.M\`, \`back_mid.M\`, \`back_lower.M\`).
+- No suffix — 4 single midline structures: \`sacrum\`, \`apexSacrum\`, \`coccyx\`,
+  \`pubicSymphysis\`.
+
+The full list (with numeric ids) is in \`assets/region_id_mapping.json\` in the
+app's source code.
+
+## metadata.json
+
+The complete record, as JSON. Everything in the CSVs comes from here, plus a
+few fields the CSVs leave out:
+
+- Top level: the session.csv fields, \`combinedDrawing\` (paths to the four
+  \`snapshots/\` images), \`areas\` (list), and \`generalQuestionnaire\` (answers
+  object, or \`null\` in drawing-only sessions).
+- Each area: \`areaNumber\`, \`areaId\`, \`bodyViews\` (paths to its four images),
+  \`questionnaireResponses\` (answers object, or \`null\` in drawing-only
+  sessions), \`drawnRegions\` (list), and \`coverage\`:
+  - \`overallPercentage\`, \`coloredArea\` — as in areas.csv.
+  - \`regionBreakdown\` — per region: \`coloredArea\`, \`percentage\`,
+    \`bodyContribution\` (as in coverage.csv) **and \`totalArea\`**, the region's
+    whole surface area in world units² (not in the CSVs).
+  - \`bodyPartBreakdown\` — the same four numbers rolled up to larger body parts
+    (e.g. \`Upper Back\`). **Not in the CSVs.**
+
+Answers in metadata.json are not flattened: checkbox answers are JSON lists,
+and the medication table is an object keyed by row.
 
 ## Images
 
