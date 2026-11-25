@@ -79,7 +79,12 @@ const ratio = (a, b) => (b > 0 ? `${(a / b).toFixed(2)}×` : 'n/a');
 
 console.log(`\nModel: ${modelName}  height ${result.info.height.toFixed(3)} units, ${result.stats.faces} triangles`);
 console.log(`Triangles too small to contain a pixel centre: ${result.stats.tinyFaces}`);
+console.log(`  …together ${(100 * result.stats.tinyAreaShare).toFixed(2)}% of the body surface; largest share by part:`);
+for (const t of result.stats.tinyByPart.slice(0, 5)) {
+    console.log(`     ${t.part}: ${(100 * t.shareOfPart).toFixed(1)}% of that part's area`);
+}
 console.log(`Texture pixels claimed by more than one triangle (UV overlap): ${result.stats.pixelsClaimedTwice}`);
+console.log(`Surface sample points (independent check): ${result.info.samples.toLocaleString()}`);
 
 console.log('\nTriangle size and texture density by body part (area units are model units² ×1e6):');
 console.table(result.stats.rows.map((r) => ({
@@ -94,6 +99,9 @@ console.table(result.brush.flat().map((r) => ({
     region: r.region, radius: r.radius,
     'app %': pct(r.appPercent), 'painted %': pct(r.truthPercent),
     'app / painted': ratio(r.appArea, r.truthArea),
+    'app / surface-sampled': r.sampledArea == null ? 'n/a'
+        : `${ratio(r.appArea, r.sampledArea)} ±${(100 * r.sampledMargin95).toFixed(1)}%`,
+    'regions only sampling finds': (r.sampledOnlyRegions || []).join(', ') || '-',
     'regions missed by app': r.missingRegions.join(', ') || '-',
     'regions app has but not painted': r.extraRegions.join(', ') || '-',
     'region sums = total': Math.abs(r.appRegionSum - r.appArea) < 1e-12 * Math.max(1, r.appArea)
@@ -103,7 +111,8 @@ console.log('\nErase: paint (radius 25), then erase a band through the middle (r
 console.table(result.erase.map((r) => ({
     region: r.region,
     'app % before': pct(r.before.appPercent), 'app % after': pct(r.after.appPercent),
-    'painted % before': pct(r.before.truthPercent), 'painted % after': pct(r.after.truthPercent)
+    'painted % before': pct(r.before.truthPercent), 'painted % after': pct(r.after.truthPercent),
+    'app / sampled after': r.after.sampledArea == null ? 'n/a' : ratio(r.after.appArea, r.after.sampledArea)
 })));
 
 if (jsonOut) {

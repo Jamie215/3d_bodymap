@@ -277,7 +277,7 @@ There is no build step or test framework; the tests are plain Node scripts.
   node tests/selftest-coverage.mjs
   ```
 
-- **Real-model measurement**: draws scripted strokes at several brush sizes on the real body and compares the app's coverage with the area actually painted on the texture. Needs the model files copied into `models/` (ignored by git) and Playwright with Chromium.
+- **Real-model measurement**: draws scripted strokes at several brush sizes on the real body and compares the app's coverage with the area actually painted on the texture, and with an independent estimate made by scattering 4 million random points over the 3D surface and counting how many land on paint. Needs the model files copied into `models/` (ignored by git) and Playwright with Chromium.
 
   ```bash
   node tests/measure-real-model.mjs female
@@ -325,7 +325,7 @@ There is no build step or test framework; the tests are plain Node scripts.
   node tests/selftest-coverage.mjs
   ```
 
-- **Real-model measurement**: draws scripted strokes at several brush sizes on the real body and compares the app's coverage with the area actually painted on the texture. Needs the model files copied into `models/` (ignored by git) and Playwright with Chromium.
+- **Real-model measurement**: draws scripted strokes at several brush sizes on the real body and compares the app's coverage with the area actually painted on the texture, and with an independent estimate made by scattering 4 million random points over the 3D surface and counting how many land on paint. Needs the model files copied into `models/` (ignored by git) and Playwright with Chromium.
 
   ```bash
   node tests/measure-real-model.mjs female

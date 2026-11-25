@@ -20,6 +20,8 @@ const H = 1024;
 
 // Independent reference data, built here (not by the app code under test)
 let ref = null;
+let samples = null;
+const SAMPLE_COUNT = 4_000_000;
 
 // ----------------------------------------------------------------------------
 // Loading
@@ -59,7 +61,8 @@ async function load(file) {
     coverageCalculator.initialize(mesh);
 
     ref = buildReference(mesh);
-    return { height, faces: ref.faceCount };
+    samples = buildSurfaceSamples(mesh, SAMPLE_COUNT);
+    return { height, faces: ref.faceCount, samples: samples.count };
 }
 
 // ----------------------------------------------------------------------------
@@ -150,6 +153,74 @@ function referencePaintedArea(canvas) {
     let paintedPixels = 0;
     for (let p = 0; p < W * H; p++) paintedPixels += painted[p];
     return { area: total, regions, paintedPixels };
+}
+
+// ----------------------------------------------------------------------------
+// Independent ground truth: random points on the 3D surface
+// ----------------------------------------------------------------------------
+//
+// Scatter points evenly over the real 3D surface (each triangle gets points in
+// proportion to its 3D area, at random positions inside it). Each point's
+// texture pixel comes from its own interpolated UV — the same lookup the GPU
+// does when it shows the texture. Painted area ≈ share of points that land on
+// a painted pixel × total area. This does NOT use the pixel → triangle map,
+// so it checks the app's area maths independently.
+
+/** Small seeded random generator, so runs are repeatable. */
+function mulberry32(seed) {
+    return () => {
+        seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function buildSurfaceSamples(mesh, target) {
+    const idx = mesh.geometry.index;
+    const uv  = mesh.geometry.attributes.uv;
+    const rand = mulberry32(12345);
+    let total = 0;
+    for (let f = 0; f < ref.faceCount; f++) total += ref.area[f];
+
+    const pixel = new Int32Array(Math.ceil(target * 1.01) + ref.faceCount);
+    const face  = new Int32Array(pixel.length);
+    let n = 0;
+    for (let f = 0; f < ref.faceCount; f++) {
+        // Expected count ∝ area; random rounding keeps it unbiased
+        const expected = target * ref.area[f] / total;
+        const k = Math.floor(expected) + (rand() < expected % 1 ? 1 : 0);
+        const i0 = idx.getX(3 * f), i1 = idx.getX(3 * f + 1), i2 = idx.getX(3 * f + 2);
+        for (let j = 0; j < k; j++) {
+            // Uniform random point in a triangle
+            const r1 = Math.sqrt(rand()), r2 = rand();
+            const a = 1 - r1, b = r1 * (1 - r2), c = r1 * r2;
+            const u = a * uv.getX(i0) + b * uv.getX(i1) + c * uv.getX(i2);
+            const v = a * uv.getY(i0) + b * uv.getY(i1) + c * uv.getY(i2);
+            const px = Math.min(W - 1, Math.max(0, Math.floor(u * W)));
+            const py = Math.min(H - 1, Math.max(0, Math.floor((1 - v) * H)));
+            pixel[n] = py * W + px;
+            face[n] = f;
+            n++;
+        }
+    }
+    return { pixel: pixel.subarray(0, n), face: face.subarray(0, n), count: n, areaPerSample: total / n };
+}
+
+/** Painted area estimated from the surface points, with a 95% margin. */
+function sampledPaintedArea(mask) {
+    let hits = 0;
+    const regions = {};
+    for (let i = 0; i < samples.count; i++) {
+        if (!mask[samples.pixel[i]]) continue;
+        const r = ref.region(samples.face[i]);
+        if (!r) continue;                 // the app also leaves out faces with no region
+        hits++;
+        regions[r] = (regions[r] || 0) + 1;
+    }
+    const area = hits * samples.areaPerSample;
+    for (const r in regions) regions[r] *= samples.areaPerSample;
+    return { area, hits, margin95: hits ? 1.96 / Math.sqrt(hits) : null, regions };
 }
 
 // ----------------------------------------------------------------------------
@@ -248,7 +319,29 @@ function measure(inst) {
     const appRegions = appDrawnRegions(inst).sort();
     const truthRegions = Object.keys(truth.regions).sort();
     const regionSum = Object.values(cov.regions).reduce((s, r) => s + r.coloredArea, 0);
+    const sampled = inst.paintedMask ? sampledPaintedArea(inst.paintedMask) : null;
+    // Regions with clear sampled paint (≥ 20 points) that the app doesn't list
+    const sampledOnly = sampled
+        ? Object.entries(sampled.regions)
+            .filter(([r, a]) => !appRegions.includes(r) && a / samples.areaPerSample >= 20)
+            .map(([r]) => r)
+        : [];
     return {
+        sampledArea: sampled?.area ?? null,
+        sampledMargin95: sampled?.margin95 ?? null,
+        sampledHits: sampled?.hits ?? null,
+        sampledOnlyRegions: sampledOnly,
+        // Per region: app area ÷ sampled area, for regions with ≥ 400 sample
+        // points (sampling margin ≤ ~10%)
+        regionRatios: sampled
+            ? Object.entries(sampled.regions)
+                .filter(([, a]) => a / samples.areaPerSample >= 400)
+                .map(([r, a]) => ({
+                    region: r,
+                    ratio: (cov.regions[r]?.coloredArea || 0) / a,
+                    margin95: 1.96 / Math.sqrt(a / samples.areaPerSample)
+                }))
+            : [],
         appArea: cov.overall.coloredArea,
         appPercent: cov.overall.percentage,
         appRegionSum: regionSum,
@@ -299,9 +392,17 @@ function meshStats() {
         byPart[part].pixels += ref.pixels[f];
         byPart[part].faceAreas.push(ref.area[f]);
     }
-    let overlap = 0, tinyFaces = 0;
+    let overlap = 0, tinyFaces = 0, tinyArea = 0;
+    const tinyByPart = {};
     for (let p = 0; p < W * H; p++) if (ref.claims[p]) overlap++;
-    for (let f = 0; f < ref.faceCount; f++) if (ref.pixels[f] === 0) tinyFaces++;
+    for (let f = 0; f < ref.faceCount; f++) {
+        if (ref.pixels[f] !== 0) continue;
+        tinyFaces++;
+        tinyArea += ref.area[f];
+        const r = ref.region(f);
+        const part = r ? (coverageCalculator.regionToBodyPart[r] || 'other') : 'unassigned';
+        tinyByPart[part] = (tinyByPart[part] || 0) + ref.area[f];
+    }
     const rows = Object.entries(byPart).map(([part, s]) => {
         s.faceAreas.sort((x, y) => x - y);
         return {
@@ -317,6 +418,10 @@ function meshStats() {
         faces: ref.faceCount,
         totalBodyAreaM2: coverageCalculator.totalBodyArea,
         tinyFaces,
+        tinyAreaShare: tinyArea / coverageCalculator.totalBodyArea,
+        tinyByPart: Object.entries(tinyByPart)
+            .map(([part, a]) => ({ part, shareOfPart: a / (byPart[part]?.area || 1) }))
+            .sort((x, y) => y.shareOfPart - x.shareOfPart),
         pixelsClaimedTwice: overlap,
         rows
     };
