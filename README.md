@@ -36,7 +36,10 @@ The mode lives in `js/app/studyMode.js`; the choice screen is `js/components/mod
 
 ## Guided tours
 
-Each screen's **Help** panel has a **Take a quick tour** button that runs a short tooltip tour of that screen's controls. Tours never start on their own, and can be replayed any number of times.
+Each screen's **Help** panel has a **Take a quick tour** button that runs a short tooltip tour of that screen's controls. It can be replayed any number of times, in both study modes.
+
+- **Drawing + questionnaires** (`full`): as in the original app, the drawing tour also starts on its own the first time the participant picks a body region, and the summary tour starts on its own the first time they return to the summary after finishing an area. Each starts on its own only once per session (a page refresh doesn't repeat it); the next participant sees them again.
+- **Drawing only** (`drawing-only`): tours never start on their own; they run only from the Help panel.
 
 ## Core Capabilities
 

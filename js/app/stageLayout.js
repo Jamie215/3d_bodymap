@@ -9,6 +9,7 @@
 import { getResponsiveManager } from '../utils/responsiveManager.js';
 import { setupRegionSelectorForDrawing } from '../components/viewControls.js';
 import { attachSurveyDrawer, detachSurveyDrawer } from '../components/surveyDrawer.js';
+import { runDrawingTourOnce, runSummaryTourOnce } from './tooltipRunner.js';
 import AppState from './state.js';
 
 // ============================================================================
@@ -163,6 +164,12 @@ function layoutSummary(summary, isRelayout) {
     if (isRelayout) {
         summary.updateSummaryStatus();
     }
+
+    // Full form: summary tour once, after the first completed area.
+    // (runSummaryTourOnce does nothing in drawing-only mode.)
+    if (!isRelayout && hasAreas && !AppState.generalQuestionnaireResponse) {
+        runSummaryTourOnce();
+    }
 }
 
 function layoutSelection(selection) {
@@ -183,8 +190,16 @@ function layoutDrawing(drawing, survey, isRelayout) {
     // Setup region selector — adds button to footerLeft.
     // Only open the selector modal when starting a new area on a genuine stage
     // entry (not when re-editing an area, and not on viewport relayouts).
+    // Full form: once a region is picked, run the drawing tour (once per
+    // session; runDrawingTourOnce does nothing in drawing-only mode).
     const openRegionSelector = !AppState.isEditingArea && !isRelayout;
-    setupRegionSelectorForDrawing(drawing.footerLeft, openRegionSelector, drawing.updateStatusBar);
+    const onRegionSelected = openRegionSelector
+        ? (regionName) => {
+            drawing.updateStatusBar(regionName);
+            runDrawingTourOnce();
+        }
+        : drawing.updateStatusBar;
+    setupRegionSelectorForDrawing(drawing.footerLeft, openRegionSelector, onRegionSelected);
 
     // Help button floats over the canvas
     canvasContent.appendChild(drawing.helpButton);
