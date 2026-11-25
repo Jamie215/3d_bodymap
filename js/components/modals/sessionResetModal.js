@@ -11,6 +11,7 @@ let sessionResetModalEl = null;
 let titleEl   = null;
 let messageEl = null;
 let dismissButton = null;
+let onDismiss = null;
 
 const VARIANTS = {
     complete: {
@@ -41,7 +42,12 @@ export function initSessionResetModal(container) {
     dismissButton = document.createElement('button');
     dismissButton.id = 'session-reset-dismiss';
     dismissButton.className = 'modal-btn-primary';
-    dismissButton.addEventListener('click', hideSessionResetModal);
+    dismissButton.addEventListener('click', () => {
+        const callback = onDismiss;
+        onDismiss = null;
+        hideSessionResetModal();
+        if (callback) callback();
+    });
 
     modalContent.appendChild(titleEl);
     modalContent.appendChild(messageEl);
@@ -53,9 +59,12 @@ export function initSessionResetModal(container) {
 /**
  * Show the modal for the given end-of-session reason.
  * @param {'complete'|'idle'} reason
+ * @param {Function} [dismissCallback] — called after the participant dismisses
+ *                                       it (used to show the next start screen)
  */
-export function showSessionResetModal(reason) {
+export function showSessionResetModal(reason, dismissCallback = null) {
     if (!sessionResetModalEl) return;
+    onDismiss = dismissCallback;
     const variant = VARIANTS[reason] || VARIANTS.idle;
     titleEl.textContent   = variant.title;
     messageEl.textContent = variant.message;

@@ -6,10 +6,15 @@
 //   Mobile  (<768px) — full-screen modal with scrim
 //
 // While open, sets data-help-open="true" on <html> so CSS can disable
-// pointer events on the canvas. First item auto-expanded; only one
-// accordion item open at a time.
+// pointer events on the canvas. Only one accordion item open at a time.
+//
+// Screens with a guided tour (see tooltipRunner.js) get a "Take a quick tour"
+// button above the questions. It is the only way to start a tour —
+// tours never start on their own.
 
 import { HELP_CONTENT } from '../../data/helpContent.js';
+import { hasScreenTour, runScreenTour } from '../../app/tooltipRunner.js';
+import { getStudyMode } from '../../app/studyMode.js';
 import { createVideoEmbed } from '../videoEmbed.js';
 
 // ============================================================================
@@ -86,12 +91,18 @@ export function showHelpModal(context = 'drawing') {
         return;
     }
 
-    const entries = HELP_CONTENT[context];
+    // Drop entries meant only for the other study mode (see helpContent.js).
+    const mode    = getStudyMode();
+    const entries = HELP_CONTENT[context]?.filter(entry => !entry.modes || entry.modes.includes(mode));
     if (!entries) {
         console.warn(`No help content found for context: ${context}`);
         return;
     }
 
+    helpContentEl.textContent = '';
+    if (hasScreenTour(context)) {
+        helpContentEl.appendChild(createTourButton(context));
+    }
     renderAccordion(entries);
 
     helpModalEl.style.display = 'flex';
@@ -129,6 +140,26 @@ export function hideHelpModal() {
 }
 
 // ============================================================================
+// INTERNAL — GUIDED TOUR BUTTON
+// ============================================================================
+
+/**
+ * Button that closes the help panel and starts this screen's guided tour.
+ * @param {'drawing'|'summary'} context
+ */
+function createTourButton(context) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'button button-primary help-tour-button';
+    button.innerHTML = '<i class="fa-solid fa-route"></i> <span>Take a quick tour</span>';
+    button.addEventListener('click', () => {
+        hideHelpModal();
+        runScreenTour(context);
+    });
+    return button;
+}
+
+// ============================================================================
 // INTERNAL — ACCORDION RENDERING
 // ============================================================================
 
@@ -138,8 +169,6 @@ export function hideHelpModal() {
  * and collapses any other open item.
  */
 function renderAccordion(entries) {
-    helpContentEl.textContent = '';
-
     const accordion = document.createElement('div');
     accordion.className = 'help-modal-accordion';
 

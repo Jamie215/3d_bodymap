@@ -3,6 +3,13 @@
 // (e.g. `from '../components/modal.js'`) continue to work unchanged.
 // Pure re-exports only — no logic lives here.
 
+// ---- Mode choice (first screen: full form or drawing only) ----
+export {
+    initModeChoiceModal,
+    showModeChoiceModal,
+    hideModeChoiceModal
+} from './modals/modeChoiceModal.js';
+
 // ---- Onboarding ----
 export {
     initOnboardingModal,

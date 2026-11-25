@@ -9,6 +9,24 @@
 //   session.csv   one row: session metadata + general questionnaire
 //   areas.csv     one row per area: summary + area questionnaire answers
 //   coverage.csv  long: one row per (area, region) of drawn coverage
+//
+// Every file always has the SAME columns in the SAME order, whatever the study
+// mode or the answers: the questionnaire columns are listed from the survey
+// definitions, not from the answers that happen to be present. A question that
+// was not shown (a conditional follow-up, or every question in drawing-only
+// mode) is a blank cell, never a missing column. Blank is used rather than a
+// text code like "N/A" so numeric columns stay numeric in R/pandas/Excel;
+// pandas and readr read a blank cell as missing, base R needs na.strings = ""
+// for text columns. `studyMode` says why a cell is blank.
+//
+// Encoding: UTF-8 *with* a byte-order mark (BOM). Without it, Excel on Windows
+// misreads any non-ASCII character — including the curly apostrophe (’) that
+// iPad/iPhone keyboards insert by default — as garbage like "â€™". pandas and
+// readr strip the BOM automatically; base R and Python's csv module need one
+// extra argument (see the data dictionary, "Opening the CSVs").
+
+import { areaSurveyJson } from '../data/areaSurvey.js';
+import { generalSurveyJson } from '../data/generalSurvey.js';
 
 // ============================================================================
 // PRIMITIVES
@@ -71,24 +89,101 @@ function flattenObject(obj, prefix = '', out = {}) {
 }
 
 /**
- * Renders rows (array of objects) as a CSV string. Columns default to the union
- * of keys across all rows, in first-seen order.
+ * Renders rows (array of objects) as a CSV string with exactly the given
+ * columns, in order. A column a row has no value for is a blank cell.
  *
  * @param {Object[]} rows
- * @param {string[]} [columns]
+ * @param {string[]} columns
  * @returns {string}
  */
 function toCsv(rows, columns) {
-    const cols = columns || (() => {
-        const seen = [];
-        const set = new Set();
-        rows.forEach(r => Object.keys(r).forEach(k => { if (!set.has(k)) { set.add(k); seen.push(k); } }));
-        return seen;
-    })();
-
-    const header = cols.map(escapeCsv).join(',');
-    const body = rows.map(r => cols.map(c => escapeCsv(r[c])).join(','));
+    const header = columns.map(escapeCsv).join(',');
+    const body = rows.map(r => columns.map(c => escapeCsv(r[c])).join(','));
     return [header, ...body].join('\r\n');
+}
+
+// ============================================================================
+// FIXED COLUMNS
+// ============================================================================
+
+/** Survey element types that hold no answer, so get no column. */
+const NON_ANSWER_TYPES = new Set(['html', 'image']);
+
+/**
+ * Lists the CSV columns for a SurveyJS definition, in question order, using
+ * the same dotted keys flattenObject() produces from the answers:
+ *   - one column per question, named `<prefix><name>`
+ *   - a matrix gets one column per row: `<prefix><name>.<row value>`
+ *   - a question with an "Other" option or a comment box also gets
+ *     `<prefix><name>-Comment`, where SurveyJS stores the typed text
+ *     (the main column then holds the value `other`)
+ *
+ * @param {Object} surveyJson — a SurveyJS definition (pages → elements, panels nest)
+ * @param {string} prefix     — column prefix, e.g. 'q.' or 'general.'
+ * @returns {string[]}
+ */
+function surveyColumns(surveyJson, prefix) {
+    const columns = [];
+
+    const visit = (elements = []) => {
+        for (const el of elements) {
+            if (Array.isArray(el.elements)) { visit(el.elements); continue; } // panel
+            if (NON_ANSWER_TYPES.has(el.type)) continue;
+
+            if (el.type === 'matrix') {
+                for (const row of el.rows || []) {
+                    const rowValue = typeof row === 'object' ? row.value : row;
+                    columns.push(`${prefix}${el.name}.${rowValue}`);
+                }
+                continue;
+            }
+
+            columns.push(`${prefix}${el.name}`);
+            if (el.showOtherItem || el.hasOther || el.showCommentArea || el.hasComment) {
+                columns.push(`${prefix}${el.name}-Comment`);
+            }
+        }
+    };
+
+    (surveyJson.pages || []).forEach(page => visit(page.elements));
+    visit(surveyJson.elements);
+    return columns;
+}
+
+const SESSION_COLUMNS = [
+    'sessionId', 'schemaVersion', 'studyMode', 'startTime', 'completionTime',
+    'durationSeconds', 'modelType', 'totalAreas',
+    ...surveyColumns(generalSurveyJson, 'general.')
+];
+
+const AREA_COLUMNS = [
+    'sessionId', 'areaNumber', 'areaId', 'drawnRegions', 'overallPercentage', 'coloredArea',
+    ...surveyColumns(areaSurveyJson, 'q.')
+];
+
+const COVERAGE_COLUMNS = ['sessionId', 'areaNumber', 'region', 'coloredArea', 'percentage', 'bodyContribution'];
+
+/** UTF-8 byte-order mark, prepended to every CSV so Excel detects UTF-8. */
+const UTF8_BOM = '\uFEFF';
+
+/**
+ * The fixed columns, plus any key found in the rows that the fixed list does
+ * not know about. That should never happen, but if a survey definition and the
+ * stored answers ever drift apart, the answer is kept (as an extra column at
+ * the end) rather than silently dropped.
+ *
+ * @param {string[]} fixed
+ * @param {Object[]} rows
+ * @returns {string[]}
+ */
+function columnsFor(fixed, rows) {
+    const known = new Set(fixed);
+    const extra = [];
+    rows.forEach(r => Object.keys(r).forEach(k => {
+        if (!known.has(k)) { known.add(k); extra.push(k); }
+    }));
+    if (extra.length) console.warn('CSV export: answers with no matching survey question:', extra);
+    return [...fixed, ...extra];
 }
 
 // ============================================================================
@@ -106,6 +201,7 @@ function buildSessionCsv(payload) {
     const row = {
         sessionId: payload.sessionId,
         schemaVersion: payload.schemaVersion,
+        studyMode: payload.studyMode,
         startTime: payload.startTime,
         completionTime: payload.completionTime,
         durationSeconds: payload.durationSeconds,
@@ -116,13 +212,14 @@ function buildSessionCsv(payload) {
     const general = flattenObject(payload.generalQuestionnaire || {});
     for (const [k, v] of Object.entries(general)) row[`general.${k}`] = v;
 
-    return toCsv([row]);
+    return toCsv([row], columnsFor(SESSION_COLUMNS, [row]));
 }
 
 /**
  * areas.csv — one row per area: identifiers, coverage summary, and the
- * (flattened) area questionnaire answers. Columns are the union across areas so
- * conditional questions line up (blank where not answered).
+ * (flattened) area questionnaire answers. Columns are fixed (see AREA_COLUMNS),
+ * so conditional questions line up across areas and sessions (blank where not
+ * shown).
  *
  * @param {import('./submissionService.js').SubmissionPayload} payload
  * @returns {string}
@@ -142,7 +239,7 @@ function buildAreasCsv(payload) {
         return row;
     });
 
-    return toCsv(rows);
+    return toCsv(rows, columnsFor(AREA_COLUMNS, rows));
 }
 
 /**
@@ -169,19 +266,20 @@ function buildCoverageCsv(payload) {
     }
 
     // Stable columns even when there is no drawn coverage at all.
-    return toCsv(rows, ['sessionId', 'areaNumber', 'region', 'coloredArea', 'percentage', 'bodyContribution']);
+    return toCsv(rows, COVERAGE_COLUMNS);
 }
 
 /**
- * Builds every CSV file for the download bundle.
+ * Builds every CSV file for the download bundle. Each text starts with a UTF-8
+ * byte-order mark (see the encoding note at the top of this file).
  *
  * @param {import('./submissionService.js').SubmissionPayload} payload
  * @returns {Object<string,string>} filename → CSV text
  */
 export function buildCsvFiles(payload) {
     return {
-        'session.csv': buildSessionCsv(payload),
-        'areas.csv': buildAreasCsv(payload),
-        'coverage.csv': buildCoverageCsv(payload)
+        'session.csv': UTF8_BOM + buildSessionCsv(payload),
+        'areas.csv': UTF8_BOM + buildAreasCsv(payload),
+        'coverage.csv': UTF8_BOM + buildCoverageCsv(payload)
     };
 }

@@ -1,12 +1,12 @@
 # 3D Pain & Symptom Assessment Application
 
-A clinical web application where patients draw pain and symptom areas on an interactive 3D anatomical body model and complete associated questionnaires. When a session is finished, the participant's responses are saved as a single downloadable ZIP bundle that they store on a provided encrypted device.
+A clinical web application where patients draw pain and symptom areas on an interactive 3D anatomical body model and, optionally, complete associated questionnaires. When a session is finished, the participant's responses are saved as a single downloadable ZIP bundle that they store on a provided encrypted device.
 
-> **Branch note — two variants.** This branch is the **local-save** variant: on completion the payload is handed to a submission "sink" (`js/services/responseSink.js`) that keeps it for a "Save Your Response" screen, where the participant downloads a ZIP (JSON + images + CSVs) and stores it on a provided encrypted device. There is no backend and no network request. The sibling **`main`** branch is the **database-submission** variant: it swaps in a different `responseSink.js` that submits the payload to a backend instead. The two branches differ **only** in that one file plus its supporting save-only assets (the ZIP/CSV export, data dictionary, vendored JSZip, and the save screen) — see [Data Flow](#data-flow).
+> **Branch note — two variants.** This branch is the **local-save** variant: on completion the payload is handed to a submission "sink" (`js/services/responseSink.js`) that keeps it for a "Save Your Response" screen, where the participant downloads a ZIP (JSON + images + CSVs) and stores it on a provided encrypted device. There is no backend and no network request. The sibling **`main`** branch is the **database-submission** variant: it swaps in a different `responseSink.js` that submits the payload to a backend instead. Apart from that file and its supporting save-only assets (the ZIP/CSV export, data dictionary, vendored JSZip, and the save screen — see [Data Flow](#data-flow)), this branch also has the **drawing-only** [study mode](#study-modes), which `main` does not.
 
 ## Overview
 
-The application guides patients through a multi-step workflow:
+The application guides patients through a multi-step workflow. On the first screen the participant chooses the **full form** (all steps below) or **drawing only** (steps 3 and 5 are skipped) — see [Study modes](#study-modes).
 
 1. **Select a body type** — choose between two anatomical models
 2. **Draw on the 3D model** — paint one area of pain or symptom directly onto the body surface
@@ -14,6 +14,29 @@ The application guides patients through a multi-step workflow:
 4. **Repeat** — add additional pain/symptom areas as needed
 5. **General questionnaire** — answer questions about overall medication use and history
 6. **Save** — all drawing data, coverage metrics, questionnaire responses, and multi-view snapshots are assembled into a structured JSON payload that the participant downloads and stores on the provided encrypted device
+
+## Study modes
+
+The very first screen of every session asks the participant how they want to continue:
+
+| Mode | What the participant does | Questionnaires |
+|---|---|---|
+| **Drawing + questionnaires** (`full`) | Draw an area, answer that area's questionnaire, repeat, then answer the general questionnaire and save | Both shown |
+| **Drawing only** (`drawing-only`) | Draw their areas and save | Neither shown |
+
+How it works:
+
+- The choice comes **before** onboarding, because onboarding's steps depend on it (drawing only drops the "Answer the questionnaire" step).
+- The choice is **locked for the session**. One participant's record is never a mix of areas with and without answers. To change mode, start a new session.
+- A page refresh in the middle of a session does not ask again (the choice is remembered for the browser tab). Ending a session, by finishing or by the inactivity timeout, clears it, so the next participant chooses afresh and then sees onboarding.
+- In drawing only, "Done Drawing" returns to the list of areas; "Edit" opens the drawing directly; and the summary's last button is **Finish and Save My Drawings**, which leads to the usual save-to-device screen.
+- The saved data records the choice in `studyMode`. In drawing-only sessions the questionnaire fields are empty on purpose: `null` in `metadata.json`, and blank cells in the CSVs, which keep the same columns as a full-form download — see [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md#drawing-only-sessions).
+
+The mode lives in `js/app/studyMode.js`; the choice screen is `js/components/modals/modeChoiceModal.js`.
+
+## Guided tours
+
+Each screen's **Help** panel has a **Take a quick tour** button that runs a short tooltip tour of that screen's controls. Tours never start on their own, and can be replayed any number of times.
 
 ## Core Capabilities
 
@@ -33,7 +56,7 @@ The application guides patients through a multi-step workflow:
 | Vanilla ES modules | Application code — no bundler, no framework |
 | Import map (`index.html`) | Resolves `three` and `three/addons/` from CDN |
 | [SurveyJS / SurveyKO](https://surveyjs.io/) | Questionnaire rendering and validation |
-| [Driver.js](https://driverjs.com/) | Onboarding tooltip sequences |
+| [Driver.js](https://driverjs.com/) | Guided-tour tooltips, started from the Help panel |
 | [Font Awesome](https://fontawesome.com/) 7 | UI icons |
 | [D3.js](https://d3js.org/) v7 | Available for data visualization (loaded, not actively used) |
 
@@ -75,8 +98,9 @@ No build process required — the application runs directly in a modern browser 
 │   │   ├── stageLayout.js          DOM slot swapping per stage (view layer for stageRouter)
 │   │   ├── drawingInstanceManager.js  Drawing instance CRUD, color assignment, previews
 │   │   ├── state.js                Global AppState singleton (fully typed with JSDoc)
+│   │   ├── studyMode.js            Session's study mode (full / drawing only), locked once chosen
 │   │   ├── eventManager.js         Centralized event listener tracking and cleanup
-│   │   ├── tooltipRunner.js        Driver.js wrapper — runs tooltip sequences
+│   │   ├── tooltipRunner.js        Driver.js wrapper — runs a screen's guided tour on request
 │   │   └── tooltipSteps.js         Tooltip step definitions (pure data)
 │   │
 │   ├── components/                 Reusable UI components
@@ -90,13 +114,14 @@ No build process required — the application runs directly in a modern browser 
 │   │   └── modals/
 │   │       ├── modalBase.js        Shared DOM factory helpers
 │   │       ├── getModalElements.js Unified element getter dispatch
+│   │       ├── modeChoiceModal.js  First screen — choose full form or drawing only
 │   │       ├── onboardingModal.js  First-visit instruction overlay
 │   │       ├── confirmDrawingModal.js  "Done Drawing" preview + 3-button layout
 │   │       ├── resetModal.js       "Erase All" confirmation
 │   │       ├── deleteEmptyModal.js Empty drawing warning
 │   │       ├── deleteAreaModal.js  Area deletion confirmation
 │   │       ├── regionSelectorModal.js  Body region selector with cascading dropdowns
-│   │       ├── helpModal.js        Help panel with Q&A accordion + tutorial videos
+│   │       ├── helpModal.js        Help panel with Q&A accordion, tutorial videos + guided-tour button
 │   │       ├── idleWarningModal.js Inactivity warning before a shared-device session reset
 │   │       └── sessionResetModal.js  "Session ended" notice shown after a reset + reload
 │   │
@@ -155,8 +180,8 @@ The app operates as a finite state machine with five stages, managed by `stageRo
 | `summary` | Home view — shows logged areas or getting-started video |
 | `selection` | Body type picker (Type 1 / Type 2) |
 | `drawing` | Interactive 3D drawing with brush/eraser tools |
-| `area-survey` | Per-area questionnaire (SurveyJS) |
-| `general-survey` | General questionnaire about medications |
+| `area-survey` | Per-area questionnaire (SurveyJS) — full mode only |
+| `general-survey` | General questionnaire about medications — full mode only |
 
 ### Drawing Pipeline
 
@@ -165,11 +190,11 @@ The app operates as a finite state machine with five stages, managed by `stageRo
 3. Pointer events raycast into the 3D mesh → hit UV coordinates
 4. `drawingEngine.js` paints pixels on a 1024×1024 canvas texture
 5. `regionTracker.js` records which anatomical regions have drawn pixels
-6. On "Done Drawing," a preview snapshot is generated and the user proceeds to the area survey
+6. On "Done Drawing," a preview snapshot is generated and the user proceeds to the area survey (full mode) or back to the summary (drawing only)
 
 ### Data Flow
 
-Each drawing instance owns its own canvas, texture, region tracking, and questionnaire data. When the general questionnaire is completed, `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload (`prepareSubmissionData`).
+Each drawing instance owns its own canvas, texture, region tracking, and questionnaire data. When the participant finishes — by completing the general questionnaire (full mode) or pressing **Finish and Save My Drawings** (drawing only) — `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload (`prepareSubmissionData`).
 
 Once the payload is assembled, `appController.js` hands it to the **persistence seam** — `persistResponse()` in `js/services/responseSink.js`. This is the single point where the two variants diverge: appController itself is variant-agnostic and never references how the response is stored. On this branch the sink keeps the payload in memory and the participant is routed to a "Save Your Response" screen.
 
@@ -188,9 +213,9 @@ pain-assessment_<stamp>_<id>/
     README.md                            data dictionary explaining every column
 ```
 
-The CSVs (built by `csvExporter.js`) favour a "long / tidy" shape where a field would otherwise explode into sparse columns — most notably per-region coverage, emitted one row per (area, region). Every column is documented in the bundled data dictionary (`csv/README.md`, sourced from `js/data/dataDictionary.js` and mirrored at [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md)). The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
+The CSVs (built by `csvExporter.js`) favour a "long / tidy" shape where a field would otherwise explode into sparse columns — most notably per-region coverage, emitted one row per (area, region). Each CSV always has the same columns in the same order — the questionnaire columns are listed from the survey definitions, not from whichever answers are present — so files from any session or study mode stack directly; a question that wasn't shown is a blank cell. The CSVs are UTF-8 with a byte-order mark so Excel shows accented letters and curly apostrophes correctly; the data dictionary's "Opening the CSVs" section gives the one-line setting for base R and Python's `csv` module. Every column is documented in the bundled data dictionary (`csv/README.md`, sourced from `js/data/dataDictionary.js` and mirrored at [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md)). The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
 
-The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, and general questionnaire data. No device, OS, or browser information is captured — not even a coarse category — as a data-minimization measure.
+The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion` (currently `1.1`), the `studyMode`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, and general questionnaire data. No device, OS, or browser information is captured — not even a coarse category — as a data-minimization measure.
 
 ### Persistence seam (`responseSink.js`)
 

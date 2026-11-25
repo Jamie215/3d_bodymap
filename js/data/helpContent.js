@@ -1,3 +1,9 @@
+// helpContent.js
+// Q&A shown in the Help panel, per screen ('drawing', 'summary').
+//
+// An entry may list `modes` (e.g. ['drawing-only']) to appear only in those
+// study modes — see js/app/studyMode.js. Entries without `modes` always show.
+
 export const HELP_CONTENT = {
     drawing: [
         { 
@@ -53,9 +59,17 @@ export const HELP_CONTENT = {
         },
         {
             'q': 'What do I do next after I finish my first drawing?', 
+            modes: ['full'],
             'a': [
                 { type: 'text', content: 'To log additional pain or symptoms, select "Add a New Pain or Symptom.". When you are done adding all drawing, select "Proceed to General Questionnaire".' },
                 { type: 'image', src: 'assets/help/Next Steps.png', alt: 'Screenshot showing the "Add a New Pain or Symptom" and "Proceed to General Questionnaire" buttons' }
+            ]
+        },
+        {
+            'q': 'What do I do next after I finish my first drawing?',
+            modes: ['drawing-only'],
+            'a': [
+                { type: 'text', content: 'To log additional pain or symptoms, select "Add a New Pain or Symptom". When you have drawn all your areas, select "Finish and Save My Drawings".' }
             ]
         }
     ]

@@ -39,6 +39,7 @@ import {
     hasUnsavedResponse
 } from '../services/responseSink.js';
 import AppState from './state.js';
+import { isDrawingOnly } from './studyMode.js';
 import eventManager from './eventManager.js';
 import CameraUtils from '../services/cameraService.js';
 import coverageCalculator from '../services/coverageService.js';
@@ -129,13 +130,45 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     // HELPERS
     // ====================================================================
 
-    /** After drawing, save the current texture and move to the area survey. */
-    function proceedToAreaSurvey() {
+    /**
+     * After a new drawing is confirmed, save its texture and move on: to that
+     * area's questionnaire, or — in drawing-only mode — back to the summary.
+     */
+    function finishNewDrawing() {
         updateCurrentDrawing();
         AppState.currentSurveyIndex = AppState.currentDrawingIndex;
         cleanupInteraction();
         disableCursorManagement();
-        goTo('area-survey');
+        goTo(isDrawingOnly() ? 'summary' : 'area-survey');
+    }
+
+    /**
+     * The participant has finished: assemble the payload, hand it to the
+     * response sink, and show the summary (which then renders the
+     * save-to-device screen). On failure, roll back so they can try again.
+     * Shared by both modes — only what happens *before* it differs.
+     *
+     * @returns {Promise<boolean>} true if the payload was handed over
+     */
+    async function submitSession() {
+        try {
+            const submissionData = await prepareSubmissionData();
+
+            // Hand the payload to the persistence sink. For the local-save
+            // variant this keeps it for the "Save to device" screen (the
+            // summary stage renders that screen once the session is submitted).
+            await persistResponse(submissionData);
+
+            AppState.isSubmitted = true;
+            clearSurveyInstance();
+            goTo('summary');
+            return true;
+        } catch (error) {
+            console.error('Submission failed:', error);
+            alert('There was an error preparing your responses for download. Please try again.');
+            rollbackResponse();
+            return false;
+        }
     }
 
     // ====================================================================
@@ -145,14 +178,24 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     summary.changeModelButton.addEventListener('click', () => goTo('selection'));
 
     summary.addNewInstanceButton.addEventListener('click', () => {
-        AppState.isEditingFromSurvey = false;
+        AppState.isEditingArea = false;
         addNewDrawingInstance();
         goTo('drawing');
     });
 
-    summary.summaryDoneButton.addEventListener('click', () => {
+    summary.summaryDoneButton.addEventListener('click', async () => {
         if (AppState.drawingInstances.length === 0) {
             alert('Please add at least one pain or symptom area before proceeding.');
+            return;
+        }
+
+        // Drawing-only mode: no questionnaires to check or show — finish now.
+        // The button stays disabled while the snapshots are captured (a few
+        // seconds) so a second tap cannot submit twice.
+        if (isDrawingOnly()) {
+            summary.summaryDoneButton.disabled = true;
+            const submitted = await submitSession();
+            if (!submitted) summary.summaryDoneButton.disabled = false;
             return;
         }
 
@@ -173,6 +216,16 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     summary.setEditCallback((index) => {
         AppState.currentDrawingIndex = index;
         AppState.currentSurveyIndex  = index;
+
+        // Drawing-only mode: "Edit" opens the drawing itself (there is no
+        // questionnaire to go through), framed on that area.
+        if (isDrawingOnly()) {
+            AppState.isEditingArea = true;
+            goTo('drawing');
+            AppState.cameraUtils?.focusOnDrawing(AppState.drawingInstances[index]);
+            return;
+        }
+
         goTo('area-survey');
     });
 
@@ -202,7 +255,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     selection.returnSummaryButton.addEventListener('click', () => goTo('summary'));
 
     selection.addNewInstanceButton.addEventListener('click', () => {
-        AppState.isEditingFromSurvey = false;
+        AppState.isEditingArea = false;
         addNewDrawingInstance();
         goTo('drawing');
     });
@@ -212,17 +265,18 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
     // ====================================================================
 
     drawing.continueButton.addEventListener('click', async () => {
-        // Editing an existing area — return to its survey
-        if (AppState.isEditingFromSurvey) {
+        // Editing an existing area — return to where the edit started: its
+        // questionnaire, or the summary in drawing-only mode.
+        if (AppState.isEditingArea) {
             if (isDrawingBlank()) {
                 if (handleEmptyDrawing('returnFromEdit')) return;
             }
             updateCurrentDrawing();
-            AppState.isEditingFromSurvey  = false;
+            AppState.isEditingArea  = false;
             AppState.currentDrawingIndex  = AppState.currentSurveyIndex;
             cleanupInteraction();
             disableCursorManagement();
-            goTo('area-survey');
+            goTo(isDrawingOnly() ? 'summary' : 'area-survey');
             return;
         }
 
@@ -258,7 +312,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     modalContinueButton.addEventListener('click', () => {
         hideDrawContinueModal();
-        proceedToAreaSurvey();
+        finishNewDrawing();
     });
 
     // ====================================================================
@@ -281,7 +335,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
 
     survey.editDrawingButton.addEventListener('click', () => {
         saveCurrentSurveyData();
-        AppState.isEditingFromSurvey  = true;
+        AppState.isEditingArea  = true;
         AppState.currentDrawingIndex  = AppState.currentSurveyIndex;
         goTo('drawing');
     });
@@ -292,26 +346,9 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         // ── General questionnaire submission ──
         if (isGeneralSurvey()) {
             AppState.generalQuestionnaireResponse = getCurrentSurveyData();
-
-            try {
-                const submissionData = await prepareSubmissionData();
-
-                // Hand the payload to the persistence sink. For the local-save
-                // variant this keeps it for the "Save to device" screen (the
-                // summary stage renders that screen once the questionnaire is
-                // complete). The stage transition is variant-independent.
-                await persistResponse(submissionData);
-
-                clearSurveyInstance();
-                goTo('summary');
-            } catch (error) {
-                console.error('Submission failed:', error);
-                alert('There was an error preparing your responses for download. Please try again.');
-                // Roll back so the participant can retry
-                AppState.generalQuestionnaireResponse = null;
-                rollbackResponse();
-            }
-
+            const submitted = await submitSession();
+            // Roll back so the participant can retry
+            if (!submitted) AppState.generalQuestionnaireResponse = null;
             return;
         }
 
