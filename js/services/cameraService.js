@@ -395,12 +395,16 @@ export default class CameraUtils {
      * @returns {Promise<void>} resolves when the camera animation completes
      */
     focusOnDrawing(instance) {
-        const drawnRegionNames = instance ? coverageCalculator.getDrawnRegions(instance) : null;
-        if (!drawnRegionNames || drawnRegionNames.size === 0) {
+        // Regions are weighted by painted area, so a brush edge that grazes
+        // a few small neighbouring regions doesn't steer the camera.
+        const coverage = instance ? coverageCalculator.calculateCoverage(instance) : null;
+        const regionCoverage = coverage?.regions ?? null;
+        const drawnRegionNames = new Set(Object.keys(regionCoverage ?? {}));
+        if (drawnRegionNames.size === 0) {
             return this.resetView();
         }
 
-        const dominantBodyPart = findDominantBodyPart(drawnRegionNames, this.regionMap);
+        const dominantBodyPart = findDominantBodyPart(drawnRegionNames, this.regionMap, regionCoverage);
         if (!dominantBodyPart) {
             return this.resetView();
         }
@@ -421,8 +425,7 @@ export default class CameraUtils {
         this.setFocus(dominantBodyPart, center, box);
 
         if (isHand) {
-            const coverage  = coverageCalculator.calculateCoverage(instance);
-            const handAngle = analyzeHandOrientation(coverage?.regions);
+            const handAngle = analyzeHandOrientation(regionCoverage);
             if (handAngle !== null) {
                 this.rotationAngle = handAngle;
             } else {
@@ -433,7 +436,7 @@ export default class CameraUtils {
                     : Math.PI;
             }
         } else {
-            const orientation = analyzeDrawingOrientation(drawnRegionNames);
+            const orientation = analyzeDrawingOrientation(drawnRegionNames, regionCoverage);
             this.rotationAngle = orientation.angle;
         }
 

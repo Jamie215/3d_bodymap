@@ -19,7 +19,7 @@ The application guides patients through a multi-step workflow:
 
 - **UV-based drawing** on a 3D mesh with 315 anatomical regions defined as Blender vertex groups
 - **Coverage measured from what is actually painted**: every painted texture pixel is traced back to its mesh triangle and weighted by that triangle's real 3D surface area, so brush size, the edges of the brush, and erasing are all counted, and uneven texture stretch (UV density) doesn't bias the result
-- **Intelligent camera positioning** that reads anatomical naming conventions (anterior/posterior, medial/lateral) to determine optimal viewing angles
+- **Intelligent camera positioning** that reads anatomical naming conventions (anterior/posterior, medial/lateral) to determine optimal viewing angles, weighting each drawn region by its painted area
 - **Region visibility filtering** via a custom GPU shader that hides non-selected body parts when focusing on limbs
 - **Mirrored drawing at the body centerline** so strokes near the midline seam appear on both sides
 - **SurveyJS-powered questionnaires** with area-specific and general forms, custom renderers, and progress tracking

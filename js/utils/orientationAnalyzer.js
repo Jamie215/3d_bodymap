@@ -114,13 +114,27 @@ const OCTANT_ANGLES = {
 };
 
 /**
+ * Weight of one drawn region when choosing a view: its painted area when
+ * coverage is given, otherwise 1 (plain count). Weighting by area stops a
+ * brush edge that grazes several small regions from outvoting the region
+ * that was actually painted.
+ */
+function regionWeight(regionName, regionCoverage) {
+    if (!regionCoverage) return 1;
+    return regionCoverage[regionName]?.coloredArea ?? 0;
+}
+
+/**
  * Analyze a set of drawn vertex-group names and determine the best
  * camera viewing angle with 45-degree (octant) granularity.
  *
  * @param {Set<string>} drawnRegionNames
+ * @param {Object<string, { coloredArea: number }>} [regionCoverage]
+ *   Optional `regions` field of a CoverageResult. When given, each region
+ *   counts by its painted area instead of counting 1.
  * @returns {{ angle: number, octant: string, confidence: number }}
  */
-export function analyzeDrawingOrientation(drawnRegionNames) {
+export function analyzeDrawingOrientation(drawnRegionNames, regionCoverage = null) {
     if (!drawnRegionNames || drawnRegionNames.size === 0) {
         return { angle: 0, octant: 'front', confidence: 0 };
     }
@@ -131,9 +145,12 @@ export function analyzeDrawingOrientation(drawnRegionNames) {
         'back': 0,  'back-left': 0,   'left': 0,  'front-left': 0
     };
 
+    let totalWeight = 0;
     for (const regionName of drawnRegionNames) {
         const octant = classifyRegionOctant(regionName);
-        octantCounts[octant]++;
+        const weight = regionWeight(regionName, regionCoverage);
+        octantCounts[octant] += weight;
+        totalWeight += weight;
     }
 
     // Find dominant octant
@@ -146,12 +163,10 @@ export function analyzeDrawingOrientation(drawnRegionNames) {
         }
     }
 
-    const totalRegions = drawnRegionNames.size;
-
     return {
         angle:      OCTANT_ANGLES[dominantOctant],
         octant:     dominantOctant,
-        confidence: totalRegions > 0 ? maxCount / totalRegions : 0
+        confidence: totalWeight > 0 ? maxCount / totalWeight : 0
     };
 }
 
@@ -232,14 +247,16 @@ export function isBackFacingRegion(regionName, regionMap) {
 }
 
 /**
- * Find the dominant camera-region key that contains the most drawn
- * vertex-group names.
+ * Find the dominant camera-region key: the one with the most painted area
+ * (when coverage is given) or else the most drawn vertex-group names.
  *
  * @param {Set<string>} drawnRegionNames
  * @param {Object<string, string[]>} regionMap
+ * @param {Object<string, { coloredArea: number }>} [regionCoverage]
+ *   Optional `regions` field of a CoverageResult (see analyzeDrawingOrientation).
  * @returns {string|null}
  */
-export function findDominantBodyPart(drawnRegionNames, regionMap) {
+export function findDominantBodyPart(drawnRegionNames, regionMap, regionCoverage = null) {
     if (!drawnRegionNames || drawnRegionNames.size === 0) return null;
 
     const bodyPartCounts = {};
@@ -247,7 +264,8 @@ export function findDominantBodyPart(drawnRegionNames, regionMap) {
     for (const specificRegion of drawnRegionNames) {
         for (const [bodyPart, regions] of Object.entries(regionMap)) {
             if (regions.includes(specificRegion)) {
-                bodyPartCounts[bodyPart] = (bodyPartCounts[bodyPart] || 0) + 1;
+                bodyPartCounts[bodyPart] = (bodyPartCounts[bodyPart] || 0) +
+                    regionWeight(specificRegion, regionCoverage);
                 break;
             }
         }
