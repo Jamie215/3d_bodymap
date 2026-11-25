@@ -196,6 +196,8 @@ The app operates as a finite state machine with five stages, managed by `stageRo
 
 Coverage answers "how much of the body (or of each region) did the participant paint?". It is always **real surface area ÷ real surface area**, never a count of pixels or triangles.
 
+**Units.** Areas (`coloredArea`, `totalArea`) are in **square metres (m²)** of the model's surface: glTF models are built in metres, and the body model is 1.87 m tall with about 1.79 m² of skin. They are areas on the model, not on the participant's own body, so the percentage fields are usually better for comparing participants.
+
 - **Painted mask.** Each drawing area keeps a yes/no value for every texture pixel. The brush sets pixels to "painted"; the eraser sets them back. It records exactly what the participant sees.
 - **Pixel → triangle.** The body is made of triangles. Each triangle is unfolded onto the flat texture (its UV footprint). Each texture pixel belongs to the one triangle whose footprint contains the pixel's centre (`buildPixelFaceMap` in `uvRasterizer.js`).
 - **Painted area of a triangle** = its real 3D area × (painted pixels in it ÷ all pixels in it). Triangles smaller than one pixel count fully when the pixel at their centre is painted.
