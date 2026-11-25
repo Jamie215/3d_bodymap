@@ -9,3 +9,6 @@ admin-dashboard.html
 # Local dev / tooling
 .wrangler/
 node_modules/
+
+# Local copies of the 3D model assets (served by the Cloudflare proxy in production)
+models/
