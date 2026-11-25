@@ -73,7 +73,9 @@ import { DATA_DICTIONARY_MD } from '../data/dataDictionary.js';
  *   1.0  initial format
  *   1.1  added `studyMode`. In 'drawing-only' sessions every area's
  *        `questionnaireResponses` and the top-level `generalQuestionnaire` are
- *        null on purpose — the questionnaires were never shown.
+ *        null on purpose — the questionnaires were never shown. The CSVs now
+ *        always have every questionnaire column (blank when not shown),
+ *        instead of only the columns that had answers.
  */
 export const SCHEMA_VERSION = '1.1';
 

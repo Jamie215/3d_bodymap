@@ -30,7 +30,7 @@ How it works:
 - The choice is **locked for the session**. One participant's record is never a mix of areas with and without answers. To change mode, start a new session.
 - A page refresh in the middle of a session does not ask again (the choice is remembered for the browser tab). Ending a session, by finishing or by the inactivity timeout, clears it, so the next participant chooses afresh and then sees onboarding.
 - In drawing only, "Done Drawing" returns to the list of areas; "Edit" opens the drawing directly; and the summary's last button is **Finish and Save My Drawings**, which leads to the usual save-to-device screen.
-- The saved data records the choice in `studyMode`. In drawing-only sessions the questionnaire fields are empty (`null`) on purpose — see [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md#drawing-only-sessions).
+- The saved data records the choice in `studyMode`. In drawing-only sessions the questionnaire fields are empty on purpose: `null` in `metadata.json`, and blank cells in the CSVs, which keep the same columns as a full-form download — see [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md#drawing-only-sessions).
 
 The mode lives in `js/app/studyMode.js`; the choice screen is `js/components/modals/modeChoiceModal.js`.
 
@@ -213,7 +213,7 @@ pain-assessment_<stamp>_<id>/
     README.md                            data dictionary explaining every column
 ```
 
-The CSVs (built by `csvExporter.js`) favour a "long / tidy" shape where a field would otherwise explode into sparse columns — most notably per-region coverage, emitted one row per (area, region). Every column is documented in the bundled data dictionary (`csv/README.md`, sourced from `js/data/dataDictionary.js` and mirrored at [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md)). The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
+The CSVs (built by `csvExporter.js`) favour a "long / tidy" shape where a field would otherwise explode into sparse columns — most notably per-region coverage, emitted one row per (area, region). Each CSV always has the same columns in the same order — the questionnaire columns are listed from the survey definitions, not from whichever answers are present — so files from any session or study mode stack directly; a question that wasn't shown is a blank cell. Every column is documented in the bundled data dictionary (`csv/README.md`, sourced from `js/data/dataDictionary.js` and mirrored at [docs/DATA_DICTIONARY.md](./docs/DATA_DICTIONARY.md)). The participant stores the file on the provided **encrypted device** and confirms they have saved it before the session is marked done; a `beforeunload` guard warns if they try to leave before confirming.
 
 The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion` (currently `1.1`), the `studyMode`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, and general questionnaire data. No device, OS, or browser information is captured — not even a coarse category — as a data-minimization measure.
 

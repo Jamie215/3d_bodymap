@@ -35,11 +35,25 @@ pain-assessment_<stamp>_<id>/
 - `sessionId` links every file to this session.
 - `areaNumber` (1-based) links `areas.csv` ↔ `coverage.csv` ↔ `areas/area-<n>/`.
 
+## Columns are always the same
+
+Every session.csv and every areas.csv has **the same columns in the same
+order**, whatever the participant answered or which study mode they used. So
+files from different sessions can be stacked directly. A question that was not
+shown is a **blank cell**, never a missing column. Blank (rather than a text
+code like "N/A") keeps number columns such as `q.intensityScale` numeric; R,
+pandas and Excel all read a blank cell as missing.
+
+A blank questionnaire cell means the question was not shown, because either:
+
+- it is a follow-up whose condition was not met (see the notes below), or
+- the session was drawing-only (see next section).
+
 ## Drawing-only sessions
 
 When `studyMode` is `drawing-only`, no questionnaire was shown. The drawings,
-snapshots and coverage are complete, but there are **no** `general.*` columns
-in session.csv and **no** `q.*` columns in areas.csv. In metadata.json,
+snapshots and coverage are complete, and **every** `general.*` cell in
+session.csv and **every** `q.*` cell in areas.csv is blank. In metadata.json,
 `generalQuestionnaire` and every area's `questionnaireResponses` are `null`.
 This is intentional, not missing data.
 
@@ -62,9 +76,9 @@ This is intentional, not missing data.
 
 ## areas.csv (one row per area)
 
-Coverage summary + the area questionnaire. Columns are the union across areas,
-so **conditional questions are blank for areas where they weren't shown**. The
-follow-up questions (`q.makingWorse` onward) appear only when `q.mainArea = Yes`.
+Coverage summary + the area questionnaire. **Conditional questions are blank
+for areas where they weren't shown.** The follow-up questions (`q.makingWorse`
+onward) are shown only when `q.mainArea = Yes`.
 
 | Column | Meaning |
 |---|---|
@@ -83,13 +97,16 @@ follow-up questions (`q.makingWorse` onward) appear only when `q.mainArea = Yes`
 | `q.makingWorse` / `q.makingBetter` | Free text |
 | `q.timeNotExperiencing` (+`...Detail`) | Any pain-free time of day, and when (checkbox list) |
 | `q.timeExperienceWorse` (+`...Detail`) | Any worse time of day, and when (checkbox list) |
-| `q.onsetCause` | Onset related to trauma / activity / arthritis / no clear cause / other |
+| `q.onsetCause` | Onset related to trauma / activity / arthritis / no clear cause, or `other` |
+| `q.onsetCause-Comment` | The participant's own words when `q.onsetCause` = `other` |
 | `q.interfereActivity` | Interference past 7 days — Not at all … Very much |
-| `q.treatmentForImprovement` (+`...Detail`) | Any treatment helped, and which |
+| `q.treatmentForImprovement` (+`...Detail`) | Any treatment helped, and which (single choice, or `other`) |
+| `q.treatmentForImprovementDetail-Comment` | The participant's own words when `q.treatmentForImprovementDetail` = `other` |
 | `q.medicationForImprovement` (+`...Detail`) | Any medication helped, and which (free text) |
 
-Checkbox answers (the `...Detail` fields) are `;`-separated. "Other" free-text
-options appear as the typed value.
+Checkbox answers (`q.timeNotExperiencingDetail`, `q.timeExperienceWorseDetail`)
+are `;`-separated. When a participant picks "Other", the answer column holds the
+value `other` and their typed text is in the matching `-Comment` column.
 
 ## coverage.csv (long — one row per area × region)
 
