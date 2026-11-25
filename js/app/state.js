@@ -22,6 +22,7 @@
  * @property {Map<string,boolean>|null}    globalUVMap         — Pixel key → true for all valid UV-mapped pixels
  * @property {Map<string,string>|null}     globalPixelRegionMap — Pixel key → region name
  * @property {Map<number,string|null>|null} faceRegionMap      — Face index → dominant region name
+ * @property {import('../utils/uvRasterizer.js').PixelFaceMap|null} pixelMap — Texture pixel → owning face (for painted-area coverage)
  * @property {Object<string,number>|null}  regionToIdMap       — Vertex group name → numeric region ID
  * @property {Object<number,string>|null}  idToRegionMap       — Numeric region ID → vertex group name
  *
@@ -70,6 +71,7 @@ const AppState = {
     globalUVMap: null,
     globalPixelRegionMap: null,
     faceRegionMap: null,
+    pixelMap: null,
     regionToIdMap: null,
     idToRegionMap: null,
 

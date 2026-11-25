@@ -261,9 +261,7 @@ export function createDrawingControls(drawingControlsPanel) {
                 }
 
                 // Reset current drawing instance data
-                currentInstance.drawnRegionNames = new Set();
-                currentInstance.regionPixelMap = {};
-                currentInstance.coloredFaces = new Set();
+                currentInstance.paintedMask?.fill(0);
                 currentInstance.questionnaireData = null;
                 currentInstance.texture.needsUpdate = true;
 

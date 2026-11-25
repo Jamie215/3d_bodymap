@@ -100,7 +100,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         await initializeRegionMappings();
         cameraUtils.initRegionMap(Object.values(AppState.idToRegionMap));
 
-        const { globalUVMap, globalPixelRegionMap, faceRegionMap } = buildGlobalUVMap(
+        const { globalUVMap, globalPixelRegionMap, faceRegionMap, pixelMap } = buildGlobalUVMap(
             AppState.skinMesh.geometry,
             texturePool.width,
             texturePool.height
@@ -108,6 +108,7 @@ export function initApp({ scene, camera, renderer, controls, views, registerMode
         AppState.globalUVMap          = globalUVMap;
         AppState.globalPixelRegionMap = globalPixelRegionMap;
         AppState.faceRegionMap        = faceRegionMap;
+        AppState.pixelMap             = pixelMap;
 
         coverageCalculator.initialize(AppState.skinMesh);
 

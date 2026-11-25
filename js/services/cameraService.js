@@ -395,7 +395,7 @@ export default class CameraUtils {
      * @returns {Promise<void>} resolves when the camera animation completes
      */
     focusOnDrawing(instance) {
-        const drawnRegionNames = instance?.drawnRegionNames;
+        const drawnRegionNames = instance ? coverageCalculator.getDrawnRegions(instance) : null;
         if (!drawnRegionNames || drawnRegionNames.size === 0) {
             return this.resetView();
         }

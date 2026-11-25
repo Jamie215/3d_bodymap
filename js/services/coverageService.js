@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import AppState from '../app/state.js';
+import { computePaintedArea } from '../utils/paintedArea.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -13,7 +14,7 @@ import AppState from '../app/state.js';
  * Coverage metrics for a single fine-grained anatomical region.
  *
  * @typedef {Object} RegionCoverageEntry
- * @property {number} coloredArea       — 3D surface area of drawn pixels (world units²)
+ * @property {number} coloredArea       — 3D surface area actually painted (world units², ≈ m²)
  * @property {number} totalArea         — Total 3D surface area of the region
  * @property {number} percentage        — coloredArea / totalArea × 100
  * @property {number} bodyContribution  — coloredArea / totalBodyArea × 100
@@ -38,7 +39,7 @@ import AppState from '../app/state.js';
  * @property {Object<string, RegionCoverageEntry>}   regions    — Keyed by vertex group name
  * @property {Object<string, BodyPartCoverageEntry>}  bodyParts  — Keyed by body part name (e.g. "Left Knee")
  * @property {{ coloredArea: number, totalArea: number, percentage: number }} overall
- * @property {number} coloredFaceCount — Number of mesh faces with drawn content
+ * @property {number} coloredFaceCount — Number of mesh faces with any painted pixel
  * @property {number} totalFaceCount   — Total mesh face count
  */
 
@@ -120,6 +121,7 @@ class CoverageCalculator {
         this.regionToBodyPart = {};      // region name → body part key lookup
         this.faceAreas = [];             // Area of each triangle
         this.faceToRegion = [];          // Region name for each triangle
+        this.pixelMap = null;            // Texture pixel → triangle lookup (uvRasterizer.buildPixelFaceMap)
         this.totalBodyArea = 0;
         this.initialized = false;
     }
@@ -146,10 +148,11 @@ class CoverageCalculator {
             return false;
         }
 
-        if (!AppState.idToRegionMap || !AppState.faceRegionMap) {
+        if (!AppState.idToRegionMap || !AppState.faceRegionMap || !AppState.pixelMap) {
             console.error('CoverageCalculator: Region mappings not loaded');
             return false;
         }
+        this.pixelMap = AppState.pixelMap;
 
         mesh.updateMatrixWorld(true);
         const matrixWorld = mesh.matrixWorld;
@@ -216,8 +219,13 @@ class CoverageCalculator {
     }
 
     /**
-     * Calculate coverage for a drawing instance.
-     * 
+     * Calculate coverage for a drawing instance from what is actually painted.
+     *
+     * Uses the instance's painted mask (one entry per texture pixel), so brush
+     * size, the edges of the brush and erasing are all reflected. Each
+     * triangle contributes its real 3D area × the share of its pixels that are
+     * painted. Percentages are always area ÷ area.
+     *
      * Returns fine-grained region coverage AND body part coverage in a single pass.
      * 
      * @param {DrawingInstance} instance
@@ -229,24 +237,14 @@ class CoverageCalculator {
             return null;
         }
 
-        const coloredFaces = instance.coloredFaces || new Set();
-        const regionColoredAreas = {};
+        const { regionAreas: regionColoredAreas, totalArea: totalColoredArea, paintedFaceCount } =
+            this._paintedArea(instance);
+
         const bodyPartColoredAreas = {};
-        let totalColoredArea = 0;
-
-        // Single pass: accumulate colored area per region AND per body part
-        for (const faceIdx of coloredFaces) {
-            const area = this.faceAreas[faceIdx];
-            const region = this.faceToRegion[faceIdx];
-
-            if (area && region) {
-                regionColoredAreas[region] = (regionColoredAreas[region] || 0) + area;
-                totalColoredArea += area;
-
-                const bodyPart = this.regionToBodyPart[region];
-                if (bodyPart) {
-                    bodyPartColoredAreas[bodyPart] = (bodyPartColoredAreas[bodyPart] || 0) + area;
-                }
+        for (const [region, area] of Object.entries(regionColoredAreas)) {
+            const bodyPart = this.regionToBodyPart[region];
+            if (bodyPart) {
+                bodyPartColoredAreas[bodyPart] = (bodyPartColoredAreas[bodyPart] || 0) + area;
             }
         }
 
@@ -282,9 +280,30 @@ class CoverageCalculator {
                 totalArea: this.totalBodyArea,
                 percentage: (totalColoredArea / this.totalBodyArea) * 100
             },
-            coloredFaceCount: coloredFaces.size,
+            coloredFaceCount: paintedFaceCount,
             totalFaceCount: this.faceAreas.length
         };
+    }
+
+    /**
+     * Names of the regions that have any painted area in this instance
+     * (the `drawnRegions` list). Same source as calculateCoverage, so a region
+     * is listed here exactly when it appears in the coverage breakdown.
+     *
+     * @param {DrawingInstance} instance
+     * @returns {Set<string>}
+     */
+    getDrawnRegions(instance) {
+        if (!this.initialized) return new Set();
+        return new Set(Object.keys(this._paintedArea(instance).regionAreas));
+    }
+
+    /** @private */
+    _paintedArea(instance) {
+        if (!instance?.paintedMask) {
+            return { regionAreas: {}, totalArea: 0, paintedFaceCount: 0 };
+        }
+        return computePaintedArea(instance.paintedMask, this.pixelMap, this.faceAreas, this.faceToRegion);
     }
 }
 
