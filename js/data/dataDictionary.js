@@ -121,9 +121,9 @@ judged that area less important; with 4 or more areas, check how many are \`Yes\
 | Column | Meaning |
 |---|---|
 | \`sessionId\`, \`areaNumber\`, \`areaId\` | Identifiers |
-| \`drawnRegions\` | Body regions with drawn pixels, \`; \`-separated (region names explained under coverage.csv) |
-| \`overallPercentage\` | Drawn area as % of **total body surface** |
-| \`coloredArea\` | Drawn surface area, world units² (see coverage.csv) |
+| \`drawnRegions\` | Body regions with any painted area, \`; \`-separated — exactly the regions listed for this area in coverage.csv (region names explained there) |
+| \`overallPercentage\` | Painted area as % of **total body surface** |
+| \`coloredArea\` | Painted surface area, in m² (see coverage.csv) |
 | \`q.description\` | "What does your pain or symptom feel like?" (free text) |
 | \`q.firstEpisode\` | First episode? \`Yes\` / \`No\` |
 | \`q.severity\` | \`mild\` / \`moderate\` / \`severe\` |
@@ -166,20 +166,44 @@ their typed text is in the matching \`-Comment\` column.
 
 ## coverage.csv (long — one row per area × region)
 
-The region-by-region breakdown of what was drawn. Only regions with drawn
-pixels appear.
+The region-by-region breakdown of what was painted. Only regions with
+painted area appear.
 
 | Column | Meaning |
 |---|---|
 | \`sessionId\`, \`areaNumber\` | Join keys |
 | \`region\` | Anatomical region name (see below) |
-| \`coloredArea\` | Drawn surface area in this region (world units²) |
-| \`percentage\` | Drawn area as % of **this region's** total area |
-| \`bodyContribution\` | Drawn area as % of the **whole body's** surface area |
+| \`coloredArea\` | Painted surface area in this region, in m² |
+| \`percentage\` | Painted area as % of **this region's** total area |
+| \`bodyContribution\` | Painted area as % of the **whole body's** surface area |
 
 For an area, the sum of its regions' \`coloredArea\` equals that area's
 \`coloredArea\` in areas.csv; the sum of \`bodyContribution\` equals its
 \`overallPercentage\`.
+
+**How coverage is measured.** Areas are real surface areas on the 3D body,
+in square metres (the body model is built in metres; its whole surface is
+about 1.79 m²). The app records every texture pixel the participant painted
+(and un-records pixels they erased), so the numbers match what you see in the
+images, whatever the brush size. Each painted pixel counts for the small piece
+of body surface it covers, so the result is not biased by the body's mesh
+being finer on the hands and face than on the back. In tests on the real
+model the numbers were within about 2 % of an independent estimate.
+
+Two limits to keep in mind:
+
+- Each tiny triangle of the body mesh belongs to one region. Paint on a
+  triangle that straddles a region border counts toward one of the two
+  regions, so very small regions are less precise.
+- Areas are measured on the model's resting shape. The pose shown on screen
+  bends some joints slightly, which changes a few body parts' areas (such as
+  the ankles and shoulders) by up to about 10 %.
+
+**Older files.** In files with \`schemaVersion\` 1.0, coverage and
+\`drawnRegions\` counted only the point under the centre of the brush. Those
+numbers are not comparable with 1.1 and later (small brushes were
+over-counted, large brushes heavily under-counted, and regions touched only
+by the edge of the brush were missing). The images in 1.0 files are correct.
 
 **Region names.** There are 315 regions, named \`<part>_<subdivision>\` plus a
 side suffix, e.g. \`back_upper.L\`, \`thigh_anterior.R\`:
@@ -207,7 +231,7 @@ few fields the CSVs leave out:
   - \`overallPercentage\`, \`coloredArea\` — as in areas.csv.
   - \`regionBreakdown\` — per region: \`coloredArea\`, \`percentage\`,
     \`bodyContribution\` (as in coverage.csv) **and \`totalArea\`**, the region's
-    whole surface area in world units² (not in the CSVs).
+    whole surface area in m² (not in the CSVs).
   - \`bodyPartBreakdown\` — the same four numbers rolled up to larger body parts
     (e.g. \`Upper Back\`). **Not in the CSVs.**
 
