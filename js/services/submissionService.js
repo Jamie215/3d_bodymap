@@ -37,7 +37,7 @@ import coverageCalculator from './coverageService.js';
  * @property {string}              areaId                  — e.g. "drawing-1"
  * @property {MultiViewSnapshots|null} bodyViews           — This area rendered on the 3D body (front/back/left/right)
  * @property {Object|null}         questionnaireResponses  — Area survey answers
- * @property {string[]}            drawnRegions            — Vertex group names with drawn content
+ * @property {string[]}            drawnRegions            — Region names with any painted area (same regions as coverage.regionBreakdown)
  * @property {AreaCoverageData|null} coverage
  */
 
@@ -65,7 +65,7 @@ import coverageCalculator from './coverageService.js';
  * Version of the {@link SubmissionPayload} shape. Bump this whenever the fields
  * change, so downloaded files remain parseable at analysis time.
  */
-export const SCHEMA_VERSION = '1.0';
+export const SCHEMA_VERSION = '1.1';
 
 // Dependencies injected via initSubmissionService()
 let renderer = null;
@@ -279,7 +279,7 @@ export async function prepareSubmissionData() {
             areaId: instance.id,
             bodyViews,
             questionnaireResponses: instance.questionnaireData,
-            drawnRegions: Array.from(instance.drawnRegionNames || []),
+            drawnRegions: Array.from(coverageCalculator.getDrawnRegions(instance)),
             coverage: coverage ? {
                 overallPercentage: coverage.overall.percentage,
                 coloredArea: coverage.overall.coloredArea,

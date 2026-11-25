@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import AppState from '../app/state.js';
 import { buildGlobalUVMap as rasterizeBuildGlobalUVMap } from '../utils/uvRasterizer.js';
-import { updateRegionMapFromHit, eraseFromRegionMap } from '../utils/regionTracker.js';
+import { forEachBrushPixel } from '../utils/paintedArea.js';
 
 const raycaster         = new THREE.Raycaster();
 const mirroredRaycaster = new THREE.Raycaster();
@@ -52,24 +52,29 @@ export function buildGlobalUVMap(geometry, canvasWidth, canvasHeight) {
 /**
  * Paint or erase a circular brush stroke at a UV coordinate.
  * Only iterates the brush bounding box (not the full 1024×1024 canvas).
+ *
+ * Also updates the drawing's painted mask (1 = painted, 0 = not) for exactly
+ * the pixels changed here. Coverage and drawnRegions are measured from that
+ * mask, so they always match what the participant sees.
  */
-function drawAtUV(uv, canvas, context, radius, isErasing = false) {
-    const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-    const cx = Math.floor(uv.x * canvas.width);
-    const cy = Math.floor((1 - uv.y) * canvas.height);
+function drawAtUV(uv, instance, radius, isErasing = false) {
+    const { canvas, context } = instance;
+    const width  = canvas.width;
+    const height = canvas.height;
+    const cx = Math.floor(uv.x * width);
+    const cy = Math.floor((1 - uv.y) * height);
 
-    const radiusSq = radius * radius;
+    if (!instance.paintedMask) instance.paintedMask = new Uint8Array(width * height);
+    const mask = instance.paintedMask;
 
     const minPx = Math.max(0, cx - radius);
-    const maxPx = Math.min(canvas.width - 1, cx + radius);
     const minPy = Math.max(0, cy - radius);
-    const maxPy = Math.min(canvas.height - 1, cy + radius);
-
-    const regionW = maxPx - minPx + 1;
-    const regionH = maxPy - minPy + 1;
+    const regionW = Math.min(width - 1, cx + radius) - minPx + 1;
+    const regionH = Math.min(height - 1, cy + radius) - minPy + 1;
+    if (regionW <= 0 || regionH <= 0) return;
 
     if (!isErasing) {
-        context.fillStyle = currentInstance.color;
+        context.fillStyle = instance.color;
     }
 
     // Batch-read the base texture once for erase mode
@@ -79,25 +84,17 @@ function drawAtUV(uv, canvas, context, radius, isErasing = false) {
         baseData = baseCtx.getImageData(minPx, minPy, regionW, regionH).data;
     }
 
-    for (let py = minPy; py <= maxPy; py++) {
-        for (let px = minPx; px <= maxPx; px++) {
-            const dx = px - cx;
-            const dy = py - cy;
-            if (dx * dx + dy * dy > radiusSq) continue;
+    forEachBrushPixel(cx, cy, radius, width, height, (px, py) => {
+        if (!AppState.globalUVMap.has(`${px},${py}`)) return;
 
-            const key = `${px},${py}`;
-            if (!AppState.globalUVMap.has(key)) continue;
-
-            if (isErasing && baseData) {
-                const localX = px - minPx;
-                const localY = py - minPy;
-                const offset = (localY * regionW + localX) * 4;
-                context.fillStyle = `rgba(${baseData[offset]},${baseData[offset + 1]},${baseData[offset + 2]},${baseData[offset + 3] / 255})`;
-            }
-
-            context.fillRect(px, py, 1, 1);
+        if (isErasing && baseData) {
+            const offset = ((py - minPy) * regionW + (px - minPx)) * 4;
+            context.fillStyle = `rgba(${baseData[offset]},${baseData[offset + 1]},${baseData[offset + 2]},${baseData[offset + 3] / 255})`;
         }
-    }
+
+        context.fillRect(px, py, 1, 1);
+        mask[py * width + px] = isErasing ? 0 : 1;
+    });
 }
 
 // ============================================================================
@@ -140,55 +137,11 @@ export function drawAtPointer(camera, pointer, isErasing = false) {
     }
 }
 
-/** Process a single raycast hit — paint pixels and update tracking. */
+/** Process a single raycast hit — paint or erase pixels (and the painted mask). */
 function processHit(hit, isErasing) {
     const currentInstance = AppState.drawingInstances[AppState.currentDrawingIndex];
-    const { canvas, context, texture } = currentInstance;
 
-    const hitRegion = AppState.faceRegionMap?.get(hit.faceIndex) || null;
+    drawAtUV(hit.uv, currentInstance, AppState.brushRadius, isErasing);
 
-    drawAtUV(hit.uv, canvas, context, AppState.brushRadius, isErasing);
-
-    if (!isErasing) {
-        updateRegionMapFromHit(hit, currentInstance, hitRegion);
-
-        if (!currentInstance.coloredFaces) currentInstance.coloredFaces = new Set();
-        currentInstance.coloredFaces.add(hit.faceIndex);
-    } else {
-        // Snapshot which regions still have pixels BEFORE erasing
-        const regionsBefore = currentInstance.regionPixelMap
-            ? new Set(Object.keys(currentInstance.regionPixelMap))
-            : new Set();
-
-        eraseFromRegionMap(hit, currentInstance, AppState.brushRadius);
-
-        // Find regions that were fully cleared by this erase stroke
-        const regionsAfter = currentInstance.regionPixelMap
-            ? new Set(Object.keys(currentInstance.regionPixelMap))
-            : new Set();
-
-        const clearedRegions = new Set();
-        for (const region of regionsBefore) {
-            if (!regionsAfter.has(region)) {
-                clearedRegions.add(region);
-            }
-        }
-
-        // Remove face indices belonging to fully-cleared regions
-        if (clearedRegions.size > 0 && currentInstance.coloredFaces && AppState.faceRegionMap) {
-            for (const faceIdx of currentInstance.coloredFaces) {
-                const faceRegion = AppState.faceRegionMap.get(faceIdx);
-                if (faceRegion && clearedRegions.has(faceRegion)) {
-                    currentInstance.coloredFaces.delete(faceIdx);
-                }
-            }
-        }
-
-        // Always remove the directly-hit face as before
-        if (currentInstance.coloredFaces) {
-            currentInstance.coloredFaces.delete(hit.faceIndex);
-        }
-    }
-
-    texture.needsUpdate = true;
+    currentInstance.texture.needsUpdate = true;
 }

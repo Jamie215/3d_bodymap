@@ -18,7 +18,7 @@ The application guides patients through a multi-step workflow:
 ## Core Capabilities
 
 - **UV-based drawing** on a 3D mesh with 315 anatomical regions defined as Blender vertex groups
-- **Real-time coverage calculation** using 3D triangle surface area (cross-product method), avoiding UV density bias
+- **Coverage measured from what is actually painted**: every painted texture pixel is traced back to its mesh triangle and weighted by that triangle's real 3D surface area, so brush size, the edges of the brush, and erasing are all counted, and uneven texture stretch (UV density) doesn't bias the result
 - **Intelligent camera positioning** that reads anatomical naming conventions (anterior/posterior, medial/lateral) to determine optimal viewing angles
 - **Region visibility filtering** via a custom GPU shader that hides non-selected body parts when focusing on limbs
 - **Mirrored drawing at the body centerline** so strokes near the midline seam appear on both sides
@@ -117,14 +117,14 @@ No build process required — the application runs directly in a modern browser 
 │   │   ├── idleTimer.js            Inactivity watchdog — resets the session on shared devices
 │   │   ├── orientationAnalyzer.js  Region → viewing direction classification
 │   │   ├── orbitOffsets.js         Per-region camera orbit adjustments
+│   │   ├── paintedArea.js          Brush shape + painted-area maths (pure, unit-tested)
 │   │   ├── regionHierarchy.js      Region hierarchy data + mapping functions
 │   │   ├── regionMapBuilder.js     Auto-generates camera regionMap from vertex groups
-│   │   ├── regionTracker.js        Pixel-level region tracking for draw/erase
 │   │   ├── regionVisibility.js     GPU shader uniform control for region hiding
 │   │   ├── responsiveManager.js    Centralized breakpoint and media query management
 │   │   ├── scene.js                Three.js scene, camera, renderer, controls setup
 │   │   ├── sessionFlags.js         "Show once per session" flags (sessionStorage)
-│   │   └── uvRasterizer.js         UV triangle rasterization and region lookup
+│   │   └── uvRasterizer.js         UV triangle rasterization, region lookup, pixel → triangle map
 │   │
 │   ├── views/                      Stage-specific DOM construction
 │   │   ├── drawingView.js          Drawing stage header, controls, footer, status bar
@@ -161,19 +161,39 @@ The app operates as a finite state machine with five stages, managed by `stageRo
 1. User selects a body region via the region selector modal
 2. Camera focuses on that region; limb isolation shader hides other parts if needed
 3. Pointer events raycast into the 3D mesh → hit UV coordinates
-4. `drawingEngine.js` paints pixels on a 1024×1024 canvas texture
-5. `regionTracker.js` records which anatomical regions have drawn pixels
+4. `drawingEngine.js` paints pixels on a 1024×1024 canvas texture, and records every pixel it paints or erases in the drawing's **painted mask** (one on/off value per texture pixel)
+5. `coverageService.js` measures coverage and the list of drawn regions from that mask whenever they're needed (camera framing, preview, submission) — see [How coverage is measured](#how-coverage-is-measured)
 6. On "Done Drawing," a preview snapshot is generated and the user proceeds to the area survey
+
+### How coverage is measured
+
+Coverage answers "how much of the body (or of each region) did the participant paint?". It is always **real surface area ÷ real surface area**, never a count of pixels or triangles.
+
+- **Painted mask.** Each drawing area keeps a yes/no value for every texture pixel. The brush sets pixels to "painted"; the eraser sets them back. It records exactly what the participant sees.
+- **Pixel → triangle.** The body is made of triangles. Each triangle is unfolded onto the flat texture (its UV footprint). Each texture pixel belongs to the one triangle whose footprint contains the pixel's centre (`buildPixelFaceMap` in `uvRasterizer.js`).
+- **Painted area of a triangle** = its real 3D area × (painted pixels in it ÷ all pixels in it). Triangles smaller than one pixel count fully when the pixel at their centre is painted.
+- **Totals.** Each triangle belongs to one region. Region, body-part and whole-body coloured areas are sums of triangle painted areas; percentages divide by the matching total area. `drawnRegions` lists exactly the regions with painted area above zero.
+
+Because each pixel is weighted by its own triangle's area, it doesn't matter that triangles are small on the hands and face and large on the back, or that some parts are stretched more in the texture.
+
+**Known limits.** A triangle on a region border counts entirely toward one region (decided by its corners), which makes very small regions coarser. Areas use the model's rest shape; the displayed pose deforms some joints slightly (up to about ±10% for a few body parts such as the ankles and shoulders).
 
 ### Data Flow
 
-Each drawing instance owns its own canvas, texture, region tracking, and questionnaire data. When the general questionnaire is completed, `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload (`prepareSubmissionData`).
+Each drawing instance owns its own canvas, texture, painted mask, and questionnaire data. When the general questionnaire is completed, `submissionService.js` composites all instances, captures four-angle snapshots, calculates per-area coverage via `coverageService.js`, and assembles the complete JSON payload (`prepareSubmissionData`).
 
 Once the payload is assembled, `appController.js` hands it to the **persistence seam** — `persistResponse()` in `js/services/responseSink.js`. This is the single point where the two variants diverge: appController itself is variant-agnostic and never references how the response is stored. On this branch the sink submits to the backend; the participant then sees the "All Done" screen.
 
 The backend is **not wired yet** (pending PI decision), so `persistResponse()` is currently an integration-point stub: it logs the payload where the real API call belongs. Wiring the backend is a one-function change — replace the body of `persistResponse()` with the platform's API call and let a rejected promise propagate so the caller surfaces the error and rolls back. The payload assembly (`prepareSubmissionData()`) does not need to change.
 
 The `SubmissionPayload` object (typed in `submissionService.js`) contains a `schemaVersion`, a random non-identifying `sessionId`, session timing, model type, per-area drawings with coverage metrics and questionnaire responses, multi-view snapshots, and general questionnaire data. No device, OS, or browser information is captured — not even a coarse category — as a data-minimization measure.
+
+**Schema versions**
+
+| Version | Change |
+|---|---|
+| `1.1` | Coverage (`coloredArea`, `overallPercentage`, region and body-part breakdowns) and `drawnRegions` are measured from everything painted — see [How coverage is measured](#how-coverage-is-measured). `coloredFaceCount` now means triangles with any painted pixel. |
+| `1.0` | Coverage and `drawnRegions` counted only the point under the centre of the brush ([Jamie215/3d_bodymap#16](https://github.com/Jamie215/3d_bodymap/issues/16)). In test strokes on the real model, small brushes were over-counted (up to about 1.4×) and large brushes heavily under-counted (down to about 0.06×), and regions touched only by the brush edge were missing. **Coverage numbers from 1.0 are not comparable with 1.1.** The saved images are correct in both versions. |
 
 ### Persistence seam (`responseSink.js`)
 
@@ -202,6 +222,22 @@ Both variants implement the same four-function interface, so swapping persistenc
 > the full app locally (including the models), use `wrangler` as described in
 > [DEPLOY.md](./DEPLOY.md#local-development). Everything except the 3D models works
 > under any static server.
+
+## Testing
+
+There is no build step or test framework; the tests are plain Node scripts.
+
+- **Coverage self-test** (no model files needed): checks the painted-area maths against a small made-up mesh with known answers.
+
+  ```bash
+  node tests/selftest-coverage.mjs
+  ```
+
+- **Real-model measurement**: draws scripted strokes at several brush sizes on the real body and compares the app's coverage with the area actually painted on the texture. Needs the model files copied into `models/` (ignored by git) and Playwright with Chromium.
+
+  ```bash
+  node tests/measure-real-model.mjs female
+  ```
 
 ## Questionnaires
 
@@ -235,7 +271,23 @@ Questionnaire content was developed by the CANSpine Team at Western University. 
 - [Font Awesome](https://fontawesome.com/) — Icons (Free tier)
 - [D3.js](https://d3js.org/) — ISC License
 
-### Questionnaires
+### Testing
+
+There is no build step or test framework; the tests are plain Node scripts.
+
+- **Coverage self-test** (no model files needed): checks the painted-area maths against a small made-up mesh with known answers.
+
+  ```bash
+  node tests/selftest-coverage.mjs
+  ```
+
+- **Real-model measurement**: draws scripted strokes at several brush sizes on the real body and compares the app's coverage with the area actually painted on the texture. Needs the model files copied into `models/` (ignored by git) and Playwright with Chromium.
+
+  ```bash
+  node tests/measure-real-model.mjs female
+  ```
+
+## Questionnaires
 
 Questionnaire content was developed by the CANSpine Team at Western University.
 
