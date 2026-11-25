@@ -2,12 +2,21 @@
 // Thin wrapper around Driver.js that runs the guided-tour tooltip sequences.
 // Consumes step definitions from tooltipSteps.js.
 //
-// Tours never start on their own. The participant starts one from the Help
-// panel ("Take a quick tour"), so they can replay it as often as they
-// like. Because nothing runs automatically, there is no "already shown" state
-// to track.
+// Every screen tour can be started (and replayed) from the Help panel
+// ("Take a quick tour"). In the full form (drawings + questionnaires), the
+// drawing and summary tours also start automatically once per session, as in
+// the original app. In drawing-only mode they never start on their own.
+//
+// "Already shown" is kept in sessionStorage (see sessionFlags.js): it survives
+// an accidental page refresh, and endSession() clears it so the next
+// participant sees the tours again.
 
 import { buildDrawingSteps, buildSummarySteps, DRIVER_CONFIG } from './tooltipSteps.js';
+import { hasShown, markShown } from '../utils/sessionFlags.js';
+import { isDrawingOnly } from './studyMode.js';
+
+const DRAWING_TOUR_SHOWN_KEY = 'painSurvey_drawingTooltipsShown';
+const SUMMARY_TOUR_SHOWN_KEY = 'painSurvey_returnTooltipsShown';
 
 /** Step builders for each screen that has a tour, keyed by help context. */
 const TOUR_STEPS = {
@@ -78,4 +87,26 @@ export function runScreenTour(context, delay = 350) {
         return;
     }
     runSequence(buildSteps, delay);
+}
+
+/**
+ * Full form only: run the drawing tour automatically, once per session.
+ * Call after the participant has picked a region on their first visit to the
+ * drawing screen, so the drawing controls are visible.
+ */
+export function runDrawingTourOnce() {
+    if (isDrawingOnly() || hasShown(DRAWING_TOUR_SHOWN_KEY)) return;
+    markShown(DRAWING_TOUR_SHOWN_KEY);
+    runSequence(buildDrawingSteps, 1500);
+}
+
+/**
+ * Full form only: run the summary tour automatically, once per session.
+ * Call when the participant lands on the summary with at least one area and
+ * the general questionnaire not yet submitted.
+ */
+export function runSummaryTourOnce() {
+    if (isDrawingOnly() || hasShown(SUMMARY_TOUR_SHOWN_KEY)) return;
+    markShown(SUMMARY_TOUR_SHOWN_KEY);
+    runSequence(buildSummarySteps, 500);
 }

@@ -9,8 +9,9 @@
 // pointer events on the canvas. Only one accordion item open at a time.
 //
 // Screens with a guided tour (see tooltipRunner.js) get a "Take a quick tour"
-// button above the questions. It is the only way to start a tour —
-// tours never start on their own.
+// button above the questions, so a tour can be replayed at any time. In the
+// full form the drawing and summary tours also start on their own once per
+// session; in drawing-only mode this button is the only way to start one.
 
 import { HELP_CONTENT } from '../../data/helpContent.js';
 import { hasScreenTour, runScreenTour } from '../../app/tooltipRunner.js';
